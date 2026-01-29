@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "19.2.3&deps=react@19.2.3",
-    "react": "19.2.3",
+    "react-dom": "latest",
+    "react": "latest",
     "lucide-react": "0.562.0",
     "marked": "12.0.0",
     "jszip": "3.10.1",
