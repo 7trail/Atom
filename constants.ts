@@ -7,7 +7,7 @@
 
 import { Agent, FileData } from './types';
 
-export const proxy = 'https://corsproxy.io/url?=';
+export const proxy = 'https://corsproxy.io/?url=';
 
 // Detection for Render hosting environment
 export const isRenderHosted = typeof window !== 'undefined' && window.location.hostname.endsWith('onrender.com');
