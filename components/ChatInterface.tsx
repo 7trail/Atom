@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment } from '../types';
 import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity } from 'lucide-react';
@@ -299,7 +301,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
          </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 container mx-auto max-w-5xl pb-24">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 container mx-auto max-w-5xl pb-24">
         {messages.length === 0 && (
           <div className="text-center mt-20">
             <div className="bg-cerebras-900/30 text-cerebras-500 p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 border border-cerebras-500/30">

@@ -18,7 +18,8 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && onImportSkill) {
           const loadedFiles: FileData[] = [];
-          for (const file of Array.from(e.target.files)) {
+          const files = Array.from(e.target.files) as File[];
+          for (const file of files) {
                const text = await file.text();
                loadedFiles.push({
                    name: file.name,

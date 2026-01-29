@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -1189,7 +1191,7 @@ CRITICAL RULES:
   const closeSession = (e: React.MouseEvent, sessionId: string) => { e.stopPropagation(); setSessions(prev => prev.filter(s => s.id !== sessionId)); if (activeView === `session:${sessionId}`) setActiveView('chat'); };
 
   return (
-    <div className="flex h-screen w-full bg-dark-bg text-gray-200 overflow-hidden font-sans relative">
+    <div className="flex h-full w-full bg-dark-bg text-gray-200 overflow-hidden font-sans relative">
       <Settings 
           isOpen={isSettingsOpen} 
           onClose={() => setIsSettingsOpen(false)} 

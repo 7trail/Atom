@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileData } from '../types';
 import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw } from 'lucide-react';
@@ -750,7 +752,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       </div>
       
       <div 
-        className={`flex-1 overflow-y-auto p-2 space-y-1 transition-colors ${isRootDragOver ? 'bg-cerebras-900/10' : ''}`}
+        className={`flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-1 transition-colors ${isRootDragOver ? 'bg-cerebras-900/10' : ''}`}
         onDragOver={handleRootDragOver}
         onDragLeave={() => setIsRootDragOver(false)}
         onDrop={handleRootDrop}
