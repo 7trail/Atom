@@ -821,7 +821,7 @@ CRITICAL RULES:
             role: m.role === 'tool' ? 'user' : m.role as any, // Simple mapping
             content: m.content || (m.toolCalls ? JSON.stringify(m.toolCalls) : "")
         })),
-        { role: 'user', content: "CRITICAL SYSTEM ALERT: Context Limit Reached.\n\nRequired Action: Provide a structured summary to reboot the session.\n\nFormat:\n1. TOTAL OBJECTIVE: (One sentence goal)\n2. COMPLETED: (Bulleted list of major milestones)\n3. CURRENT STATUS: (Where exactly are we?)\n4. NEXT STEPS: (Immediate action items)\n5. KEY DISCOVERIES/HURDLES: (Technical details preserved)" }
+        { role: 'user', content: "CRITICAL SYSTEM ALERT: Context Limit Reached.\n\nRequired Action: Provide a structured summary to reboot the session.\n\nFormat:\n1. TOTAL OBJECTIVE: (One sentence goal)\n2. COMPLETED: (Bulleted list of major milestones)\n3. CURRENT STATUS: Steps that the AI has already taken\n4. NEXT STEPS: The next steps that the AI must take\n5. KEY DISCOVERIES/HURDLES: Important information that must be passed on" }
     ];
 
     try {
@@ -944,7 +944,7 @@ CRITICAL RULES:
 
         const activeTools = TOOL_DEFINITIONS.filter(t => selectedAgent.enabledTools?.includes(t.function.name) && !globalDisabledTools.includes(t.function.name));
 
-        while (keepGoing && loopCount < 50) {
+        while (keepGoing && loopCount < 150) {
             if (agentControlRef.current.stop || agentControlRef.current.pause) break;
             
             // Check if we are waiting (double check for safety)
