@@ -1,0 +1,5 @@
+{
+  "name": "Atom",
+  "description": "An AI-powered development environment capable of writing code, creating files, and rendering web previews.",
+  "requestFramePermissions": []
+}
