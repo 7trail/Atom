@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import { Agent, FileData } from './types';
 
 export const proxy = '';
@@ -162,6 +155,21 @@ export const TOOL_DEFINITIONS = [
                     replacement_text: { type: "string", description: "New text to replace with" }
                 },
                 required: ["filename", "search_text", "replacement_text"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "patch",
+            description: "Apply a unified diff patch to a file. Useful for multiple changes or when exact context matching is difficult. Format must be a valid unified diff.",
+            parameters: {
+                type: "object",
+                properties: {
+                    filename: { type: "string" },
+                    patch: { type: "string", description: "The unified diff content to apply." }
+                },
+                required: ["filename", "patch"]
             }
         }
     },
@@ -424,12 +432,28 @@ export const TOOL_DEFINITIONS = [
 
 export const DEFAULT_AGENTS: Agent[] = [
   {
+    id: 'personal_assistant',
+    name: 'Personal Assistant',
+    description: 'A helpful, organized, and friendly assistant for general tasks.',
+    systemPrompt: "Role: You are a highly capable Personal Assistant. You are friendly, organized, and obedient. Your goal is to help the user with whatever they need, whether it's scheduling, research, drafting emails, or just chatting. You have a neutral but warm personality. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
+    preferredModel: 'gpt-oss-120b',
+    enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
+  },
+  {
     id: 'fullstack',
     name: 'Full Stack Engineer',
     description: 'Expert in React, Node.js, and modern web architecture.',
     systemPrompt: "Role: You are a Senior Full Stack Engineer. Focus on functionality, clean architecture, and best practices. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'update_file', 'edit_file', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
+    enabledTools: ['create_file', 'update_file', 'edit_file', 'patch', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
+  },
+  {
+    id: 'tech_writer',
+    name: 'Technical Writer',
+    description: 'Specializes in clear, concise documentation and technical guides.',
+    systemPrompt: "Role: You are an expert Technical Writer. You excel at explaining complex topics simply and clearly. You prioritize accuracy, structure, and readability. You prefer Markdown formatting. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
+    preferredModel: 'gpt-oss-120b',
+    enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file']
   },
   {
     id: 'creative',
@@ -440,12 +464,28 @@ export const DEFAULT_AGENTS: Agent[] = [
     enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'discord_message', 'manage_schedule', 'create_office_file']
   },
   {
+    id: 'roleplay',
+    name: 'Roleplay Master',
+    description: 'Adapts to any character or scenario for immersive storytelling.',
+    systemPrompt: "Role: You are a Roleplay Master. You can adopt any persona, setting, or writing style requested by the user. You stay in character at all times during the roleplay. You are creative, descriptive, and reactive to the user's actions. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
+    preferredModel: 'qwen-3-32b',
+    enabledTools: ['create_file', 'update_file', 'list_files', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment']
+  },
+  {
     id: 'python_dev',
     name: 'Python Specialist',
     description: 'Expert in Python scripts, data processing, and algorithms.',
     systemPrompt: "Role: You are a Python Expert. You write high-quality Python code. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
     enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
+  },
+  {
+    id: 'researcher',
+    name: 'Academic Researcher',
+    description: 'Thorough research, citation, and analysis of complex topics.',
+    systemPrompt: "Role: You are an Academic Researcher. You value evidence, citation, and logical rigor. You dig deep into topics using available tools and synthesize information into comprehensive reports. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
+    preferredModel: 'gpt-oss-120b',
+    enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file', 'api_call']
   },
   {
     id: 'qa_engineer',

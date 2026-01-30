@@ -30,11 +30,12 @@ export interface SubAgentConfig {
 }
 
 export interface ToolAction {
-  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call';
+  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'patch' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call';
   filename?: string;
   content?: string;
   search_text?: string;
   replacement_text?: string;
+  patch?: string;
   
   // Legacy single sub-agent fields (deprecated but kept for compatibility during transition)
   agentName?: string;
@@ -159,7 +160,8 @@ export type AppModel =
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'qwen/qwen3-235b-a22b'
   | 'qwen/qwen3-coder-480b-a35b-instruct'
-  | 'mistralai/mistral-medium-3-instruct';
+  | 'mistralai/mistral-medium-3-instruct'
+  | 'moonshotai/kimi-k2.5';
 
 export interface Agent {
   id: string;
@@ -193,6 +195,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'qwen/qwen3-235b-a22b',
   'qwen/qwen3-coder-480b-a35b-instruct',
   'mistralai/mistral-medium-3-instruct',
+  'moonshotai/kimi-k2.5'
 ];
 
 export interface SettingsProps {

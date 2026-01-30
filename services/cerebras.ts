@@ -1,5 +1,7 @@
 
 
+
+
 import OpenAI from 'openai';
 import { Attachment } from '../types';
 import {proxy} from '../constants';
@@ -135,7 +137,7 @@ export async function chatCompletion(
   const optimizedMessages = optimizeMessages(messages);
 
   // --- Nvidia OpenAI Path ---
-  if (model.startsWith('nvidia/') || model.startsWith("minimaxai/") || model.startsWith("qwen/") || model.startsWith("mistralai/") || model.startsWith("z-ai/")) {
+  if (model.includes("/")) {
     const nvidiaKeys = getNvidiaApiKeys();
     // Use stored key
     const apiKey = nvidiaKeys.length > 0 ? nvidiaKeys[0] : null;
@@ -167,8 +169,10 @@ export async function chatCompletion(
             // Deep copy messages to avoid mutating the original
             let processedMessages = JSON.parse(JSON.stringify(optimizedMessages));
 
-            // --- Model Specific Handling for Nemotron VL ---
-            if (model === 'nvidia/nemotron-nano-12b-v2-vl') {
+            // --- Model Specific Handling for Multimodal Models ---
+            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5';
+            
+            if (isMultimodal) {
                 const lastUserMsgIndex = processedMessages.findLastIndex((m: any) => m.role === 'user');
                 
                 if (lastUserMsgIndex !== -1 && attachments && attachments.length > 0) {
@@ -193,18 +197,20 @@ export async function chatCompletion(
                     
                     processedMessages[lastUserMsgIndex].content = newContent;
 
-                    // Adjust system prompt based on video presence
-                    const systemMsgIndex = processedMessages.findIndex((m: any) => m.role === 'system');
-                    const desiredSystemContent = hasVideo ? "/no_think" : "/think";
-                    
-                    if (systemMsgIndex !== -1) {
-                        // Override existing system prompt for this specific model call logic
-                        processedMessages[systemMsgIndex].content = desiredSystemContent;
-                    } else {
-                        processedMessages.unshift({ role: "system", content: desiredSystemContent });
+                    // Adjust system prompt based on video presence (Nemotron specific)
+                    if (model === 'nvidia/nemotron-nano-12b-v2-vl') {
+                        const systemMsgIndex = processedMessages.findIndex((m: any) => m.role === 'system');
+                        const desiredSystemContent = hasVideo ? "/no_think" : "/think";
+                        
+                        if (systemMsgIndex !== -1) {
+                            // Override existing system prompt for this specific model call logic
+                            processedMessages[systemMsgIndex].content = desiredSystemContent;
+                        } else {
+                            processedMessages.unshift({ role: "system", content: desiredSystemContent });
+                        }
                     }
-                } else if (!processedMessages.find((m:any) => m.role === 'system')) {
-                    // Default to /think if no system prompt and no video
+                } else if (model === 'nvidia/nemotron-nano-12b-v2-vl' && !processedMessages.find((m:any) => m.role === 'system')) {
+                    // Default to /think if no system prompt and no video for Nemotron
                     processedMessages.unshift({ role: "system", content: "/think" });
                 }
             }

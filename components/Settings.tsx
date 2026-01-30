@@ -16,6 +16,7 @@ const GLOBAL_TOOLS_LIST = [
     { id: 'call_sub_agent', label: 'Sub-Agents', desc: 'Delegate tasks to other agents.' },
     { id: 'download_image', label: 'Download Image', desc: 'Save images from URLs.' },
     { id: 'create_file', label: 'File Operations', desc: 'Create/Edit files (Core).' },
+    { id: 'patch', label: 'Patch File', desc: 'Apply unified diffs.' },
     { id: 'discord_message', label: 'Discord', desc: 'Send DMs via Discord.', restricted: true },
     { id: 'manage_schedule', label: 'Scheduler', desc: 'Create recurring/scheduled tasks.' },
     { id: 'api_call', label: 'HTTP API Client', desc: 'Make GET/POST requests to external APIs.' },
@@ -540,48 +541,5 @@ const Settings: React.FC<SettingsProps> = ({
     </div>
   );
 };
-
-export const DEFAULT_AGENTS: Agent[] = [
-  {
-    id: 'fullstack',
-    name: 'Full Stack Engineer',
-    description: 'Expert in React, Node.js, and modern web architecture.',
-    systemPrompt: "Role: You are a Senior Full Stack Engineer. Focus on functionality, clean architecture, and best practices. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'update_file', 'edit_file', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
-  },
-  {
-    id: 'creative',
-    name: 'Creative Writer',
-    description: 'Specializes in content creation, storytelling, and markdown.',
-    systemPrompt: "Role: You are a Creative Writer. Focus on engaging copy, clear documentation, and storytelling. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'qwen-3-32b',
-    enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'discord_message', 'manage_schedule', 'create_office_file']
-  },
-  {
-    id: 'python_dev',
-    name: 'Python Specialist',
-    description: 'Expert in Python scripts, data processing, and algorithms.',
-    systemPrompt: "Role: You are a Python Expert. You write high-quality Python code. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
-  },
-  {
-    id: 'qa_engineer',
-    name: 'QA Engineer',
-    description: 'Validates code, checks for bugs, and creates test plans.',
-    systemPrompt: "Role: You are a QA Engineer. You create .md reports as needed. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'zai-glm-4.7',
-    enabledTools: ['create_file', 'update_file', 'list_files', 'fetch_url', 'ask_question', 'run_terminal_command', 'start_browser_session', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
-  },
-  {
-    id: 'product_manager',
-    name: 'Product Manager',
-    description: 'Breaks down complex requirements into actionable plans.',
-    systemPrompt: "Role: You are a Product Manager. You think about user experience, requirements, and project structure. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'update_file', 'list_files', 'google_search', 'ask_question', 'spawn_agents', 'call_sub_agent', 'analyze_media', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
-  }
-];
 
 export default Settings;

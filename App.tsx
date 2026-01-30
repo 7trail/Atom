@@ -3,6 +3,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -133,7 +135,13 @@ const App: React.FC = () => {
   }, [schedules, fileSystemType]);
 
   const [browserSessions, setBrowserSessions] = useState<BrowserSessionInfo[]>([]);
-  const [theme, setTheme] = useState('default');
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem('atom_theme') || 'default';
+    }
+    return 'default';
+  });
+
   const [toasts, setToasts] = useState<string[]>([]);
   
   const [globalDisabledTools, setGlobalDisabledTools] = useState<string[]>(() => {
@@ -379,7 +387,12 @@ const App: React.FC = () => {
       }
   };
 
-  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+  useEffect(() => { 
+      if (typeof window !== 'undefined') {
+          localStorage.setItem('atom_theme', theme);
+      }
+      document.documentElement.setAttribute('data-theme', theme); 
+  }, [theme]);
 
   const agentControlRef = useRef<{ stop: boolean, pause: boolean }>({ stop: false, pause: false });
   const [isPaused, setIsPaused] = useState(false);
@@ -730,7 +743,7 @@ CRITICAL RULES:
                             filesRef.current = fileRes.newFiles;
                             result = `Image created`;
                         } else result = "Failed to generate.";
-                    } else if (['create_file', 'update_file', 'edit_file'].includes(fnName)) {
+                    } else if (['create_file', 'update_file', 'edit_file', 'patch'].includes(fnName)) {
                          const fileRes = applyFileAction({ action: fnName as any, ...args }, filesRef.current);
                          setFiles(fileRes.newFiles);
                          filesRef.current = fileRes.newFiles;
@@ -821,7 +834,7 @@ CRITICAL RULES:
             role: m.role === 'tool' ? 'user' : m.role as any, // Simple mapping
             content: m.content || (m.toolCalls ? JSON.stringify(m.toolCalls) : "")
         })),
-        { role: 'user', content: "CRITICAL SYSTEM ALERT: Context Limit Reached.\n\nRequired Action: Provide a structured summary to reboot the session.\n\nFormat:\n1. TOTAL OBJECTIVE: (One sentence goal)\n2. COMPLETED: (Bulleted list of major milestones)\n3. CURRENT STATUS: Steps that the AI has already taken\n4. NEXT STEPS: The next steps that the AI must take\n5. KEY DISCOVERIES/HURDLES: Important information that must be passed on" }
+        { role: 'user', content: "CRITICAL SYSTEM ALERT: Context Limit Reached.\n\nRequired Action: Provide a lengthy, thorough, but structured summary to reboot the session.\n\nFormat:\n1. TOTAL OBJECTIVE: (One sentence goal)\n2. COMPLETED: (Bulleted list of major milestones)\n3. CURRENT STATUS: Steps that the AI has already taken\n4. NEXT STEPS: The next steps that the AI must take\n5. KEY DISCOVERIES/HURDLES: Important information that must be passed on" }
     ];
 
     try {
@@ -1067,7 +1080,7 @@ CRITICAL RULES:
                              result = await runTerminalCommand(args.command, localPathRef.current, args.input);
                              setActiveView('chat');
                          }
-                    } else if (fnName === 'create_file' || fnName === 'update_file' || fnName === 'edit_file') {
+                    } else if (fnName === 'create_file' || fnName === 'update_file' || fnName === 'edit_file' || fnName === 'patch') {
                         const fileRes = applyFileAction({ action: fnName as any, ...args }, filesRef.current, true); 
                         setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result;
                     } else if (fnName === 'google_search') {

@@ -3,6 +3,8 @@
 
 
 
+
+
 import React, { useState } from 'react';
 import { Agent, AppModel, SUPPORTED_MODELS } from '../types';
 import { X, Plus, Bot, CheckSquare, Square } from 'lucide-react';
@@ -17,6 +19,7 @@ const AVAILABLE_TOOLS = [
     { id: 'create_file', label: 'Create Files' },
     { id: 'update_file', label: 'Update Files' },
     { id: 'edit_file', label: 'Edit Files (Patch)' },
+    { id: 'patch', label: 'Apply Diff Patch' },
     { id: 'google_search', label: 'Google Search' },
     { id: 'fetch_url', label: 'Fetch URL Content' },
     { id: 'list_files', label: 'List Files' },

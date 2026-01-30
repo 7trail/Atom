@@ -1,7 +1,10 @@
+
+
 import { useState, useRef, useEffect } from 'react';
 import { FileData, ToolAction } from '../types';
 import { readLocalDirectory, writeLocalFile, deleteLocalFile, createLocalFolder, renameLocalFile, verifyPermission } from '../services/fileSystem';
 import { INITIAL_FILE, DEMO_PLAN } from '../constants';
+import * as Diff from 'diff';
 
 export const useFileSystem = () => {
     const [files, setFiles] = useState<FileData[]>([INITIAL_FILE, DEMO_PLAN]);
@@ -286,6 +289,29 @@ export const useFileSystem = () => {
                 }
                 return f;
             });
+        } else if (action.action === 'patch' && action.filename && action.patch) {
+            newFiles = newFiles.map(f => {
+                if (f.name === action.filename) {
+                    try {
+                        const patchedContent = Diff.applyPatch(f.content, action.patch);
+                        if (patchedContent === false) {
+                            result = `Error: Failed to apply patch to ${action.filename}. Hunks may not match.`;
+                        } else {
+                            pushHistory(f);
+                            modifiedFile = { ...f, content: patchedContent, history: f.history, unsaved: !isAutoSave };
+                            result = `Patched ${action.filename}`;
+                            if (isAutoSave) syncFileToDisk(action.filename, patchedContent);
+                            return modifiedFile;
+                        }
+                    } catch (e: any) {
+                        result = `Error applying patch: ${e.message}`;
+                    }
+                }
+                return f;
+            });
+            if (!modifiedFile && !result.startsWith('Error')) {
+                result = `Error: File ${action.filename} not found for patching.`;
+            }
         }
         return { newFiles, modifiedFile, result };
     };
