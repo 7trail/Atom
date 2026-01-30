@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -997,6 +990,14 @@ CRITICAL RULES:
             // --- CONTEXT LIMIT HANDLING ---
             if (completion?.choices?.[0]?.message?.content) {
                 const responseContent = completion.choices[0].message.content;
+
+                // Debug logging for malformed/empty request body errors
+                if (responseContent.includes("System Error") && (responseContent.toLowerCase().includes("request body") || responseContent.toLowerCase().includes("empty"))) {
+                     console.error("DEBUG: Form request body is empty error detected");
+                     console.log("DEBUG: Full Chat Contents:", JSON.parse(JSON.stringify(apiLoopMessages)));
+                     console.log("DEBUG: Full API Response:", completion);
+                }
+
                 if (responseContent.includes("System Error") && (responseContent.includes("400") || responseContent.includes("context length") || responseContent.includes("token"))) {
                     await attemptContextReset(messagesRef.current);
                     return; // Exit current loop, reset handles resumption
