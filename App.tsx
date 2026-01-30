@@ -61,7 +61,7 @@ const App: React.FC = () => {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   
   // Streaming Debug State
-  const [streamMetrics, setStreamMetrics] = useState<{ totalWords: number, lastTokens: string } | null>(null);
+  const [streamMetrics, setStreamMetrics] = useState<{ totalWords: number, lastTokens: string, latestChunk: string } | null>(null);
   const [showStreamDebug, setShowStreamDebug] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
         return localStorage.getItem('atom_show_stream_debug') === 'true';
@@ -968,10 +968,14 @@ CRITICAL RULES:
                      const currentTotal = prev?.totalWords || 0;
                      const currentTokens = prev?.lastTokens || "";
                      
-                     // Keep roughly last 50 chars for display
-                     const newTokens = (currentTokens + chunk).slice(-50);
+                     // Keep roughly last 500 chars for display (increased context)
+                     const newTokens = (currentTokens + chunk).slice(-500);
                      
-                     return { totalWords: currentTotal + wordCount, lastTokens: newTokens };
+                     return { 
+                        totalWords: currentTotal + wordCount, 
+                        lastTokens: newTokens,
+                        latestChunk: chunk 
+                     };
                 });
             };
 

@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment } from '../types';
 import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity } from 'lucide-react';
@@ -29,7 +25,7 @@ interface ChatInterfaceProps {
   setInput: (val: string) => void;
   attachments: Attachment[];
   setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
-  streamMetrics: { totalWords: number; lastTokens: string } | null;
+  streamMetrics: { totalWords: number; lastTokens: string; latestChunk: string } | null;
   showStreamDebug?: boolean;
 }
 
@@ -386,12 +382,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         <span className="text-xs text-gray-500 font-medium">Thinking...</span>
                     </div>
                     {showStreamDebug && streamMetrics && (
-                        <div className="mt-2 pt-2 border-t border-white/5 text-[10px] font-mono text-gray-500">
-                             <div className="opacity-75 break-all leading-relaxed whitespace-pre-wrap">
-                                {streamMetrics.lastTokens || '...'}
+                        <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in">
+                             <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                                <span className="font-mono uppercase tracking-wider font-bold text-cerebras-500">Stream Debug</span>
+                                <span>{streamMetrics.totalWords} w</span>
                              </div>
-                             <div className="mt-1 text-cerebras-500/50 text-[9px] uppercase tracking-wider font-bold">
-                                {streamMetrics.totalWords} words generated
+                             <div className="font-mono text-[10px] text-green-400 bg-black rounded p-2 border border-green-900/30 shadow-inner min-w-[200px] overflow-hidden relative">
+                                 <div className="break-all whitespace-pre-wrap">
+                                    <span className="opacity-50 text-gray-500">{streamMetrics.lastTokens.slice(0, -streamMetrics.latestChunk.length)}</span>
+                                    <span className="text-white bg-green-900/50">{streamMetrics.latestChunk}</span>
+                                    <span className="animate-pulse inline-block w-1.5 h-3 bg-green-500 ml-0.5 align-middle"></span>
+                                 </div>
                              </div>
                         </div>
                     )}
