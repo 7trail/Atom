@@ -78,6 +78,21 @@ YOUR CORE CAPABILITIES:
      * Image Props: Use the JSON structure to define x, y, w, h, rotate, transparency, shadow, link, etc.\n`;
 
     header += `
+    
+    RULES FOR FILE EDITS
+    You can use create_file to create new files.
+    You can use update_file to replace an existing file's FULL contents. This is best if you are making large edits or want to rewrite smaller files completely.
+    For a more targeted edit, use edit_file. Edit_file allows you to replace a portion of the file with a different portion. The search_text must EXACTLY match a portion of the original content.
+    
+    `;
+
+    if (!disabledTools.includes('patch')) {
+        header += `PATCH: You have access to the patch tool, allowing you to write a unified diff to modify files more surgically. You can use this to make targeted edits to files or 'inject' new contents into them.`;
+    }
+
+
+
+    header += `
 ENVIRONMENT RULES:
 1. FILESYSTEM: You are working in a persistent virtual file system.
 2. CLIENT-SIDE ONLY: You can only build client-side web apps. No server-side Node.js/Python runtime unless you use 'run_terminal_command' in Local Mode.
@@ -92,6 +107,7 @@ MEDIA & ATTACHMENTS:
 1. Text files (.txt, .md, .js, etc.) attached by the user are automatically parsed and added to your context.
 `;
 
+    
     if (!disabledTools.includes('analyze_media')) {
         header += `2. Images and Videos are NOT automatically seen. You must use the 'analyze_media' tool to understand them.\n`;
     }

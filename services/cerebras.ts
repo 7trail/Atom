@@ -218,8 +218,8 @@ export async function chatCompletion(
             const params: any = {
                 model: model,
                 messages: processedMessages,
-                temperature: 0.75,
-                top_p: 1,
+                temperature: 1,
+                top_p: 0.95,
                 max_tokens: 16384,
                 stream: true, // Enable Streaming
                 stream_options: { include_usage: true }
