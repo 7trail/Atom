@@ -991,20 +991,21 @@ CRITICAL RULES:
             // Clear metrics after completion of a turn
             setStreamMetrics(null);
 
-            // --- CONTEXT LIMIT HANDLING ---
+            // --- ERROR HANDLING & RETRY ---
             if (completion?.choices?.[0]?.message?.content) {
                 const responseContent = completion.choices[0].message.content;
 
-                // Debug logging for malformed/empty request body errors
-                if (responseContent.includes("System Error") && (responseContent.toLowerCase().includes("request body") || responseContent.toLowerCase().includes("empty"))) {
-                     console.error("DEBUG: Form request body is empty error detected");
-                     console.log("DEBUG: Full Chat Contents:", JSON.parse(JSON.stringify(apiLoopMessages)));
-                     console.log("DEBUG: Full API Response:", completion);
-                }
-
-                if (responseContent.includes("System Error") && (responseContent.includes("400") || responseContent.includes("context length") || responseContent.includes("token"))) {
-                    await attemptContextReset(messagesRef.current);
-                    return; // Exit current loop, reset handles resumption
+                if (responseContent.includes("System Error")) {
+                     // Check for Context Window Exceeded specifically - only reset for this
+                     if (responseContent.toLowerCase().includes("context length") || responseContent.toLowerCase().includes("token limit")) {
+                         await attemptContextReset(messagesRef.current);
+                         return;
+                     }
+                     
+                     // For all other system errors (malformed, network, etc), ignore and retry
+                     console.warn("System Error detected, retrying turn...", responseContent);
+                     await delay(2000);
+                     continue;
                 }
             }
 
