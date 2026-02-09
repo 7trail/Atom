@@ -162,7 +162,8 @@ export type AppModel =
   | 'qwen/qwen3-coder-480b-a35b-instruct'
   | 'mistralai/mistral-medium-3-instruct'
   | 'moonshotai/kimi-k2.5'
-  | 'stepfun-ai/step-3.5-flash';
+  | 'stepfun-ai/step-3.5-flash'
+  | 'minimaxai/minimax-m2.1';
 
 export interface Agent {
   id: string;
@@ -197,7 +198,8 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'qwen/qwen3-coder-480b-a35b-instruct',
   'mistralai/mistral-medium-3-instruct',
   'moonshotai/kimi-k2.5',
-  'stepfun-ai/step-3.5-flash'
+  'stepfun-ai/step-3.5-flash',
+  'minimaxai/minimax-m2.1'
 ];
 
 export interface SettingsProps {
