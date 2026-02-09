@@ -947,6 +947,7 @@ CRITICAL RULES:
         let keepGoing = true, loopCount = 0;
         let lastToolSig = "";
         let repetitionCount = 0;
+        let retryCount = 0;
 
         const activeTools = TOOL_DEFINITIONS.filter(t => selectedAgent.enabledTools?.includes(t.function.name) && !globalDisabledTools.includes(t.function.name));
 
@@ -1002,12 +1003,43 @@ CRITICAL RULES:
                          return;
                      }
                      
-                     // For all other system errors (malformed, network, etc), ignore and retry
-                     console.warn("System Error detected, retrying turn...", responseContent);
-                     await delay(2000);
-                     continue;
+                     console.warn(`System Error (Attempt ${retryCount + 1}):`, responseContent);
+                     retryCount++;
+
+                     if (retryCount === 1) {
+                         // Attempt 1: Sanitize History
+                         // Remove invalid tool calls or tool results that might confuse the model
+                         apiLoopMessages = apiLoopMessages.map(msg => {
+                             if (msg.role === 'assistant' && msg.tool_calls) {
+                                 // Filter out tool calls that are obviously broken (missing id or name)
+                                 const validTools = msg.tool_calls.filter((tc: any) => tc.id && tc.function && tc.function.name);
+                                 return {
+                                     ...msg,
+                                     tool_calls: validTools.length > 0 ? validTools : undefined
+                                 };
+                             }
+                             return msg;
+                         });
+                         addToast("⚠️ API Error. Retrying with sanitized history...");
+                         await delay(2000);
+                         continue;
+                     } else if (retryCount === 2) {
+                         // Attempt 2: Inject "Continue"
+                         // Sometimes the model got stuck or returned partial JSON. Prompting "Continue" or "Retry" helps.
+                         apiLoopMessages.push({ role: 'user', content: "Previous request failed. Please continue." });
+                         addToast("⚠️ API Error. Injecting 'Continue'...");
+                         await delay(2000);
+                         continue;
+                     } else {
+                         // Give up
+                         setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Permanent System Error: ${responseContent}`, timestamp: Date.now() }]);
+                         break;
+                     }
                 }
             }
+
+            // Success case - reset retry count
+            retryCount = 0;
 
             if (!completion?.choices?.[0]) break;
             const message = completion.choices[0].message;
