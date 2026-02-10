@@ -1004,6 +1004,41 @@ CRITICAL RULES:
                          return;
                      }
                      
+                     // Handle 400 Errors (Malformed Tool Calls)
+                     if (responseContent.includes("400")) {
+                        console.warn("400 Error detected - Rewinding last turn and retrying");
+                        
+                        // 1. Rewind API History
+                        while (apiLoopMessages.length > 0) {
+                             const last = apiLoopMessages[apiLoopMessages.length - 1];
+                             if (last.role === 'tool' || last.role === 'assistant') {
+                                 apiLoopMessages.pop();
+                                 if (last.role === 'assistant') break; 
+                             } else {
+                                 break;
+                             }
+                        }
+
+                        // 2. Rewind UI History
+                        setMessages(prev => {
+                             const newMsgs = [...prev];
+                             while(newMsgs.length > 0) {
+                                 const last = newMsgs[newMsgs.length - 1];
+                                 if (last.role === 'tool' || last.role === 'assistant') {
+                                     newMsgs.pop();
+                                     if (last.role === 'assistant') break; 
+                                 } else {
+                                     break;
+                                 }
+                             }
+                             return newMsgs;
+                        });
+
+                        addToast("⚠️ AI Error (400). Retrying...");
+                        await delay(1000);
+                        continue;
+                     }
+
                      console.warn(`System Error (Attempt ${retryCount + 1}):`, responseContent);
                      retryCount++;
 
