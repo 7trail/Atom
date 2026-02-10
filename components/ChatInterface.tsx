@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment } from '../types';
 import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity } from 'lucide-react';
@@ -70,6 +71,10 @@ const ToolCallDisplay: React.FC<{ tool: ToolAction }> = ({ tool }) => {
 const ToolResultDisplay: React.FC<{ name?: string, content: string }> = ({ name, content }) => {
     const [isOpen, setIsOpen] = useState(false);
     const useMarkdown = name === 'browser_action';
+    
+    // Detect image content: Data URI or URL from image tools
+    const isImage = content.startsWith('data:image') || 
+                    ((name === 'generate_image' || name === 'download_image') && content.match(/^https?:\/\/.+/i));
 
     return (
         <div className="bg-green-900/10 rounded border border-green-500/20 overflow-hidden w-full text-xs mb-1">
@@ -83,10 +88,10 @@ const ToolResultDisplay: React.FC<{ name?: string, content: string }> = ({ name,
             </button>
             {isOpen && (
                 <div className="p-2 border-t border-green-500/10 bg-black/40 overflow-x-auto">
-                    {content.startsWith('data:image') ? (
+                    {isImage ? (
                         <div className="flex flex-col gap-2">
-                             <img src={content} alt="Generated" className="max-w-full h-auto rounded border border-white/10" />
-                             <span className="text-[10px] text-gray-500 italic">Image generated and saved to filesystem.</span>
+                             <img src={content} alt="Result" className="max-w-full h-auto rounded border border-white/10" />
+                             <span className="text-[10px] text-gray-500 italic">Image output from {name}</span>
                         </div>
                     ) : useMarkdown ? (
                         <div className="markdown-body !bg-transparent !text-inherit !p-0 overflow-x-auto max-w-full text-gray-300">
@@ -246,7 +251,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-dark-bg text-gray-200 w-full relative">
+    <div className="flex flex-col h-full bg-dark-bg text-dark-text w-full relative">
       <AgentCreator isOpen={isCreatorOpen} onClose={() => setIsCreatorOpen(false)} onSave={onAddAgent} />
 
       <div className="p-4 border-b border-dark-border bg-dark-panel">
@@ -263,7 +268,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         </div>
                     </div>
                     <div className="relative">
-                        <select value={selectedAgent.id} onChange={(e) => onAgentChange(e.target.value)} className="w-full bg-dark-bg border border-dark-border text-gray-300 text-xs rounded p-2 focus:outline-none focus:border-cerebras-500 appearance-none">
+                        <select value={selectedAgent.id} onChange={(e) => onAgentChange(e.target.value)} className="w-full bg-dark-bg border border-dark-border text-dark-text text-xs rounded p-2 focus:outline-none focus:border-cerebras-500 appearance-none">
                             {availableAgents.map(agent => (
                                 <option key={agent.id} value={agent.id}>{agent.name} {agent.isCustom ? '(Custom)' : ''}</option>
                             ))}
@@ -273,7 +278,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
                 <div className="flex-1 min-w-[150px] flex flex-col gap-1">
                     <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Model</label>
-                    <select value={selectedModel} onChange={(e) => onModelChange(e.target.value as AppModel)} className="w-full bg-dark-bg border border-dark-border text-gray-300 text-xs rounded p-2 focus:outline-none focus:border-cerebras-500">
+                    <select value={selectedModel} onChange={(e) => onModelChange(e.target.value as AppModel)} className="w-full bg-dark-bg border border-dark-border text-dark-text text-xs rounded p-2 focus:outline-none focus:border-cerebras-500">
                         {SUPPORTED_MODELS.map(model => (
                             <option key={model} value={model}>{model}</option>
                         ))}
@@ -292,7 +297,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     </button>
                  </div>
                  <button onClick={onClearChat} className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded hover:bg-white/5" title="Clear Chat"><Eraser className="w-4 h-4" /></button>
-                 <button onClick={onOpenSettings} className="text-gray-400 hover:text-white transition-colors p-2 rounded hover:bg-white/5" title="Settings"><SettingsIcon className="w-4 h-4" /></button>
+                 <button onClick={onOpenSettings} className="text-gray-400 hover:text-dark-text transition-colors p-2 rounded hover:bg-white/5" title="Settings"><SettingsIcon className="w-4 h-4" /></button>
             </div>
          </div>
       </div>
@@ -303,7 +308,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="bg-cerebras-900/30 text-cerebras-500 p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 border border-cerebras-500/30">
                 <Bot className="w-10 h-10" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-200 mb-2">{selectedAgent.name}</h2>
+            <h2 className="text-2xl font-bold text-dark-text mb-2">{selectedAgent.name}</h2>
             <p className="text-gray-500 text-sm max-w-md mx-auto">{selectedAgent.description}</p>
           </div>
         )}
@@ -341,7 +346,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                     {msg.role !== 'tool' && (displayContent || (msg.attachments && msg.attachments.length > 0)) && (
                         <div className={`group relative rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 text-sm shadow-sm max-w-full overflow-hidden break-words ${
-                        msg.role === 'user' ? 'bg-cerebras-600 text-white' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-gray-300 border border-dark-border'
+                        msg.role === 'user' ? 'bg-cerebras-600 text-white' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-dark-text border border-dark-border'
                         }`}>
                             {msg.role === 'user' && msg.attachments && msg.attachments.length > 0 && (
                                 <div className="mb-2 flex flex-wrap">
@@ -429,7 +434,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                      )}
                  </div>
                  
-                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={isPaused ? "Agent is paused. Type to resume..." : `Message ${selectedAgent.name}...`} className="flex-1 bg-transparent text-gray-200 text-sm focus:outline-none placeholder-gray-600 resize-none py-2.5 max-h-[150px]" disabled={isLoading && !isPaused} rows={1} />
+                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={isPaused ? "Agent is paused. Type to resume..." : `Message ${selectedAgent.name}...`} className="flex-1 bg-transparent text-dark-text text-sm focus:outline-none placeholder-gray-600 resize-none py-2.5 max-h-[150px]" disabled={isLoading && !isPaused} rows={1} />
                 <button type="submit" disabled={(!input.trim() && pendingAttachments.length === 0) || (isLoading && !isPaused)} className="p-2 bg-cerebras-600 text-white rounded-lg hover:bg-cerebras-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mb-0.5">{isPaused ? <PlayCircle className="w-5 h-5" /> : <Send className="w-5 h-5" />}</button>
             </div>
             </form>

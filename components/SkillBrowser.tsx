@@ -42,14 +42,14 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
   };
 
   return (
-    <div className="flex flex-col h-full bg-dark-bg text-gray-200">
+    <div className="flex flex-col h-full bg-dark-bg text-dark-text">
       <div className="p-6 border-b border-dark-border bg-dark-panel flex justify-between items-end">
         <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded bg-amber-900/30 flex items-center justify-center text-amber-400">
                 <BrainCircuit className="w-6 h-6" />
             </div>
             <div>
-                <h2 className="text-xl font-bold text-white">Skill Browser</h2>
+                <h2 className="text-xl font-bold text-dark-text">Skill Browser</h2>
                 <p className="text-sm text-gray-400">Enhance agent capabilities with modular skills</p>
             </div>
         </div>
@@ -100,7 +100,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
                                 {skill.emoji || '📦'}
                              </div>
                              <div>
-                                <div className="font-bold text-white flex items-center gap-2">
+                                <div className="font-bold text-dark-text flex items-center gap-2">
                                     {skill.name}
                                     {isEnabled && <span className="text-[10px] bg-green-900/30 text-green-400 px-1.5 py-0.5 rounded border border-green-800/50 uppercase">Active</span>}
                                     <div className="ml-2 bg-black/30 rounded px-1.5 py-0.5 flex items-center gap-1 border border-white/5" title={`Source: ${skill.source}`}>
@@ -137,7 +137,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
 
                            <button 
                              onClick={() => setExpandedId(isExpanded ? null : skill.id)}
-                             className="p-2 rounded hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+                             className="p-2 rounded hover:bg-white/5 text-gray-500 hover:text-dark-text transition-colors"
                            >
                              {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                            </button>

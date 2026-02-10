@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ScheduledEvent, Agent } from '../types';
 import { Clock, Calendar, Repeat, Trash2, Power, PlayCircle, Bot } from 'lucide-react';
@@ -27,14 +26,14 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({ schedules, agents, on
   };
 
   return (
-    <div className="flex flex-col h-full bg-dark-bg text-gray-200">
+    <div className="flex flex-col h-full bg-dark-bg text-dark-text">
        <div className="p-6 border-b border-dark-border bg-dark-panel">
             <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded bg-green-900/30 flex items-center justify-center text-green-400">
                     <Clock className="w-6 h-6" />
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold text-white">Schedules</h2>
+                    <h2 className="text-xl font-bold text-dark-text">Schedules</h2>
                     <p className="text-sm text-gray-400">Automated triggers and recurring tasks ({timezone})</p>
                 </div>
             </div>
@@ -58,7 +57,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({ schedules, agents, on
                                    {schedule.type === 'cron' ? <Repeat className="w-5 h-5" /> : <Calendar className="w-5 h-5" />}
                                </div>
                                <div className="flex-1 min-w-0">
-                                   <div className="font-semibold text-white mb-1 truncate">{schedule.prompt}</div>
+                                   <div className="font-semibold text-dark-text mb-1 truncate">{schedule.prompt}</div>
                                    <div className="text-xs text-gray-400 font-mono mb-3">
                                        {schedule.type === 'cron' ? getCronDescription(schedule.schedule) : formatDate(schedule.schedule)}
                                    </div>
@@ -81,7 +80,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({ schedules, agents, on
                                                 className="bg-transparent border-none text-gray-300 focus:outline-none cursor-pointer hover:text-white"
                                            >
                                                 {agents.map(a => (
-                                                    <option key={a.id} value={a.id} className="bg-dark-bg">{a.name}</option>
+                                                    <option key={a.id} value={a.id} className="bg-dark-bg text-dark-text">{a.name}</option>
                                                 ))}
                                            </select>
                                        </div>

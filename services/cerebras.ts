@@ -1,7 +1,4 @@
 
-
-
-
 import OpenAI from 'openai';
 import { Attachment } from '../types';
 import {proxy} from '../constants';
@@ -88,29 +85,7 @@ function optimizeMessages(messages: any[]): any[] {
                 if (['create_file', 'update_file', 'edit_file'].includes(tc.function.name)) {
                     try {
                         const args = JSON.parse(tc.function.arguments);
-                        let modified = false;
-
-                        // Truncate 'content' for file operations
-                        /*if (args.content && args.content.length > 500) {
-                            args.content = `(TRUNCATED FOR CONTEXT: ${args.content.length} characters saved to filesystem. Read file to view content.)`;
-                            modified = true;
-                        }
-                        
-                        // Truncate 'replacement_text' for edits
-                        if (args.replacement_text && args.replacement_text.length > 500) {
-                            args.replacement_text = `(TRUNCATED FOR CONTEXT: ${args.replacement_text.length} characters used in edit.)`;
-                            modified = true;
-                        }*/
-
-                        if (modified) {
-                            return {
-                                ...tc,
-                                function: {
-                                    ...tc.function,
-                                    arguments: JSON.stringify(args)
-                                }
-                            };
-                        }
+                        // No changes to args logic here currently needed, kept structure for future
                     } catch (e) {
                         // ignore parse errors
                     }
@@ -119,6 +94,15 @@ function optimizeMessages(messages: any[]): any[] {
             });
             return { ...msg, tool_calls: newToolCalls };
         }
+        
+        // NEW: Optimize tool role content (results) if it's a huge base64 image
+        if (msg.role === 'tool' && typeof msg.content === 'string' && msg.content.startsWith('data:image')) {
+             return {
+                 ...msg,
+                 content: '(Base64 Image Data Truncated for History)'
+             };
+        }
+
         return msg;
     });
 }

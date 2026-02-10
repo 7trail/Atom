@@ -1,6 +1,4 @@
 
-
-
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { FileData } from '../types';
 import { parse } from 'marked';
@@ -38,14 +36,56 @@ const resolvePath = (baseFile: string, relativeUrl: string) => {
     return parts.join('/');
 };
 
+const ImagePreview: React.FC<{ file: FileData }> = ({ file }) => {
+    const [imageFit, setImageFit] = useState(true);
+    const [src, setSrc] = useState<string>('');
+
+    useEffect(() => {
+        let objectUrl: string | null = null;
+        
+        // Handle SVG code (text starting with <svg)
+        if (file.name.toLowerCase().endsWith('.svg') && file.content.trim().startsWith('<')) {
+            const blob = new Blob([file.content], { type: 'image/svg+xml' });
+            objectUrl = URL.createObjectURL(blob);
+            setSrc(objectUrl);
+        } else {
+            // Assume URL or Data URI
+            setSrc(file.content);
+        }
+
+        return () => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [file]);
+
+    return (
+        <div className="flex-1 flex items-center justify-center p-8 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50 relative overflow-hidden">
+             <div className="absolute top-4 right-4 z-10 flex gap-2">
+                 <button 
+                    onClick={() => setImageFit(!imageFit)}
+                    className="p-2 bg-white/90 shadow-md rounded-lg text-gray-600 hover:text-cerebras-600 transition-colors border border-gray-200"
+                    title={imageFit ? "Show Original Size" : "Fit to Screen"}
+                 >
+                     {imageFit ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+                 </button>
+             </div>
+             <div className={`w-full h-full flex items-center justify-center overflow-auto ${imageFit ? '' : 'block'}`}>
+                <img 
+                    src={src} 
+                    alt={file.name} 
+                    className={`${imageFit ? 'max-w-full max-h-full object-contain' : 'max-w-none shadow-xl'}`}
+                    style={!imageFit ? { margin: 'auto' } : undefined}
+                />
+             </div>
+        </div>
+    );
+};
+
 const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan }) => {
   const [iframeSrc, setIframeSrc] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const blobUrlsRef = useRef<string[]>([]);
   
-  // Image Preview State
-  const [imageFit, setImageFit] = useState(true);
-
   // --- Blob Engine for HTML Previews ---
   useEffect(() => {
     // Cleanup previous blobs
@@ -159,11 +199,6 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
 
   }, [file, allFiles]);
 
-  useEffect(() => {
-      // Reset image fit default
-      setImageFit(true);
-  }, [file?.name]);
-
 
   // --- Content Resolution for Non-HTML ---
   const contentToRender = useMemo(() => {
@@ -191,7 +226,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       return { type: 'markdown', content: parse(file.content) as string };
     }
     
-    if (file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+    if (file.name.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
       return { type: 'image', content: file.content };
     }
 
@@ -355,27 +390,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
 
   // --- Image Preview ---
   if (contentToRender?.type === 'image') {
-      return (
-        <div className="flex-1 flex items-center justify-center p-8 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50 relative overflow-hidden">
-             <div className="absolute top-4 right-4 z-10 flex gap-2">
-                 <button 
-                    onClick={() => setImageFit(!imageFit)}
-                    className="p-2 bg-white/90 shadow-md rounded-lg text-gray-600 hover:text-cerebras-600 transition-colors border border-gray-200"
-                    title={imageFit ? "Show Original Size" : "Fit to Screen"}
-                 >
-                     {imageFit ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-                 </button>
-             </div>
-             <div className={`w-full h-full flex items-center justify-center overflow-auto ${imageFit ? '' : 'block'}`}>
-                <img 
-                    src={contentToRender.content} 
-                    alt={file.name} 
-                    className={`${imageFit ? 'max-w-full max-h-full object-contain' : 'max-w-none shadow-xl'}`}
-                    style={!imageFit ? { margin: 'auto' } : undefined}
-                />
-             </div>
-        </div>
-      );
+      return <ImagePreview file={file} />;
   }
 
   // --- Markdown Preview ---

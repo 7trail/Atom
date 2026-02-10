@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import React, { useState } from 'react';
 import { Agent, AppModel, SUPPORTED_MODELS } from '../types';
 import { X, Plus, Bot, CheckSquare, Square } from 'lucide-react';
@@ -80,10 +73,10 @@ const AgentCreator: React.FC<AgentCreatorProps> = ({ isOpen, onClose, onSave }) 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-dark-panel border border-dark-border rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-4 border-b border-dark-border bg-dark-bg shrink-0">
-          <h3 className="text-gray-200 font-semibold flex items-center gap-2">
+          <h3 className="text-dark-text font-semibold flex items-center gap-2">
             <Bot className="w-4 h-4 text-cerebras-500" /> Create Custom Agent
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-dark-text transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -94,7 +87,7 @@ const AgentCreator: React.FC<AgentCreatorProps> = ({ isOpen, onClose, onSave }) 
             <input 
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none"
+              className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
               placeholder="e.g. Code Reviewer"
               required
             />
@@ -105,7 +98,7 @@ const AgentCreator: React.FC<AgentCreatorProps> = ({ isOpen, onClose, onSave }) 
             <input 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none"
+              className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
               placeholder="What does this agent do?"
             />
           </div>
@@ -115,7 +108,7 @@ const AgentCreator: React.FC<AgentCreatorProps> = ({ isOpen, onClose, onSave }) 
              <select 
                 value={model}
                 onChange={(e) => setModel(e.target.value as AppModel)}
-                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none"
+                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
              >
                 {SUPPORTED_MODELS.map(m => (
                     <option key={m} value={m}>{m}</option>
@@ -130,7 +123,7 @@ const AgentCreator: React.FC<AgentCreatorProps> = ({ isOpen, onClose, onSave }) 
             <textarea 
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none h-32 font-mono"
+              className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none h-32 font-mono"
               placeholder="You are an expert in..."
               required
             />
@@ -165,7 +158,7 @@ const AgentCreator: React.FC<AgentCreatorProps> = ({ isOpen, onClose, onSave }) 
             <button 
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded text-sm text-gray-400 hover:text-white transition-colors"
+                className="px-4 py-2 rounded text-sm text-gray-400 hover:text-dark-text transition-colors"
             >
                 Cancel
             </button>

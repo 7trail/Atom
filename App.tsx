@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -734,7 +735,7 @@ CRITICAL RULES:
                             const fileRes = applyFileAction({ action: 'create_file', filename: args.output_filename || `images/${Date.now()}.png`, content: imgUrl }, filesRef.current);
                             setFiles(fileRes.newFiles);
                             filesRef.current = fileRes.newFiles;
-                            result = `Image created`;
+                            result = imgUrl; // Return the image URL/Data URI so it can be viewed in logs
                         } else result = "Failed to generate.";
                     } else if (['create_file', 'update_file', 'edit_file', 'patch'].includes(fnName)) {
                          const fileRes = applyFileAction({ action: fnName as any, ...args }, filesRef.current);
@@ -1158,8 +1159,17 @@ CRITICAL RULES:
                             const fileRes = applyFileAction({ action: 'create_file', filename: args.output_filename || `images/${Date.now()}.png`, content: imgUrl }, filesRef.current);
                             setFiles(fileRes.newFiles);
                             filesRef.current = fileRes.newFiles;
-                            result = `Image created`;
+                            result = imgUrl; // Return URL/Data for chat preview
                         } else result = "Failed to generate.";
+                    } else if (fnName === 'download_image') {
+                         const dlUrl = await downloadImage(args.url);
+                         if (dlUrl) {
+                             const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content: dlUrl }, filesRef.current);
+                             setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; 
+                             result = dlUrl; // Return image data for preview
+                         } else {
+                             result = "Failed to download image.";
+                         }
                     } else if (fnName === 'analyze_media') {
                          result = "Media analysis is not fully implemented in this demo shim.";
                     } else if (fnName === 'save_attachment') {

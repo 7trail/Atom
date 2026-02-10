@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileData } from '../types';
 import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw } from 'lucide-react';
@@ -199,7 +196,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
                 onChange={(e) => setRenameValue(e.target.value)}
                 onKeyDown={handleRenameKeyDown}
                 onBlur={onRenameCancel}
-                className="bg-dark-bg border border-cerebras-500 rounded text-sm text-gray-200 w-full focus:outline-none px-1 h-6"
+                className="bg-dark-bg border border-cerebras-500 rounded text-sm text-dark-text w-full focus:outline-none px-1 h-6"
                 autoFocus
             />
         </div>
@@ -217,7 +214,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
           onDrop={handleDrop}
           onContextMenu={(e) => onContextMenu(e, node)}
           className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer transition-colors ${
-              isDragOver ? 'bg-cerebras-900/40 border border-cerebras-500/50 rounded' : 'hover:bg-white/5 text-gray-400 hover:text-gray-200 border border-transparent'
+              isDragOver ? 'bg-cerebras-900/40 border border-cerebras-500/50 rounded' : 'hover:bg-white/5 text-gray-400 hover:text-dark-text border border-transparent'
           } group`}
           style={{ paddingLeft: `${level * 12 + 8}px` }}
           onClick={() => setIsOpen(!isOpen)}
@@ -268,7 +265,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
       className={`group flex items-center justify-between py-1.5 pr-2 rounded cursor-pointer text-sm transition-colors ${
         isSelected
           ? 'bg-cerebras-600/20 text-cerebras-500 border-l-2 border-cerebras-500' 
-          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border-l-2 border-transparent'
+          : 'text-gray-400 hover:bg-white/5 hover:text-dark-text border-l-2 border-transparent'
       }`}
       style={{ paddingLeft: `${level * 12 + 8}px` }}
       onClick={() => node.fileData && onSelectFile(node.fileData)}
@@ -316,7 +313,7 @@ const ConfirmationModal: React.FC<{
                     <div className="bg-red-900/30 p-2 rounded-full">
                         <AlertTriangle className="w-5 h-5 text-red-500" />
                     </div>
-                    <h3 className="font-semibold text-gray-200">{title}</h3>
+                    <h3 className="font-semibold text-dark-text">{title}</h3>
                 </div>
                 <div className="p-4">
                     <p className="text-gray-400 text-sm" dangerouslySetInnerHTML={{ __html: message || '' }}></p>
@@ -707,7 +704,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
       <div className="p-4 border-b border-dark-border flex flex-col gap-3 shrink-0">
         <div className="flex justify-between items-center">
-            <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Explorer</h2>
+            <h2 className="text-sm font-semibold text-dark-text uppercase tracking-wider">Explorer</h2>
             <div className="flex gap-1">
                 {fileSystemType === 'vfs' && (
                     <button 
@@ -766,7 +763,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               value={newFileName}
               onChange={(e) => setNewFileName(e.target.value)}
               placeholder={isCreating === 'folder' ? 'folderName' : 'folder/file.ext'}
-              className="bg-transparent border-none text-sm text-gray-200 w-full focus:outline-none placeholder-gray-600"
+              className="bg-transparent border-none text-sm text-dark-text w-full focus:outline-none placeholder-gray-600"
               onKeyDown={(e) => {
                 if (e.key === 'Escape') handleCancelCreate();
               }}

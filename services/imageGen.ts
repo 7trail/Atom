@@ -26,7 +26,7 @@ let isProcessingJob = false;
 
 export function imageAPI() {
   let k = keyIndex3;
-  let values = ["https://wisp-ai-images-2.cassatb4ss.workers.dev/", "https://wisp-ai-images.anothersaiemail.workers.dev"]
+  let values = ["https://wisp-ai-images.anothersaiemail.workers.dev"]; //"https://wisp-ai-images-2.cassatb4ss.workers.dev/", 
   keyIndex3= (keyIndex3 + 1) % values.length;
   return values[k];
 }
@@ -75,13 +75,12 @@ async function _processImageGeneration(prompt: string, height: number, width: nu
   for (let attempt = 1; attempt <= MAX_PRIMARY_ATTEMPTS; attempt++) {
     try {
       const originalUrl = imageAPI();
-      const proxiedUrl = proxy+`${encodeURIComponent(originalUrl)}`;
+      const proxiedUrl = `https://corsproxy.io/?url=${encodeURIComponent(originalUrl)}`;
 
-      const response = await fetch(proxiedUrl, {
+      const response = await fetch(originalUrl, {
         method: "POST",
         headers: {
           "Authorization": "Bearer Th3_D3lt4r!ne",
-          "Content-Type": "application/json",
         },
         body: JSON.stringify({ prompt, height, width, num_steps }),
       });

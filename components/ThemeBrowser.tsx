@@ -30,6 +30,20 @@ const THEMES_DATA: ThemeDefinition[] = [
     { id: 'midnight', name: 'Midnight', description: 'Dark indigo and slate.', bg: '#0b0f19', panel: '#111827', accent: '#6366f1', text: '#e5e7eb' },
     { id: 'royal', name: 'Royal Gold', description: 'Rich purple and gold accents.', bg: '#181024', panel: '#271a38', accent: '#ffd700', text: '#eaddcf' },
     { id: 'terminal', name: 'Retro Terminal', description: 'Old school CRT green phosphor.', bg: '#000000', panel: '#111111', accent: '#33ff00', text: '#33ff00' },
+    
+    // New Themes
+    { id: 'blood', name: 'Blood', description: 'Deep red and crimson for a vampire aesthetic.', bg: '#1a0505', panel: '#2d0a0a', accent: '#dc143c', text: '#ffcccc' },
+    { id: 'graphite', name: 'Graphite', description: 'Monochrome dark mode with high contrast.', bg: '#181818', panel: '#222222', accent: '#ffffff', text: '#e5e5e5' },
+    { id: 'violet', name: 'Violet', description: 'Deep purple hues with bright accents.', bg: '#180d26', panel: '#26143c', accent: '#8b5cf6', text: '#e0d4fc' },
+    { id: 'sky', name: 'Sky', description: 'Bright blue and white, airy and light.', bg: '#f0f9ff', panel: '#ffffff', accent: '#0ea5e9', text: '#0c4a6e' },
+    { id: 'lime', name: 'Lime', description: 'Dark green with electric lime highlights.', bg: '#142108', panel: '#1d330c', accent: '#84cc16', text: '#ecfccb' },
+    { id: 'paper', name: 'Paper', description: 'Warm whites and grays like paper.', bg: '#f5f5f0', panel: '#ffffff', accent: '#444444', text: '#292925' },
+    { id: 'navy', name: 'Navy', description: 'Classic deep blue and teal.', bg: '#0a192f', panel: '#112240', accent: '#64ffda', text: '#e6f1ff' },
+    { id: 'berry', name: 'Berry', description: 'Rich wine reds and bright pinks.', bg: '#2a0a18', panel: '#451228', accent: '#db2777', text: '#fce7f3' },
+    { id: 'olive', name: 'Olive', description: 'Natural olive greens and earth tones.', bg: '#1c1f17', panel: '#2a2e22', accent: '#a3b18a', text: '#f2f7ec' },
+    { id: 'ice', name: 'Ice', description: 'Cool blues and dark grays.', bg: '#101827', panel: '#1f2937', accent: '#38bdf8', text: '#f3f4f6' },
+    { id: 'toxic', name: 'Toxic', description: 'Hazardous green on deep purple.', bg: '#0d0221', panel: '#19053d', accent: '#a6ff00', text: '#a6ff00' },
+    { id: 'pumpkin', name: 'Pumpkin', description: 'Spooky orange and black.', bg: '#1a0f00', panel: '#2e1a00', accent: '#ff8800', text: '#ffecd1' },
 ];
 
 interface ThemeBrowserProps {
@@ -47,12 +61,12 @@ const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentThe
             <div className="bg-dark-panel border border-dark-border rounded-xl shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
                 <div className="flex items-center justify-between p-6 border-b border-dark-border bg-dark-bg shrink-0">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-200 flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-dark-text flex items-center gap-2">
                             <Palette className="w-6 h-6 text-cerebras-500" /> Theme Browser
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">Select a visual style for your workspace.</p>
                     </div>
-                    <button onClick={onClose} className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                    <button onClick={onClose} className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-dark-text hover:bg-white/10 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -93,7 +107,7 @@ const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentThe
                                 {/* Info Area */}
                                 <div className="p-4 bg-dark-panel flex-1 flex flex-col justify-between">
                                     <div>
-                                        <h3 className="font-bold text-gray-200 text-sm mb-1 group-hover:text-cerebras-400 transition-colors">{theme.name}</h3>
+                                        <h3 className="font-bold text-dark-text text-sm mb-1 group-hover:text-cerebras-400 transition-colors">{theme.name}</h3>
                                         <p className="text-xs text-gray-500 leading-snug">{theme.description}</p>
                                     </div>
                                     

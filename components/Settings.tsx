@@ -177,20 +177,20 @@ const Settings: React.FC<SettingsProps> = ({
       <div className="bg-dark-panel border border-dark-border rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="flex items-center justify-between p-4 border-b border-dark-border bg-dark-bg">
           <div className="flex items-center gap-3">
-              <h3 className="text-gray-200 font-semibold flex items-center gap-2">
+              <h3 className="text-dark-text font-semibold flex items-center gap-2">
                 <Key className="w-4 h-4 text-cerebras-500" /> Settings
               </h3>
               <div className="flex items-center gap-1">
                   <button 
                     onClick={handleExportConfig}
-                    className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    className="p-1 text-gray-400 hover:text-dark-text hover:bg-white/10 rounded transition-colors"
                     title="Export Configuration (.cfg)"
                   >
                       <Download className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    className="p-1 text-gray-400 hover:text-dark-text hover:bg-white/10 rounded transition-colors"
                     title="Import Configuration (.cfg)"
                   >
                       <Upload className="w-4 h-4" />
@@ -198,7 +198,7 @@ const Settings: React.FC<SettingsProps> = ({
                   <input type="file" ref={fileInputRef} className="hidden" accept=".cfg,.json" onChange={handleImportConfig} />
               </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-dark-text transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -216,7 +216,7 @@ const Settings: React.FC<SettingsProps> = ({
                 value={customInstructions}
                 onChange={(e) => onSetCustomInstructions(e.target.value)}
                 placeholder="e.g. Always respond in Spanish. Be concise. Never use emojis."
-                className="w-full h-24 bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none resize-none font-mono"
+                className="w-full h-24 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none resize-none font-mono"
             />
           </div>
 
@@ -241,7 +241,7 @@ const Settings: React.FC<SettingsProps> = ({
                     {showStreamDebug ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                 </div>
                 <div>
-                    <div className={`text-xs font-medium ${showStreamDebug ? 'text-gray-200' : 'text-gray-500'}`}>
+                    <div className={`text-xs font-medium ${showStreamDebug ? 'text-dark-text' : 'text-gray-500'}`}>
                         Show Stream Debug
                     </div>
                     <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
@@ -269,11 +269,11 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cerebras-500 to-purple-600 shadow-lg"></div>
                     <div className="text-left">
-                        <div className="text-sm font-medium text-gray-200 group-hover:text-white">Customize Theme</div>
+                        <div className="text-sm font-medium text-dark-text group-hover:text-dark-text">Customize Theme</div>
                         <div className="text-xs text-gray-500">Current: <span className="text-cerebras-400 capitalize">{currentTheme}</span></div>
                     </div>
                 </div>
-                <Grid className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                <Grid className="w-5 h-5 text-gray-500 group-hover:text-dark-text" />
             </button>
           </div>
 
@@ -289,7 +289,7 @@ const Settings: React.FC<SettingsProps> = ({
               <select 
                 value={timezone} 
                 onChange={(e) => onSetTimezone(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none"
+                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
               >
                   {availableTimezones.map(tz => (
                       <option key={tz} value={tz}>{tz}</option>
@@ -331,7 +331,7 @@ const Settings: React.FC<SettingsProps> = ({
                                 }
                             </div>
                             <div>
-                                <div className={`text-xs font-medium ${isEnabled ? 'text-gray-200' : 'text-gray-500'}`}>
+                                <div className={`text-xs font-medium ${isEnabled ? 'text-dark-text' : 'text-gray-500'}`}>
                                     {tool.label} {isRestricted && '(Disabled)'}
                                 </div>
                                 <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
@@ -417,7 +417,7 @@ const Settings: React.FC<SettingsProps> = ({
                     value={newCerebrasKey}
                     onChange={(e) => setNewCerebrasKey(e.target.value)}
                     placeholder="csk-..."
-                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none font-mono"
+                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
                 />
                 <button 
                     type="submit"
@@ -463,7 +463,7 @@ const Settings: React.FC<SettingsProps> = ({
                     value={newNvidiaKey}
                     onChange={(e) => setNewNvidiaKey(e.target.value)}
                     placeholder="nvapi-..."
-                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-cerebras-500 focus:outline-none font-mono"
+                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
                 />
                 <button 
                     type="submit"
@@ -499,7 +499,7 @@ const Settings: React.FC<SettingsProps> = ({
                             type="password"
                             value={discordToken}
                             onChange={(e) => setDiscordToken(e.target.value)}
-                            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-indigo-500 focus:outline-none font-mono"
+                            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-indigo-500 focus:outline-none font-mono"
                         />
                     </div>
                     <div>
@@ -508,7 +508,7 @@ const Settings: React.FC<SettingsProps> = ({
                             type="text"
                             value={discordUserId}
                             onChange={(e) => setDiscordUserId(e.target.value)}
-                            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-gray-200 focus:border-indigo-500 focus:outline-none font-mono"
+                            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-indigo-500 focus:outline-none font-mono"
                         />
                     </div>
                     <div className="flex justify-between items-center">
