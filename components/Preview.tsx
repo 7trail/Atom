@@ -12,6 +12,27 @@ interface PreviewProps {
   onExecuteFullPlan?: () => void;
 }
 
+const getMimeType = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    switch(ext) {
+        case 'html': return 'text/html';
+        case 'css': return 'text/css';
+        case 'js': case 'mjs': case 'jsx': return 'text/javascript';
+        case 'ts': case 'tsx': return 'text/javascript';
+        case 'json': return 'application/json';
+        case 'svg': return 'image/svg+xml';
+        case 'png': return 'image/png';
+        case 'jpg': case 'jpeg': return 'image/jpeg';
+        case 'gif': return 'image/gif';
+        case 'webp': return 'image/webp';
+        case 'txt': return 'text/plain';
+        case 'csv': return 'text/csv';
+        case 'xml': return 'text/xml';
+        case 'md': return 'text/markdown';
+        default: return 'text/plain';
+    }
+};
+
 const resolvePath = (baseFile: string, relativeUrl: string) => {
     if (!relativeUrl) return '';
     const cleanUrl = relativeUrl.split(/[?#]/)[0];
@@ -99,7 +120,8 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
 
     const processFiles = async () => {
         try {
-            const assetMap = new Map<string, string>(); // filename -> blobUrl
+            const assetMap = new Map<string, string>(); // filename -> blobUrl (internal use)
+            const fileUrlMap: Record<string, string> = {}; // filename -> blobUrl (exposed to fetch)
             const virtualPaths = new Map<string, string>(); // filename -> rewrittenContent (for JS)
 
             const createBlob = (content: string | Blob, type: string) => {
@@ -109,19 +131,22 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                 return url;
             };
 
-            // 1. Process Assets (Images) & Raw Files
+            // 1. Map ALL files (Pass 1 - Raw Content)
             allFiles.forEach(f => {
-                if (f.name.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
-                     if (f.content.startsWith('data:')) {
-                         assetMap.set(f.name, f.content);
-                     } else {
-                         const url = createBlob(f.content, 'image/svg+xml');
-                         assetMap.set(f.name, url);
-                     }
+                let url = '';
+                // Handle binary data URIs (images) that are already base64
+                if (f.name.match(/\.(png|jpg|jpeg|gif|webp)$/i) && f.content.startsWith('data:')) {
+                    url = f.content;
+                } else {
+                    // Create blob for everything else (including JSON, txt, etc.)
+                    const type = getMimeType(f.name);
+                    url = createBlob(f.content, type);
                 }
+                assetMap.set(f.name, url);
+                fileUrlMap[f.name] = url;
             });
 
-            // 2. Process CSS (Rewrite url())
+            // 2. Process CSS (Rewrite url()) - Pass 2
             allFiles.forEach(f => {
                 if (f.name.endsWith('.css')) {
                     const cssContent = f.content.replace(/url\(['"]?([^'")]+)['"]?\)/g, (match, path) => {
@@ -131,12 +156,13 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                     });
                     const url = createBlob(cssContent, 'text/css');
                     assetMap.set(f.name, url);
+                    fileUrlMap[f.name] = url; // Update with rewritten content
                 }
             });
 
-            // 3. Process JS (Rewrite imports)
+            // 3. Process JS (Rewrite imports) - Pass 3
             allFiles.forEach(f => {
-                if (f.name.endsWith('.js') || f.name.endsWith('.ts') || f.name.endsWith('.jsx')) {
+                if (f.name.endsWith('.js') || f.name.endsWith('.ts') || f.name.endsWith('.jsx') || f.name.endsWith('.tsx')) {
                     let jsContent = f.content;
                     jsContent = jsContent.replace(/(from\s+['"])([^'"]+)(['"])/g, (match, prefix, path, suffix) => {
                          if(path.startsWith('.')) {
@@ -156,16 +182,22 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                 }
             });
 
-            // 4. Create JS Blobs & Import Map
+            // 4. Create JS Blobs & Import Map - Pass 4
             const importMap = { imports: {} as Record<string, string> };
             virtualPaths.forEach((content, name) => {
                 const url = createBlob(content, 'text/javascript');
                 importMap.imports[`/${name}`] = url;
                 importMap.imports[name] = url;
+                
+                // Ensure the rewritten JS is what fetch/script src gets
+                assetMap.set(name, url);
+                fileUrlMap[name] = url;
             });
 
-            // 5. Process HTML (Inject Import Map, Rewrite Links)
+            // 5. Process HTML (Inject Import Map, Rewrite Links, Inject Fetch Shim)
             let htmlContent = file.content;
+            
+            // Rewrite standard attributes
             htmlContent = htmlContent.replace(/(src|href)=["']([^"']+)["']/g, (match, attr, path) => {
                 const resolved = resolvePath(file.name, path);
                 if (assetMap.has(resolved)) {
@@ -177,11 +209,62 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                 return match;
             });
 
+            // Inject Fetch Interceptor
+            const fetchShim = `
+            <script>
+            (function() {
+              const vfs = ${JSON.stringify(fileUrlMap)};
+              const originalFetch = window.fetch;
+              const currentPath = "${file.name}";
+              
+              function resolvePath(base, relative) {
+                 if (relative.startsWith('/')) return relative.slice(1);
+                 const stack = base.split('/');
+                 stack.pop();
+                 const parts = relative.split('/');
+                 for (const part of parts) {
+                     if (part === '.' || part === '') continue;
+                     if (part === '..') {
+                         if (stack.length > 0) stack.pop();
+                     } else {
+                         stack.push(part);
+                     }
+                 }
+                 return stack.join('/');
+              }
+            
+              window.fetch = async function(input, init) {
+                let url;
+                if (typeof input === 'string') url = input;
+                else if (input instanceof Request) url = input.url;
+                else url = String(input);
+            
+                if (!url.match(/^(http|https|data|blob):/)) {
+                    let cleanUrl = url.split('?')[0].split('#')[0];
+                    let target = cleanUrl;
+                    
+                    if (!vfs[target]) {
+                        const resolved = resolvePath(currentPath, cleanUrl);
+                        if (vfs[resolved]) target = resolved;
+                    }
+                    
+                    if (vfs[target]) {
+                        return originalFetch(vfs[target], init);
+                    }
+                }
+                return originalFetch(input, init);
+              };
+            })();
+            </script>
+            `;
+
             const importMapScript = `<script type="importmap">${JSON.stringify(importMap)}</script>`;
+            const headInjection = `${fetchShim}\n${importMapScript}`;
+
             if (htmlContent.includes('<head>')) {
-                htmlContent = htmlContent.replace('<head>', `<head>\n${importMapScript}`);
+                htmlContent = htmlContent.replace('<head>', `<head>\n${headInjection}`);
             } else {
-                htmlContent = `${importMapScript}\n${htmlContent}`;
+                htmlContent = `${headInjection}\n${htmlContent}`;
             }
 
             const mainUrl = createBlob(htmlContent, 'text/html');
