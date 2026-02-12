@@ -11,7 +11,7 @@ import ScheduleManager from './components/ScheduleManager';
 import SkillBrowser from './components/SkillBrowser';
 import Terminal from './components/Terminal';
 import { Toast } from './components/Toast';
-import { FileData, Message, AppModel, ToolAction, Agent, SubAgentSession, AgentSessionLog, Attachment, BrowserSessionInfo, ScheduledEvent, SubAgentConfig, Skill } from './types';
+import { FileData, Message, AppModel, ToolAction, Agent, SubAgentSession, AgentSessionLog, Attachment, BrowserSessionInfo, ScheduledEvent, SubAgentConfig, Skill, ChatSession } from './types';
 import { chatCompletion, generateText, getApiKeys } from './services/cerebras';
 import { searchGoogle, downloadImage, runBrowserAgent, checkDiscordMessages, connectDiscord, sendDiscordMessage, fetchUrl, performApiCall } from './services/tools';
 import { generateImage } from './services/imageGen';
@@ -21,7 +21,7 @@ import { createWordDoc, createExcelSheet, createPresentation } from './services/
 import { shouldRunSchedule } from './services/scheduler';
 import { parseSkill, fetchServerSkills, saveSkillToStorage, getLocalStorageSkills, deleteSkillFromStorage } from './services/skillParser';
 import { ragService } from './services/rag';
-import { Code2, Eye, PanelLeftClose, PanelLeftOpen, X, Bot, Loader2, CheckCircle2, MessageSquare, Clock, TerminalSquare, Menu, BrainCircuit } from 'lucide-react';
+import { Code2, Eye, PanelLeftClose, PanelLeftOpen, X, Bot, Loader2, CheckCircle2, MessageSquare, Clock, TerminalSquare, Menu, BrainCircuit, FolderTree, History, Pencil, Trash2 } from 'lucide-react';
 import { useFileSystem } from './hooks/useFileSystem';
 import { INITIAL_FILE, DEMO_PLAN, getSystemHeader, TOOL_DEFINITIONS, DEFAULT_AGENTS, isRenderHosted } from './constants';
 import { getRandomName } from './names';
@@ -53,13 +53,22 @@ const App: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>(DEFAULT_AGENTS);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(DEFAULT_AGENTS[0]);
   const [selectedModel, setSelectedModel] = useState<AppModel>('gpt-oss-120b');
+  
+  // Chat State
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string>(generateId());
+  
+  // Context Menu State
+  const [chatContextMenu, setChatContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [enableSubAgents, setEnableSubAgents] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isThemeBrowserOpen, setIsThemeBrowserOpen] = useState(false);
   const [sessions, setSessions] = useState<SubAgentSession[]>([]);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  const [sidebarMode, setSidebarMode] = useState<'files' | 'history'>('files');
   
   // Streaming Debug State
   const [streamMetrics, setStreamMetrics] = useState<{ totalWords: number, lastTokens: string, latestChunk: string } | null>(null);
@@ -121,6 +130,150 @@ const App: React.FC = () => {
   const [timezone, setTimezone] = useState<string>(() => {
        try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
   });
+
+  // Load Chat History
+  useEffect(() => {
+      const savedHistory = localStorage.getItem('atom_chat_history');
+      if (savedHistory) {
+          try {
+              const parsed = JSON.parse(savedHistory);
+              setChatHistory(parsed);
+          } catch (e) {
+              console.error("Failed to parse chat history", e);
+          }
+      }
+  }, []);
+
+  // Sync Current Chat to History
+  useEffect(() => {
+      setChatHistory(prev => {
+          const existingIndex = prev.findIndex(s => s.id === currentChatId);
+          let newHistory = [...prev];
+
+          // Only proceed if we have an active chat session to save or update
+          // If messages are empty and it's a new chat, we might skip saving until first message, 
+          // but if we want to "create" the chat immediately on load, we can. 
+          // However, to prevent empty chats spamming history, let's wait for at least 1 message or title change.
+          if (messages.length === 0 && existingIndex === -1) {
+              return prev;
+          }
+          
+          if (existingIndex >= 0) {
+              const existingSession = newHistory[existingIndex];
+              
+              // Check if the message count has changed to determine if we should update the timestamp (reorder)
+              // This prevents reordering when simply switching TO a chat (loading it).
+              const isNewActivity = messages.length !== existingSession.messages.length;
+              
+              newHistory[existingIndex] = {
+                  ...existingSession,
+                  messages: messages,
+                  // Only update timestamp if new activity occurred
+                  timestamp: isNewActivity ? Date.now() : existingSession.timestamp
+              };
+
+              // Only re-sort if timestamp changed
+              if (isNewActivity) {
+                  newHistory.sort((a, b) => b.timestamp - a.timestamp);
+              }
+          } else {
+              // New Chat - Add to top
+              const session: ChatSession = {
+                  id: currentChatId,
+                  title: 'New Chat',
+                  messages,
+                  timestamp: Date.now()
+              };
+              newHistory = [session, ...newHistory];
+              newHistory.sort((a, b) => b.timestamp - a.timestamp);
+          }
+          
+          return newHistory.slice(0, 20); // Limit to 20 chats
+      });
+  }, [messages, currentChatId]);
+
+  // Persist History
+  useEffect(() => {
+      localStorage.setItem('atom_chat_history', JSON.stringify(chatHistory));
+  }, [chatHistory]);
+
+  // Close context menu on global click
+  useEffect(() => {
+      const handleClick = () => setChatContextMenu(null);
+      window.addEventListener('click', handleClick);
+      return () => window.removeEventListener('click', handleClick);
+  }, []);
+
+  const handleNewChat = () => {
+      setCurrentChatId(generateId());
+      setMessages([]);
+      setChatInput('');
+      setChatAttachments([]);
+      setIsLoading(false);
+  };
+
+  const handleLoadChat = (session: ChatSession) => {
+      setCurrentChatId(session.id);
+      setMessages(session.messages);
+      setChatInput('');
+      setChatAttachments([]);
+      setActiveView('chat');
+  };
+
+  const handleChatContextMenu = (e: React.MouseEvent, sessionId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setChatContextMenu({ x: e.clientX, y: e.clientY, sessionId });
+  };
+
+  const handleDeleteChat = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!chatContextMenu) return;
+      
+      const idToDelete = chatContextMenu.sessionId;
+      setChatHistory(prev => prev.filter(s => s.id !== idToDelete));
+      
+      if (currentChatId === idToDelete) {
+          handleNewChat();
+      }
+      setChatContextMenu(null);
+  };
+
+  const handleRenameChat = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!chatContextMenu) return;
+
+      const idToRename = chatContextMenu.sessionId;
+      const session = chatHistory.find(s => s.id === idToRename);
+      
+      if (session) {
+          const newTitle = window.prompt("Rename chat:", session.title);
+          if (newTitle && newTitle.trim()) {
+              setChatHistory(prev => prev.map(s => s.id === idToRename ? { ...s, title: newTitle.trim() } : s));
+          }
+      }
+      setChatContextMenu(null);
+  };
+
+  const generateChatTitle = async (firstMessage: string) => {
+      const keys = getApiKeys();
+      const titleModel = keys.length > 0 ? 'gpt-oss-120b' : 'nvidia/nemotron-nano-12b-v2-vl';
+      
+      try {
+          const result = await generateText(
+              `Generate a very short, concise title (3-4 words max) for a chat that starts with the following message. Do not use quotes or punctuation. Message: "${firstMessage}"`,
+              {},
+              titleModel
+          );
+          
+          if (result) {
+              const cleanTitle = result.trim().replace(/^["']|["']$/g, '');
+              setChatHistory(prev => prev.map(s => s.id === currentChatId ? { ...s, title: cleanTitle } : s));
+          }
+      } catch (e) {
+          console.error("Failed to generate chat title", e);
+      }
+  };
 
   useEffect(() => {
       if (fileSystemType !== 'local') {
@@ -861,6 +1014,11 @@ CRITICAL RULES:
     const isContinuing = previousContext.length > 0;
     
     if (!isContinuing && !customMessageState) {
+        // Only trigger title generation if it's the very first message of the session
+        if (messages.length === 0) {
+            generateChatTitle(content);
+        }
+
         setChatInput(''); 
         setChatAttachments([]);
         let finalContent = content;
@@ -1148,7 +1306,7 @@ CRITICAL RULES:
                          if (fileSystemTypeRef.current !== 'local') {
                              result = "Error: Local Mode required.";
                          } else if (!localPathRef.current) {
-                             result = "Error: No active directory found in .atom configuration. You must create the .atom configuration file first with a valid 'path'.";
+                             result = "Error: Path not configured in .atom file.";
                          } else {
                              setActiveView('terminal');
                              result = await runTerminalCommand(args.command, localPathRef.current, args.input);
@@ -1321,26 +1479,99 @@ CRITICAL RULES:
           <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setLeftSidebarOpen(false)} />
       )}
 
+      {/* Context Menu for Chats */}
+      {chatContextMenu && (
+          <div 
+            className="fixed z-[60] bg-dark-panel border border-dark-border rounded-lg shadow-xl py-1 w-32 animate-in fade-in zoom-in duration-100"
+            style={{ top: chatContextMenu.y, left: chatContextMenu.x }}
+            onClick={(e) => e.stopPropagation()} 
+          >
+            <button 
+                onClick={handleRenameChat}
+                className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/10 flex items-center gap-2 transition-colors"
+            >
+                <Pencil className="w-3.5 h-3.5" /> Rename
+            </button>
+            <button 
+                onClick={handleDeleteChat}
+                className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-white/10 flex items-center gap-2 transition-colors"
+            >
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+            </button>
+          </div>
+      )}
+
       {/* Sidebar with Transitions */}
       <div className={`${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-72 shadow-2xl' : (leftSidebarOpen ? 'w-64 relative' : 'w-0 overflow-hidden')} flex flex-col h-full border-r border-dark-border bg-dark-panel transition-all duration-300 ease-in-out`}>
-        <FileExplorer 
-            files={files} 
-            selectedFile={selectedFile} 
-            fileSystemType={fileSystemType} 
-            onSelectFile={(f) => { 
-                setSelectedFile(f); 
-                if (isMobile) setLeftSidebarOpen(false); // Close drawer on mobile selection
-                if (f.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i) || f.name.endsWith('.md')) setActiveView('preview'); 
-                else if (activeView !== 'edit' && activeView !== 'preview') setActiveView('edit'); 
-            }} 
-            onCreateFile={handleCreateFile} 
-            onDeleteFile={handleDeleteFile} 
-            onImportFiles={handleImportFiles} 
-            onMoveFile={handleMoveFile} 
-            onOpenFolder={handleOpenFolderWrapper} 
-            onSwitchFolder={handleSwitchFolder}
-            onResetFileSystem={resetFileSystem}
-        />
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden relative flex flex-col">
+            {sidebarMode === 'files' ? (
+                <FileExplorer 
+                    files={files} 
+                    selectedFile={selectedFile} 
+                    fileSystemType={fileSystemType} 
+                    onSelectFile={(f) => { 
+                        setSelectedFile(f); 
+                        if (isMobile) setLeftSidebarOpen(false); // Close drawer on mobile selection
+                        if (f.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i) || f.name.endsWith('.md')) setActiveView('preview'); 
+                        else if (activeView !== 'edit' && activeView !== 'preview') setActiveView('edit'); 
+                    }} 
+                    onCreateFile={handleCreateFile} 
+                    onDeleteFile={handleDeleteFile} 
+                    onImportFiles={handleImportFiles} 
+                    onMoveFile={handleMoveFile} 
+                    onOpenFolder={handleOpenFolderWrapper} 
+                    onSwitchFolder={handleSwitchFolder}
+                    onResetFileSystem={resetFileSystem}
+                />
+            ) : (
+                <div className="flex flex-col h-full w-full">
+                    <div className="p-4 border-b border-dark-border bg-dark-bg shrink-0">
+                        <h2 className="text-sm font-semibold text-dark-text uppercase tracking-wider flex items-center gap-2">
+                            <History className="w-4 h-4" /> History
+                        </h2>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        {(!chatHistory || chatHistory.length === 0) ? (
+                            <div className="text-center p-4 text-xs text-gray-500 italic flex flex-col items-center gap-2">
+                                <span>No history yet.</span>
+                            </div>
+                        ) : (
+                            chatHistory.map((session) => (
+                                <button
+                                    key={session.id}
+                                    onClick={() => handleLoadChat(session)}
+                                    onContextMenu={(e) => handleChatContextMenu(e, session.id)}
+                                    className={`w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10 group ${currentChatId === session.id ? 'bg-cerebras-900/20 border-cerebras-500/20' : ''}`}
+                                >
+                                    <div className={`text-sm font-medium truncate ${currentChatId === session.id ? 'text-cerebras-400' : 'text-gray-300 group-hover:text-white'}`}>{session.title || 'Untitled Chat'}</div>
+                                    <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {new Date(session.timestamp).toLocaleDateString()} {new Date(session.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </div>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+
+        {/* Bottom Toggle */}
+        <div className="p-2 border-t border-dark-border bg-dark-panel flex gap-1 shrink-0">
+            <button 
+                onClick={() => setSidebarMode('files')}
+                className={`flex-1 py-2 rounded-md text-xs font-medium flex items-center justify-center gap-2 transition-colors ${sidebarMode === 'files' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+            >
+                <FolderTree className="w-4 h-4" /> <span className={isMobile ? 'hidden' : 'block'}>Explorer</span>
+            </button>
+            <button 
+                onClick={() => setSidebarMode('history')}
+                className={`flex-1 py-2 rounded-md text-xs font-medium flex items-center justify-center gap-2 transition-colors ${sidebarMode === 'history' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+            >
+                <History className="w-4 h-4" /> <span className={isMobile ? 'hidden' : 'block'}>History</span>
+            </button>
+        </div>
       </div>
       
       <div className="flex-1 flex flex-col min-w-0">
@@ -1374,7 +1605,30 @@ CRITICAL RULES:
         </div>
         <div className="flex-1 overflow-hidden relative flex flex-col">
           {activeView === 'chat' ? (
-              <ChatInterface messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const agent = agents.find(a => a.id === id); if (agent) { setSelectedAgent(agent); setSelectedModel(agent.preferredModel); } }} onSendMessage={(c, a) => handleSendMessage(c, a)} onClearChat={() => setMessages([])} onAddAgent={handleAddAgent} onToggleSubAgents={() => setEnableSubAgents(prev => !prev)} onOpenSettings={() => setIsSettingsOpen(true)} onStop={handleStopAgent} onPause={handlePauseAgent} isPaused={isPaused} input={chatInput} setInput={setChatInput} attachments={chatAttachments} setAttachments={setChatAttachments} streamMetrics={streamMetrics} showStreamDebug={showStreamDebug} />
+              <ChatInterface 
+                  messages={messages} 
+                  isLoading={isLoading} 
+                  selectedModel={selectedModel} 
+                  selectedAgent={selectedAgent} 
+                  availableAgents={agents} 
+                  enableSubAgents={enableSubAgents} 
+                  onModelChange={setSelectedModel} 
+                  onAgentChange={(id) => { const agent = agents.find(a => a.id === id); if (agent) { setSelectedAgent(agent); setSelectedModel(agent.preferredModel); } }} 
+                  onSendMessage={(c, a) => handleSendMessage(c, a)} 
+                  onClearChat={handleNewChat} 
+                  onAddAgent={handleAddAgent} 
+                  onToggleSubAgents={() => setEnableSubAgents(prev => !prev)} 
+                  onOpenSettings={() => setIsSettingsOpen(true)} 
+                  onStop={handleStopAgent} 
+                  onPause={handlePauseAgent} 
+                  isPaused={isPaused} 
+                  input={chatInput} 
+                  setInput={setChatInput} 
+                  attachments={chatAttachments} 
+                  setAttachments={setChatAttachments} 
+                  streamMetrics={streamMetrics} 
+                  showStreamDebug={showStreamDebug} 
+              />
           ) : activeView === 'edit' ? (
             <CodeEditor file={selectedFile} onUpdate={handleUpdateFileContent} onSmartEdit={handleSmartEdit} onSave={() => selectedFile && handleSaveFileWrapper(selectedFile)} />
           ) : activeView === 'preview' ? (

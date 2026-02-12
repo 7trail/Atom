@@ -215,10 +215,10 @@ export async function chatCompletion(
             }
 
             // Add Nvidia-specific params for certain models
-            if (model.includes('nemotron') && !model.includes('vl')) {
+            if (model.includes('/') && !model.includes('vl')) {
                 // Basic nemotron thinking config (not for VL model)
                 params.reasoning_budget = 16384;
-                params.chat_template_kwargs = { enable_thinking: true };
+                params.chat_template_kwargs = { enable_thinking: true,"clear_thinking":false };
             }
 
             const stream = await openai.chat.completions.create(params) as any;

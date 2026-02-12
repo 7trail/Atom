@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment } from '../types';
-import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity } from 'lucide-react';
+import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment, ChatSession } from '../types';
+import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity, MessageSquarePlus, History, Clock } from 'lucide-react';
 import AgentCreator from './AgentCreator';
 import { parse } from 'marked';
 
@@ -28,6 +28,8 @@ interface ChatInterfaceProps {
   setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
   streamMetrics: { totalWords: number; lastTokens: string; latestChunk: string } | null;
   showStreamDebug?: boolean;
+  chatHistory?: ChatSession[];
+  onLoadChat?: (session: ChatSession) => void;
 }
 
 const ToolCallDisplay: React.FC<{ tool: ToolAction }> = ({ tool }) => {
@@ -286,18 +288,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 sm:gap-4 border-t border-dark-border pt-2">
-                 <button onClick={() => setTtsEnabled(!ttsEnabled)} className={`p-2 rounded hover:bg-white/5 transition-colors ${ttsEnabled ? 'text-green-400' : 'text-gray-400'}`} title="Toggle Text-to-Speech">
-                     <Volume2 className="w-4 h-4" />
+            <div className="flex items-center justify-between gap-2 sm:gap-4 border-t border-dark-border pt-2">
+                 <button onClick={onClearChat} className="flex items-center gap-2 text-gray-400 hover:text-cerebras-400 transition-colors p-2 rounded hover:bg-white/5 text-xs font-medium" title="Start New Chat">
+                     <MessageSquarePlus className="w-4 h-4" />
+                     <span className="hidden sm:inline">New Chat</span>
                  </button>
+                 
                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider hidden sm:block">Sub-Agents</label>
-                    <button onClick={onToggleSubAgents} className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${enableSubAgents ? 'bg-cerebras-600' : 'bg-gray-700'}`}>
-                        <span className={`${enableSubAgents ? 'translate-x-4' : 'translate-x-1'} inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform`} />
+                    <button onClick={() => setTtsEnabled(!ttsEnabled)} className={`p-2 rounded hover:bg-white/5 transition-colors ${ttsEnabled ? 'text-green-400' : 'text-gray-400'}`} title="Toggle Text-to-Speech">
+                        <Volume2 className="w-4 h-4" />
                     </button>
+                    
+                    <button onClick={onOpenSettings} className="text-gray-400 hover:text-dark-text transition-colors p-2 rounded hover:bg-white/5" title="Settings"><SettingsIcon className="w-4 h-4" /></button>
                  </div>
-                 <button onClick={onClearChat} className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded hover:bg-white/5" title="Clear Chat"><Eraser className="w-4 h-4" /></button>
-                 <button onClick={onOpenSettings} className="text-gray-400 hover:text-dark-text transition-colors p-2 rounded hover:bg-white/5" title="Settings"><SettingsIcon className="w-4 h-4" /></button>
             </div>
          </div>
       </div>

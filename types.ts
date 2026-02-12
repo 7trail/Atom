@@ -140,6 +140,13 @@ export interface Message {
   attachments?: Attachment[];
 }
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  timestamp: number;
+}
+
 export interface BrowserSessionInfo {
   sessionId: string;
   url: string;
