@@ -30,8 +30,6 @@ const THEMES_DATA: ThemeDefinition[] = [
     { id: 'midnight', name: 'Midnight', description: 'Dark indigo and slate.', bg: '#0b0f19', panel: '#111827', accent: '#6366f1', text: '#e5e7eb' },
     { id: 'royal', name: 'Royal Gold', description: 'Rich purple and gold accents.', bg: '#181024', panel: '#271a38', accent: '#ffd700', text: '#eaddcf' },
     { id: 'terminal', name: 'Retro Terminal', description: 'Old school CRT green phosphor.', bg: '#000000', panel: '#111111', accent: '#33ff00', text: '#33ff00' },
-    
-    // New Themes
     { id: 'blood', name: 'Blood', description: 'Deep red and crimson for a vampire aesthetic.', bg: '#1a0505', panel: '#2d0a0a', accent: '#dc143c', text: '#ffcccc' },
     { id: 'graphite', name: 'Graphite', description: 'Monochrome dark mode with high contrast.', bg: '#181818', panel: '#222222', accent: '#ffffff', text: '#e5e5e5' },
     { id: 'violet', name: 'Violet', description: 'Deep purple hues with bright accents.', bg: '#180d26', panel: '#26143c', accent: '#8b5cf6', text: '#e0d4fc' },
@@ -44,6 +42,20 @@ const THEMES_DATA: ThemeDefinition[] = [
     { id: 'ice', name: 'Ice', description: 'Cool blues and dark grays.', bg: '#101827', panel: '#1f2937', accent: '#38bdf8', text: '#f3f4f6' },
     { id: 'toxic', name: 'Toxic', description: 'Hazardous green on deep purple.', bg: '#0d0221', panel: '#19053d', accent: '#a6ff00', text: '#a6ff00' },
     { id: 'pumpkin', name: 'Pumpkin', description: 'Spooky orange and black.', bg: '#1a0f00', panel: '#2e1a00', accent: '#ff8800', text: '#ffecd1' },
+    
+    // New Themes (Requested)
+    { id: 'pastel-pink', name: 'Sakura', description: 'Soft pinks and white.', bg: '#fff0f5', panel: '#ffffff', accent: '#f472b6', text: '#db2777' },
+    { id: 'pastel-purple', name: 'Lavender', description: 'Calming purple pastels.', bg: '#faf5ff', panel: '#ffffff', accent: '#c084fc', text: '#7e22ce' },
+    { id: 'pastel-mint', name: 'Mint', description: 'Fresh minty greens.', bg: '#f0fdf4', panel: '#ffffff', accent: '#4ade80', text: '#15803d' },
+    { id: 'pastel-yellow', name: 'Lemonade', description: 'Bright and cheerful yellow.', bg: '#fefce8', panel: '#ffffff', accent: '#facc15', text: '#a16207' },
+    { id: 'deep-space', name: 'Deep Space', description: 'Abyssal black and blue.', bg: '#000000', panel: '#050510', accent: '#5050ff', text: '#b0b0d0' },
+    { id: 'mars', name: 'Red Planet', description: 'Dusty red and dark brown.', bg: '#200a05', panel: '#33100a', accent: '#ff5030', text: '#ffaa90' },
+    { id: 'night-owl', name: 'Night Owl', description: 'Dark blue editor classic.', bg: '#011627', panel: '#0b253a', accent: '#82aaff', text: '#d6deeb' },
+    { id: 'material-ocean', name: 'Oceanic Material', description: 'Deep teal material design.', bg: '#263238', panel: '#37474f', accent: '#26a69a', text: '#eceff1' },
+    { id: 'gruvbox-dark', name: 'Gruvbox Dark', description: 'Retro reddish-brown dark.', bg: '#282828', panel: '#3c3836', accent: '#d65d0e', text: '#ebdbb2' },
+    { id: 'gruvbox-light', name: 'Gruvbox Light', description: 'Retro cream and dark brown.', bg: '#fbf1c7', panel: '#ebdbb2', accent: '#b57614', text: '#3c3836' },
+    { id: 'high-contrast-light', name: 'High Contrast Light', description: 'Pure white and black.', bg: '#ffffff', panel: '#ffffff', accent: '#000000', text: '#000000' },
+    { id: 'high-contrast-dark', name: 'High Contrast Dark', description: 'Pure black and white.', bg: '#000000', panel: '#000000', accent: '#ffff00', text: '#ffffff' },
 ];
 
 interface ThemeBrowserProps {

@@ -13,7 +13,7 @@ export const getProxyMode = (): boolean => {
 
 export const applyProxy = (url: string): string => {
     if (!getProxyMode()) return url;
-    return `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+    return `https://cloudflare-cors-anywhere.anothersaiemail.workers.dev/?${encodeURIComponent(url)}`;
 };
 
 export const INITIAL_FILE: FileData = {
