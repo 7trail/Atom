@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -83,6 +84,22 @@ const App: React.FC = () => {
     setShowStreamDebug(prev => {
         const next = !prev;
         localStorage.setItem('atom_show_stream_debug', String(next));
+        return next;
+    });
+  };
+
+  // Proxy Mode State
+  const [proxyMode, setProxyMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem('atom_proxy_mode') === 'true';
+    }
+    return false;
+  });
+
+  const handleToggleProxyMode = () => {
+    setProxyMode(prev => {
+        const next = !prev;
+        localStorage.setItem('atom_proxy_mode', String(next));
         return next;
     });
   };
@@ -1463,6 +1480,8 @@ CRITICAL RULES:
           onSetCustomInstructions={handleSetCustomInstructions}
           showStreamDebug={showStreamDebug}
           onToggleStreamDebug={handleToggleStreamDebug}
+          proxyMode={proxyMode}
+          onToggleProxyMode={handleToggleProxyMode}
       />
       
       <ThemeBrowser 

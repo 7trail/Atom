@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock } from 'lucide-react';
+import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe } from 'lucide-react';
 import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey } from '../services/cerebras';
 import { connectDiscord } from '../services/tools';
 import { SettingsProps, Agent } from '../types';
@@ -28,7 +29,8 @@ const Settings: React.FC<SettingsProps> = ({
     agents, disabledSubAgents, onToggleSubAgent,
     timezone, onSetTimezone, onOpenThemeBrowser,
     customInstructions, onSetCustomInstructions,
-    showStreamDebug, onToggleStreamDebug
+    showStreamDebug, onToggleStreamDebug,
+    proxyMode, onToggleProxyMode
 }) => {
   const [cerebrasKeys, setCerebrasKeys] = useState<string[]>([]);
   const [nvidiaKeys, setNvidiaKeys] = useState<string[]>([]);
@@ -116,6 +118,7 @@ const Settings: React.FC<SettingsProps> = ({
           disabled_sub_agents: disabledSubAgents,
           timezone: timezone,
           customInstructions: customInstructions,
+          proxy_mode: proxyMode,
           timestamp: Date.now()
       };
 
@@ -141,6 +144,7 @@ const Settings: React.FC<SettingsProps> = ({
               if (config.theme) onSetTheme(config.theme);
               if (config.timezone) onSetTimezone(config.timezone);
               if (config.customInstructions !== undefined) onSetCustomInstructions(config.customInstructions);
+              if (config.proxy_mode !== undefined && config.proxy_mode !== proxyMode) onToggleProxyMode();
               
               // Update LocalStorage
               if (config.cerebras_api_keys) localStorage.setItem('cerebras_api_keys', JSON.stringify(config.cerebras_api_keys));
@@ -222,33 +226,57 @@ const Settings: React.FC<SettingsProps> = ({
 
           <div className="border-t border-dark-border pt-2"></div>
           
-          {/* Debug Settings */}
+          {/* System Settings (Debug & Proxy) */}
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Bug className="w-3.5 h-3.5 text-orange-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Debug</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">System</label>
             </div>
             
-            <button 
-                onClick={onToggleStreamDebug}
-                className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
-                    showStreamDebug 
-                        ? 'bg-orange-900/10 border-orange-500/30' 
-                        : 'bg-dark-bg border-dark-border opacity-60'
-                }`}
-            >
-                <div className={`mt-0.5 ${showStreamDebug ? 'text-orange-500' : 'text-gray-600'}`}>
-                    {showStreamDebug ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                </div>
-                <div>
-                    <div className={`text-xs font-medium ${showStreamDebug ? 'text-dark-text' : 'text-gray-500'}`}>
-                        Show Stream Debug
+            <div className="flex flex-col gap-2">
+                <button 
+                    onClick={onToggleStreamDebug}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                        showStreamDebug 
+                            ? 'bg-orange-900/10 border-orange-500/30' 
+                            : 'bg-dark-bg border-dark-border opacity-60'
+                    }`}
+                >
+                    <div className={`mt-0.5 ${showStreamDebug ? 'text-orange-500' : 'text-gray-600'}`}>
+                        {showStreamDebug ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </div>
-                    <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
-                        Visualize the raw text stream tokens as they arrive.
+                    <div>
+                        <div className={`text-xs font-medium ${showStreamDebug ? 'text-dark-text' : 'text-gray-500'}`}>
+                            Show Stream Debug
+                        </div>
+                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                            Visualize the raw text stream tokens as they arrive.
+                        </div>
                     </div>
-                </div>
-            </button>
+                </button>
+
+                <button 
+                    onClick={onToggleProxyMode}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                        proxyMode 
+                            ? 'bg-green-900/10 border-green-500/30' 
+                            : 'bg-dark-bg border-dark-border opacity-60'
+                    }`}
+                >
+                    <div className={`mt-0.5 ${proxyMode ? 'text-green-500' : 'text-gray-600'}`}>
+                        {proxyMode ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1">
+                        <div className={`text-xs font-medium flex items-center gap-2 ${proxyMode ? 'text-dark-text' : 'text-gray-500'}`}>
+                            <span>Proxy Mode</span>
+                            <Globe className="w-3 h-3 text-gray-500" />
+                        </div>
+                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                            Route requests through corsproxy.io to bypass CORS issues on external URLs.
+                        </div>
+                    </div>
+                </button>
+            </div>
           </div>
 
           <div className="border-t border-dark-border pt-2"></div>

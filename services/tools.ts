@@ -1,14 +1,11 @@
 
 
-
-
-
 import { getNvidiaApiKeys } from './cerebras';
-import { isRenderHosted } from '../constants';
+import { isRenderHosted, applyProxy } from '../constants';
 
 export async function searchWikipedia(query: string): Promise<string> {
   try {
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+    const searchUrl = applyProxy(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`);
     const response = await fetch(searchUrl);
     const data = await response.json();
     
@@ -30,7 +27,7 @@ export async function searchWikipedia(query: string): Promise<string> {
 export async function getWeather(location: string): Promise<string> {
   try {
     // 1. Geocoding
-    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
+    const geoUrl = applyProxy(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`);
     const geoRes = await fetch(geoUrl);
     const geoData = await geoRes.json();
 
@@ -41,7 +38,7 @@ export async function getWeather(location: string): Promise<string> {
     const { latitude, longitude, name, country } = geoData.results[0];
 
     // 2. Weather Data
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`;
+    const weatherUrl = applyProxy(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`);
     const weatherRes = await fetch(weatherUrl);
     const weatherData = await weatherRes.json();
 
@@ -93,7 +90,7 @@ export async function fetchUrl(url: string): Promise<string> {
   }
 
   try {
-    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+    const proxyUrl = applyProxy(url);
     const response = await fetch(proxyUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0"
@@ -133,7 +130,7 @@ export async function searchGoogle(query: string, type: 'text' | 'image' | 'vide
     }
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(applyProxy(url));
         const data = await response.json();
 
         if (!data.items || data.items.length === 0) {
@@ -161,7 +158,7 @@ export async function searchGoogle(query: string, type: 'text' | 'image' | 'vide
 
 export async function downloadImage(url: string): Promise<string | null> {
     try {
-        const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+        const proxyUrl = applyProxy(url);
         const response = await fetch(proxyUrl);
         if (!response.ok) return null;
         
@@ -336,7 +333,7 @@ export async function checkDiscordMessages(): Promise<{ content: string; id: str
 export async function performApiCall(url: string, method: string = 'GET', headers: any = {}, body: string = ''): Promise<string> {
     try {
         // Use proxy for all calls to avoid CORS, unless it's a known safe endpoint
-        const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+        const proxyUrl = applyProxy(url);
         
         const options: RequestInit = {
             method: method,

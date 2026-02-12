@@ -1,5 +1,6 @@
 
-import {proxy} from '../constants';
+
+import { applyProxy } from '../constants';
 
 interface ImageJob {
     prompt: string;
@@ -75,9 +76,9 @@ async function _processImageGeneration(prompt: string, height: number, width: nu
   for (let attempt = 1; attempt <= MAX_PRIMARY_ATTEMPTS; attempt++) {
     try {
       const originalUrl = imageAPI();
-      const proxiedUrl = `https://corsproxy.io/?url=${encodeURIComponent(originalUrl)}`;
+      const proxiedUrl = applyProxy(originalUrl);
 
-      const response = await fetch(originalUrl, {
+      const response = await fetch(proxiedUrl, {
         method: "POST",
         headers: {
           "Authorization": "Bearer Th3_D3lt4r!ne",

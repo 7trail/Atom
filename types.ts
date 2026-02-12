@@ -226,4 +226,6 @@ export interface SettingsProps {
   onSetCustomInstructions: (inst: string) => void;
   showStreamDebug: boolean;
   onToggleStreamDebug: () => void;
+  proxyMode: boolean;
+  onToggleProxyMode: () => void;
 }

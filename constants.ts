@@ -1,9 +1,20 @@
-import { Agent, FileData } from './types';
 
-export const proxy = '';
+import { Agent, FileData } from './types';
 
 // Detection for Render hosting environment
 export const isRenderHosted = typeof window !== 'undefined' && window.location.hostname.endsWith('onrender.com');
+
+export const getProxyMode = (): boolean => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem('atom_proxy_mode') === 'true';
+    }
+    return false;
+};
+
+export const applyProxy = (url: string): string => {
+    if (!getProxyMode()) return url;
+    return `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+};
 
 export const INITIAL_FILE: FileData = {
   name: 'welcome.md',

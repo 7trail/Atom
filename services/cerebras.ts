@@ -1,12 +1,14 @@
 
+
 import OpenAI from 'openai';
 import { Attachment } from '../types';
-import {proxy} from '../constants';
-const CEREBRAS_API_URL = proxy+'https://api.cerebras.ai/v1/chat/completions';
+import { applyProxy } from '../constants';
+
+const CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
 const DEFAULT_MODEL = 'gpt-oss-120b';
 
 // Nvidia Configuration
-const NVIDIA_BASE_URL = proxy+'https://integrate.api.nvidia.com/v1';
+const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -147,7 +149,10 @@ export async function chatCompletion(
             const openai = new OpenAI({
                 apiKey: apiKey,
                 baseURL: NVIDIA_BASE_URL,
-                dangerouslyAllowBrowser: true
+                dangerouslyAllowBrowser: true,
+                fetch: (url: RequestInfo, init?: RequestInit) => {
+                    return fetch(applyProxy(url.toString()), init);
+                }
             });
 
             // Deep copy messages to avoid mutating the original
@@ -318,7 +323,7 @@ export async function chatCompletion(
     data.tool_choice = "auto";
   }
 
-  const requestUrl = CEREBRAS_API_URL;
+  const requestUrl = applyProxy(CEREBRAS_API_URL);
   const apiKey = getNextApiKey();
 
   if (!apiKey) {
