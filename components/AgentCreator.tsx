@@ -13,6 +13,7 @@ const AVAILABLE_TOOLS = [
     { id: 'update_file', label: 'Update Files' },
     { id: 'edit_file', label: 'Edit Files (Patch)' },
     { id: 'patch', label: 'Apply Diff Patch' },
+    { id: 'move_file', label: 'Move/Rename Files' },
     { id: 'google_search', label: 'Google Search' },
     { id: 'fetch_url', label: 'Fetch URL Content' },
     { id: 'list_files', label: 'List Files' },

@@ -1,4 +1,5 @@
 
+
 import { Agent, FileData } from './types';
 
 // Detection for Render hosting environment
@@ -48,7 +49,7 @@ When starting new tasks, use list_files to get an understanding of your workspac
 YOUR CORE CAPABILITIES:
 1. ARCHITECT: You think through complex systems before working.
 2. DEVELOPER: You write clean, modern, accessible code.
-3. NAVIGATOR: You actively manage your file structure, ensuring organization (e.g., /css, /js, /assets).
+3. NAVIGATOR: You actively manage your file structure, ensuring organization (e.g., /css, /js, /assets). You can create, edit, move, and delete files.
 `;
 
     if (!disabledTools.includes('google_search')) {
@@ -95,11 +96,22 @@ YOUR CORE CAPABILITIES:
     RULES FOR FILE EDITS
     You can use create_file to create new files, OR create_file can be used to override an entire existing file.
     For a more targeted edit, use edit_file. Edit_file allows you to replace a portion of the file with a different portion. The search_text must EXACTLY match a portion of the original content.
-    
+    To reorganize files, use move_file (rename or move).
     `;
 
     if (!disabledTools.includes('patch')) {
-        header += `PATCH: You have access to the patch tool, allowing you to write a unified diff to modify files more surgically. You can use this to make targeted edits to files or 'inject' new contents into them.`;
+        header += `PATCH: You have access to the 'patch' tool. This allows you to apply a unified diff to modify files.
+   - Use this for surgical edits where 'edit_file' (search/replace) is too brittle or 'update_file' (full overwrite) is too wasteful.
+   - FORMAT: The patch MUST be a standard Unified Diff format.
+     It must include the file header lines:
+     --- filename
+     +++ filename
+     @@ -start,count +start,count @@
+      context line
+     -removed line
+     +added line
+      context line
+   - HINT: Make sure context lines match the file EXACTLY. If the patch fails, fallback to 'edit_file' or 'update_file'.`;
     }
 
 
@@ -183,6 +195,21 @@ export const TOOL_DEFINITIONS = [
                     patch: { type: "string", description: "The unified diff content to apply." }
                 },
                 required: ["filename", "patch"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "move_file",
+            description: "Move or rename a file or folder.",
+            parameters: {
+                type: "object",
+                properties: {
+                    source: { type: "string", description: "The current path of the file/folder." },
+                    destination: { type: "string", description: "The new path for the file/folder." }
+                },
+                required: ["source", "destination"]
             }
         }
     },
@@ -450,7 +477,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'A helpful, organized, and friendly assistant for general tasks.',
     systemPrompt: "Role: You are a highly capable Personal Assistant. You are friendly, organized, and obedient. Your goal is to help the user with whatever they need, whether it's scheduling, research, drafting emails, or just chatting. You have a neutral but warm personality. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
   },
   {
     id: 'fullstack',
@@ -458,7 +485,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Expert in React, Node.js, and modern web architecture.',
     systemPrompt: "Role: You are a Senior Full Stack Engineer. Focus on functionality, clean architecture, and best practices. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'edit_file', 'patch', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
   },
   {
     id: 'tech_writer',
@@ -466,7 +493,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Specializes in clear, concise documentation and technical guides.',
     systemPrompt: "Role: You are an expert Technical Writer. You excel at explaining complex topics simply and clearly. You prioritize accuracy, structure, and readability. You prefer Markdown formatting. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file']
   },
   {
     id: 'creative',
@@ -474,7 +501,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Specializes in content creation, storytelling, and markdown.',
     systemPrompt: "Role: You are a Creative Writer. Focus on engaging copy, clear documentation, and storytelling. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'qwen-3-32b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'discord_message', 'manage_schedule', 'create_office_file']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'discord_message', 'manage_schedule', 'create_office_file']
   },
   {
     id: 'roleplay',
@@ -490,7 +517,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Expert in Python scripts, data processing, and algorithms.',
     systemPrompt: "Role: You are a Python Expert. You write high-quality Python code. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
   },
   {
     id: 'researcher',
@@ -506,7 +533,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Validates code, checks for bugs, and creates test plans.',
     systemPrompt: "Role: You are a QA Engineer. You create .md reports as needed. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'zai-glm-4.7',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'fetch_url', 'ask_question', 'run_terminal_command', 'start_browser_session', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'fetch_url', 'ask_question', 'run_terminal_command', 'start_browser_session', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
   },
   {
     id: 'product_manager',

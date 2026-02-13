@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe } from 'lucide-react';
+import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye } from 'lucide-react';
 import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey } from '../services/cerebras';
 import { connectDiscord } from '../services/tools';
 import { SettingsProps, Agent } from '../types';
@@ -17,6 +18,7 @@ const GLOBAL_TOOLS_LIST = [
     { id: 'call_sub_agent', label: 'Sub-Agents', desc: 'Delegate tasks to other agents.' },
     { id: 'download_image', label: 'Download Image', desc: 'Save images from URLs.' },
     { id: 'create_file', label: 'File Operations', desc: 'Create/Edit files (Core).' },
+    { id: 'move_file', label: 'Move/Rename Files', desc: 'Move files or folders.' },
     { id: 'patch', label: 'Patch File', desc: 'Apply unified diffs.' },
     { id: 'discord_message', label: 'Discord', desc: 'Send DMs via Discord.', restricted: true },
     { id: 'manage_schedule', label: 'Scheduler', desc: 'Create recurring/scheduled tasks.' },
@@ -30,7 +32,8 @@ const Settings: React.FC<SettingsProps> = ({
     timezone, onSetTimezone, onOpenThemeBrowser,
     customInstructions, onSetCustomInstructions,
     showStreamDebug, onToggleStreamDebug,
-    proxyMode, onToggleProxyMode
+    proxyMode, onToggleProxyMode,
+    defaultVlModel, onSetDefaultVlModel
 }) => {
   const [cerebrasKeys, setCerebrasKeys] = useState<string[]>([]);
   const [nvidiaKeys, setNvidiaKeys] = useState<string[]>([]);
@@ -277,6 +280,25 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
                 </button>
             </div>
+          </div>
+
+          <div className="border-t border-dark-border pt-2"></div>
+
+          {/* VL Model Settings */}
+          <div>
+              <div className="flex items-center gap-2 mb-2">
+                  <Eye className="w-3.5 h-3.5 text-blue-400" />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Default Vision Model</label>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">Used when you attach images/videos, if current model doesn't support vision.</p>
+              <select 
+                value={defaultVlModel} 
+                onChange={(e) => onSetDefaultVlModel(e.target.value)}
+                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
+              >
+                  <option value="nvidia/nemotron-nano-12b-v2-vl">Nemotron VL (12B)</option>
+                  <option value="moonshotai/kimi-k2.5">Kimi k2.5</option>
+              </select>
           </div>
 
           <div className="border-t border-dark-border pt-2"></div>

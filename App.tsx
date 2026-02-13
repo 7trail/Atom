@@ -12,7 +12,7 @@ import ScheduleManager from './components/ScheduleManager';
 import SkillBrowser from './components/SkillBrowser';
 import Terminal from './components/Terminal';
 import { Toast } from './components/Toast';
-import { FileData, Message, AppModel, ToolAction, Agent, SubAgentSession, AgentSessionLog, Attachment, BrowserSessionInfo, ScheduledEvent, SubAgentConfig, Skill, ChatSession } from './types';
+import { FileData, Message, AppModel, ToolAction, Agent, SubAgentSession, AgentSessionLog, Attachment, BrowserSessionInfo, ScheduledEvent, SubAgentConfig, Skill, ChatSession, SUPPORTED_MODELS, MULTIMODAL_MODELS } from './types';
 import { chatCompletion, generateText, getApiKeys } from './services/cerebras';
 import { searchGoogle, downloadImage, runBrowserAgent, checkDiscordMessages, connectDiscord, sendDiscordMessage, fetchUrl, performApiCall } from './services/tools';
 import { generateImage } from './services/imageGen';
@@ -79,6 +79,19 @@ const App: React.FC = () => {
     }
     return false;
   });
+
+  // Default VL Model State
+  const [defaultVlModel, setDefaultVlModel] = useState<AppModel>(() => {
+      if (typeof window !== 'undefined') {
+          return (localStorage.getItem('atom_default_vl_model') as AppModel) || 'nvidia/nemotron-nano-12b-v2-vl';
+      }
+      return 'nvidia/nemotron-nano-12b-v2-vl';
+  });
+
+  const handleSetDefaultVlModel = (model: string) => {
+      setDefaultVlModel(model as AppModel);
+      localStorage.setItem('atom_default_vl_model', model);
+  };
 
   const handleToggleStreamDebug = () => {
     setShowStreamDebug(prev => {
@@ -168,9 +181,6 @@ const App: React.FC = () => {
           let newHistory = [...prev];
 
           // Only proceed if we have an active chat session to save or update
-          // If messages are empty and it's a new chat, we might skip saving until first message, 
-          // but if we want to "create" the chat immediately on load, we can. 
-          // However, to prevent empty chats spamming history, let's wait for at least 1 message or title change.
           if (messages.length === 0 && existingIndex === -1) {
               return prev;
           }
@@ -178,8 +188,6 @@ const App: React.FC = () => {
           if (existingIndex >= 0) {
               const existingSession = newHistory[existingIndex];
               
-              // Check if the message count has changed to determine if we should update the timestamp (reorder)
-              // This prevents reordering when simply switching TO a chat (loading it).
               const isNewActivity = messages.length !== existingSession.messages.length;
               
               newHistory[existingIndex] = {
@@ -912,6 +920,9 @@ CRITICAL RULES:
                          setFiles(fileRes.newFiles);
                          filesRef.current = fileRes.newFiles;
                          result = fileRes.result;
+                    } else if (fnName === 'move_file') {
+                        handleMoveFile(args.source, args.destination);
+                        result = `Moved ${args.source} to ${args.destination}`;
                     } else if (fnName === 'discord_message') {
                         result = await sendDiscordMessage(args.message, args.attachments ? args.attachments.map((n: string) => {
                             const f = filesRef.current.find(fi => fi.name === n);
@@ -1156,9 +1167,16 @@ CRITICAL RULES:
                 });
             };
 
+            // Auto-switch to VL model if attachments present and current model isn't multimodal
+            let modelToUse = selectedModel;
+            
+            if (attachments.length > 0 && !MULTIMODAL_MODELS.includes(modelToUse)) {
+                modelToUse = defaultVlModel;
+            }
+
             const completion = await chatCompletion(
                 apiLoopMessages, 
-                selectedModel, 
+                modelToUse, 
                 activeTools, 
                 attachments, 
                 (msg) => addToast(msg), 
@@ -1332,6 +1350,9 @@ CRITICAL RULES:
                     } else if (fnName === 'create_file' || fnName === 'update_file' || fnName === 'edit_file' || fnName === 'patch') {
                         const fileRes = applyFileAction({ action: fnName as any, ...args }, filesRef.current, true); 
                         setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result;
+                    } else if (fnName === 'move_file') {
+                        handleMoveFile(args.source, args.destination);
+                        result = `Moved ${args.source} to ${args.destination}`;
                     } else if (fnName === 'google_search') {
                          result = await searchGoogle(args.query, args.search_type || 'text');
                     } else if (fnName === 'fetch_url') {
@@ -1482,6 +1503,8 @@ CRITICAL RULES:
           onToggleStreamDebug={handleToggleStreamDebug}
           proxyMode={proxyMode}
           onToggleProxyMode={handleToggleProxyMode}
+          defaultVlModel={defaultVlModel}
+          onSetDefaultVlModel={handleSetDefaultVlModel}
       />
       
       <ThemeBrowser 

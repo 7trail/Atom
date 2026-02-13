@@ -30,13 +30,17 @@ export interface SubAgentConfig {
 }
 
 export interface ToolAction {
-  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'patch' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call';
+  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'patch' | 'move_file' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call';
   filename?: string;
   content?: string;
   search_text?: string;
   replacement_text?: string;
   patch?: string;
   
+  // Move File
+  source?: string;
+  destination?: string;
+
   // Legacy single sub-agent fields (deprecated but kept for compatibility during transition)
   agentName?: string;
   task?: string;
@@ -209,6 +213,11 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'minimaxai/minimax-m2.1'
 ];
 
+export const MULTIMODAL_MODELS: AppModel[] = [
+  'nvidia/nemotron-nano-12b-v2-vl',
+  'moonshotai/kimi-k2.5'
+];
+
 export interface SettingsProps {
   isOpen: boolean;
   onClose: () => void;
@@ -228,4 +237,6 @@ export interface SettingsProps {
   onToggleStreamDebug: () => void;
   proxyMode: boolean;
   onToggleProxyMode: () => void;
+  defaultVlModel: string;
+  onSetDefaultVlModel: (model: string) => void;
 }

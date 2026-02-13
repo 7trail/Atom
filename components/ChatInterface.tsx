@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment, ChatSession } from '../types';
 import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity, MessageSquarePlus, History, Clock } from 'lucide-react';
@@ -349,7 +350,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                     {msg.role !== 'tool' && (displayContent || (msg.attachments && msg.attachments.length > 0)) && (
                         <div className={`group relative rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 text-sm shadow-sm max-w-full overflow-hidden break-words ${
-                        msg.role === 'user' ? 'bg-cerebras-600 text-white' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-dark-text border border-dark-border'
+                        msg.role === 'user' ? 'bg-cerebras-600 text-[var(--text-on-accent)]' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-dark-text border border-dark-border'
                         }`}>
                             {msg.role === 'user' && msg.attachments && msg.attachments.length > 0 && (
                                 <div className="mb-2 flex flex-wrap">
@@ -437,7 +438,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                      )}
                  </div>
                  
-                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={isPaused ? "Agent is paused. Type to resume..." : `Message ${selectedAgent.name}...`} className="flex-1 bg-transparent text-dark-text text-sm focus:outline-none placeholder-gray-600 resize-none py-2.5 max-h-[150px]" disabled={isLoading && !isPaused} rows={1} />
+                <textarea 
+                    ref={textareaRef} 
+                    value={input} 
+                    onChange={(e) => setInput(e.target.value)} 
+                    onKeyDown={handleKeyDown} 
+                    placeholder={isPaused ? "Agent is paused. Type to resume..." : `Message ${selectedAgent.name}...`} 
+                    className="flex-1 bg-transparent text-dark-text text-base sm:text-sm focus:outline-none placeholder-gray-600 resize-none py-2.5 max-h-[150px]" 
+                    disabled={isLoading && !isPaused} 
+                    rows={1} 
+                />
                 <button type="submit" disabled={(!input.trim() && pendingAttachments.length === 0) || (isLoading && !isPaused)} className="p-2 bg-cerebras-600 text-white rounded-lg hover:bg-cerebras-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mb-0.5">{isPaused ? <PlayCircle className="w-5 h-5" /> : <Send className="w-5 h-5" />}</button>
             </div>
             </form>
