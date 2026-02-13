@@ -1,5 +1,4 @@
 
-
 import { useState, useRef, useEffect } from 'react';
 import { FileData, ToolAction } from '../types';
 import { readLocalDirectory, writeLocalFile, deleteLocalFile, createLocalFolder, renameLocalFile, verifyPermission } from '../services/fileSystem';
@@ -293,9 +292,22 @@ export const useFileSystem = () => {
             newFiles = newFiles.map(f => {
                 if (f.name === action.filename) {
                     try {
-                        const patchedContent = Diff.applyPatch(f.content, action.patch);
+                        // Advanced Patch Application with Fuzzing and Lenient Whitespace
+                        const patchedContent = Diff.applyPatch(f.content, action.patch, {
+                            fuzzFactor: 3, // Allow up to 3 lines of mismatch
+                            compareLine(lineNumber, line, operation, patchContent) {
+                                // If it's a context line (neither added nor removed), 
+                                // allow minor whitespace variations to prevent brittleness
+                                if (operation === ' ') {
+                                    return line.trim() === patchContent.trim();
+                                }
+                                // For added/removed lines, we require exact matches to ensure correctness
+                                return line === patchContent;
+                            }
+                        });
+
                         if (patchedContent === false) {
-                            result = `Error: Failed to apply patch to ${action.filename}. Hunks may not match.`;
+                            result = `Error: Failed to apply patch to ${action.filename}. Hunks may not match even with fuzzy logic.`;
                         } else {
                             pushHistory(f);
                             modifiedFile = { ...f, content: patchedContent, history: f.history, unsaved: !isAutoSave };

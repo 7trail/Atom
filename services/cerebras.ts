@@ -1,5 +1,3 @@
-
-
 import OpenAI from 'openai';
 import { Attachment } from '../types';
 import { applyProxy } from '../constants';
@@ -117,7 +115,8 @@ export async function chatCompletion(
   tools?: any[],
   attachments?: Attachment[],
   onStatusUpdate?: (status: string) => void,
-  onStream?: (chunk: string) => void
+  onStream?: (chunk: string) => void,
+  signal?: AbortSignal
 ) {
   // Optimize history to reduce bloat
   const optimizedMessages = optimizeMessages(messages);
@@ -151,7 +150,7 @@ export async function chatCompletion(
                 baseURL: NVIDIA_BASE_URL,
                 dangerouslyAllowBrowser: true,
                 fetch: (url: RequestInfo, init?: RequestInit) => {
-                    return fetch(applyProxy(url.toString()), init);
+                    return fetch(applyProxy(url.toString()), { ...init, signal });
                 }
             });
 
@@ -226,7 +225,7 @@ export async function chatCompletion(
                 params.chat_template_kwargs = { enable_thinking: true,"clear_thinking":false };
             }
 
-            const stream = await openai.chat.completions.create(params) as any;
+            const stream = await openai.chat.completions.create(params, { signal }) as any;
             
             let fullContent = "";
             let toolCallsMap: Record<number, any> = {};
@@ -282,6 +281,10 @@ export async function chatCompletion(
             };
 
         } catch (error: any) {
+            if (error.name === 'AbortError') {
+                console.log("Request aborted");
+                return null;
+            }
             // Check for 504 Timeout or similar
             const isTimeout = error.status === 504 || error.status === 502 || error.status === 408;
             
@@ -349,6 +352,7 @@ export async function chatCompletion(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
+        signal
       });
 
       // Handle 429 Rate Limit specifically
@@ -464,6 +468,10 @@ export async function chatCompletion(
       }
       
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+          console.log("Request aborted");
+          return null;
+      }
       console.error(`Error calling API (${effectiveModel}):`, error);
       if (retries === maxRetries) {
           return { 

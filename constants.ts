@@ -1,5 +1,4 @@
 
-
 import { Agent, FileData } from './types';
 
 // Detection for Render hosting environment
@@ -111,7 +110,7 @@ YOUR CORE CAPABILITIES:
      -removed line
      +added line
       context line
-   - HINT: Make sure context lines match the file EXACTLY. If the patch fails, fallback to 'edit_file' or 'update_file'.`;
+   - HINT: The environment supports 'fuzzy' matching, so minor whitespace differences in context lines are ignored. However, you should still aim for accuracy. Use at least 2-3 lines of context to ensure the hunk is unique.`;
     }
 
 

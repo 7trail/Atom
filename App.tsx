@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -230,6 +228,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleNewChat = () => {
+      handleStopAgent();
       setCurrentChatId(generateId());
       setMessages([]);
       setChatInput('');
@@ -238,6 +237,7 @@ const App: React.FC = () => {
   };
 
   const handleLoadChat = (session: ChatSession) => {
+      handleStopAgent();
       setCurrentChatId(session.id);
       setMessages(session.messages);
       setChatInput('');
@@ -567,6 +567,7 @@ const App: React.FC = () => {
   }, [theme]);
 
   const agentControlRef = useRef<{ stop: boolean, pause: boolean }>({ stop: false, pause: false });
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const handleSendMessageRef = useRef<(content: string, attachments?: Attachment[], previousContext?: any[], customMessageState?: Message[] | null) => void>(() => {});
 
@@ -614,6 +615,8 @@ const App: React.FC = () => {
   }, [sessions, waitingForSubAgents]);
 
   const resumeChatAfterSubAgents = (results: string, toolCallId: string) => {
+      if (agentControlRef.current.stop) return;
+
       const toolResultMessage: Message = {
           id: generateId(),
           role: 'tool',
@@ -773,7 +776,7 @@ const App: React.FC = () => {
   };
 
   const handleSwitchFolder = async () => {
-      agentControlRef.current.stop = true;
+      handleStopAgent();
       setIsLoading(false);
       if (!isRenderHosted) {
           try { await fetch('http://localhost:3001/cleanup', { method: 'POST' }); } catch (e) { console.error(e); }
@@ -991,7 +994,17 @@ CRITICAL RULES:
      return result || selection; 
   };
 
-  const handleStopAgent = () => { agentControlRef.current.stop = true; setIsLoading(false); setMessages(prev => [...prev, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); };
+  const handleStopAgent = () => { 
+    agentControlRef.current.stop = true; 
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+    }
+    setIsLoading(false); 
+    setIsPaused(false);
+    setMessages(prev => [...prev, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); 
+  };
+  
   const handlePauseAgent = () => { agentControlRef.current.pause = true; setIsPaused(true); };
 
   const attemptContextReset = async (lastContext: Message[]) => {
@@ -1150,6 +1163,7 @@ CRITICAL RULES:
             
             // Define Stream Callback for UI Updates
             const onStreamChunk = (chunk: string) => {
+                if (agentControlRef.current.stop) return;
                 setStreamMetrics(prev => {
                      // Estimate word count by splitting by space
                      const wordCount = chunk.split(/\s+/).filter(Boolean).length;
@@ -1174,15 +1188,22 @@ CRITICAL RULES:
                 modelToUse = defaultVlModel;
             }
 
+            // Create new AbortController for this fetch turn
+            abortControllerRef.current = new AbortController();
             const completion = await chatCompletion(
                 apiLoopMessages, 
                 modelToUse, 
                 activeTools, 
                 attachments, 
                 (msg) => addToast(msg), 
-                onStreamChunk
+                onStreamChunk,
+                abortControllerRef.current.signal
             );
+            abortControllerRef.current = null;
             
+            // Immediate check after fetch
+            if (agentControlRef.current.stop) return;
+
             // Clear metrics after completion of a turn
             setStreamMetrics(null);
 
@@ -1261,7 +1282,9 @@ CRITICAL RULES:
                          continue;
                      } else {
                          // Give up
-                         setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Permanent System Error: ${responseContent}`, timestamp: Date.now() }]);
+                         if (!agentControlRef.current.stop) {
+                            setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Permanent System Error: ${responseContent}`, timestamp: Date.now() }]);
+                         }
                          break;
                      }
                 }
@@ -1273,7 +1296,7 @@ CRITICAL RULES:
             if (!completion?.choices?.[0]) break;
             const message = completion.choices[0].message;
             apiLoopMessages.push(message);
-            if (message.content) setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: message.content, timestamp: Date.now() }]);
+            if (message.content && !agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: message.content, timestamp: Date.now() }]);
 
             if (message.tool_calls && message.tool_calls.length > 0) {
                 // Loop Detection
@@ -1286,13 +1309,16 @@ CRITICAL RULES:
                 }
 
                 if (repetitionCount >= 2) {
-                     setMessages(prev => [...prev, { id: generateId(), role: 'system', content: "⚠️ System: Infinite loop detected (same tool call repeated). Stopping.", timestamp: Date.now() }]);
+                     if (!agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'system', content: "⚠️ System: Infinite loop detected (same tool call repeated). Stopping.", timestamp: Date.now() }]);
                      break;
                 }
 
                 const uiTools: ToolAction[] = message.tool_calls.map((tc: any) => { try { return { action: tc.function.name, ...JSON.parse(tc.function.arguments) }; } catch { return { action: tc.function.name }; }});
-                setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: '', timestamp: Date.now(), toolCalls: uiTools }]);
+                if (!agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: '', timestamp: Date.now(), toolCalls: uiTools }]);
                 if (uiTools.some(t => t.action === 'ask_question')) break;
+
+                // Check for stop before tool execution loop
+                if (agentControlRef.current.stop) return;
 
                 // SPECIAL HANDLING: If spawn_agents OR call_sub_agent is present
                 const spawnAgentCall = message.tool_calls.find((tc: any) => tc.function.name === 'spawn_agents' || tc.function.name === 'call_sub_agent');
@@ -1320,7 +1346,9 @@ CRITICAL RULES:
                         setWaitingForSubAgents(true);
                         
                         // We push a "system" notification to UI
-                        setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Started ${newIds.length} sub-agent(s). Pausing main agent until completion...`, timestamp: Date.now() }]);
+                        if (!agentControlRef.current.stop) {
+                            setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Started ${newIds.length} sub-agent(s). Pausing main agent until completion...`, timestamp: Date.now() }]);
+                        }
                         
                         // BREAK THE LOOP - effectively "Sleeping"
                         keepGoing = false;
@@ -1330,6 +1358,8 @@ CRITICAL RULES:
                 }
 
                 for (const toolCall of message.tool_calls) {
+                    if (agentControlRef.current.stop) return;
+
                     const fnName = toolCall.function.name;
                     if (fnName === 'ask_question') continue;
                     if (fnName === 'spawn_agents' || fnName === 'call_sub_agent') continue; // Handled above
@@ -1373,13 +1403,15 @@ CRITICAL RULES:
                                          content: data.screenshot
                                      });
                                  }
-                                 setMessages(prev => [...prev, { 
-                                     id: generateId(), 
-                                     role: 'system', 
-                                     content: `**Browser Step:**\n${data.text}`, 
-                                     timestamp: Date.now(),
-                                     attachments: attachments
-                                 }]);
+                                 if (!agentControlRef.current.stop) {
+                                    setMessages(prev => [...prev, { 
+                                        id: generateId(), 
+                                        role: 'system', 
+                                        content: `**Browser Step:**\n${data.text}`, 
+                                        timestamp: Date.now(),
+                                        attachments: attachments
+                                    }]);
+                                 }
                              }
                          });
                     } else if (fnName === 'list_files') {
@@ -1461,17 +1493,23 @@ CRITICAL RULES:
                         result = "Executed."; 
                     }
                     
+                    if (agentControlRef.current.stop) return;
                     setMessages(prev => [...prev, { id: generateId(), role: 'tool', name: fnName, content: result, timestamp: Date.now() }]);
                     apiLoopMessages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
                 }
             } else keepGoing = false;
         }
-    } catch (error: any) { setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Error: ${error.message}`, timestamp: Date.now() }]); } 
+    } catch (error: any) { 
+        if (error.name !== 'AbortError' && !agentControlRef.current.stop) {
+            setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Error: ${error.message}`, timestamp: Date.now() }]); 
+        }
+    } 
     finally { 
         // Only set loading false if we aren't waiting for agents
         if (!waitingForSubAgents) {
             setIsLoading(false); 
         }
+        abortControllerRef.current = null;
     }
   };
   
