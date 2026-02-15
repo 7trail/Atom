@@ -107,6 +107,25 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   const [isLoading, setIsLoading] = useState(false);
   const blobUrlsRef = useRef<string[]>([]);
   
+  // --- Message Listener for Navigation ---
+  useEffect(() => {
+      const handleMessage = (e: MessageEvent) => {
+          if (e.data?.type === 'PREVIEW_NAVIGATE' && e.data.path && file) {
+              const resolved = resolvePath(file.name, e.data.path);
+              // Try exact match first, then without leading slash if present
+              let target = allFiles.find(f => f.name === resolved);
+              
+              if (target) {
+                  onSelectFile(target);
+              } else {
+                  console.warn("Preview navigation: Could not find file", resolved);
+              }
+          }
+      };
+      window.addEventListener('message', handleMessage);
+      return () => window.removeEventListener('message', handleMessage);
+  }, [file, allFiles, onSelectFile]);
+
   // --- Blob Engine for HTML Previews ---
   useEffect(() => {
     // Cleanup previous blobs
@@ -200,14 +219,36 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
             // Rewrite standard attributes
             htmlContent = htmlContent.replace(/(src|href)=["']([^"']+)["']/g, (match, attr, path) => {
                 const resolved = resolvePath(file.name, path);
-                if (assetMap.has(resolved)) {
+                
+                // CRITICAL FIX: Do NOT rewrite HTML links. 
+                // We want them to remain relative so the click listener can intercept them.
+                const isHtml = resolved.endsWith('.html');
+                
+                if (assetMap.has(resolved) && !isHtml) {
                     return `${attr}="${assetMap.get(resolved)}"`;
                 }
+                
                 if (importMap.imports[`/${resolved}`]) {
                     return `${attr}="${importMap.imports[`/${resolved}`]}"`;
                 }
                 return match;
             });
+
+            // Inject Navigation Interceptor
+            const navigationShim = `
+            <script>
+            document.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (link) {
+                    const href = link.getAttribute('href');
+                    if (href && !href.match(/^(http|https|mailto:|tel:|#|data:)/)) {
+                        e.preventDefault();
+                        window.parent.postMessage({ type: 'PREVIEW_NAVIGATE', path: href }, '*');
+                    }
+                }
+            });
+            </script>
+            `;
 
             // Inject Fetch Interceptor
             const fetchShim = `
@@ -259,7 +300,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
             `;
 
             const importMapScript = `<script type="importmap">${JSON.stringify(importMap)}</script>`;
-            const headInjection = `${fetchShim}\n${importMapScript}`;
+            const headInjection = `${fetchShim}\n${navigationShim}\n${importMapScript}`;
 
             if (htmlContent.includes('<head>')) {
                 htmlContent = htmlContent.replace('<head>', `<head>\n${headInjection}`);
