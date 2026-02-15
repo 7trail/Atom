@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -44,6 +45,7 @@ const App: React.FC = () => {
       handleImportFiles,
       handleUpdateFileContent,
       handleOpenFolder,
+      handleOpenGoogleDrive,
       resetFileSystem,
       applyFileAction
   } = useFileSystem();
@@ -973,7 +975,7 @@ CRITICAL RULES:
                         }
                     } else if (fnName === 'api_call') {
                          result = await performApiCall(args.url, args.method, args.headers, args.body);
-                    } else result = `Unknown tool: ${fnName}`;
+                    } else result = `Unknown tool was called`;
                     
                     if (!result) result = "Done.";
                     updateSessionLog(sessionId, { id: generateId(), type: 'tool_result', content: result, timestamp: Date.now() });
@@ -1601,6 +1603,7 @@ CRITICAL RULES:
                     onImportFiles={handleImportFiles} 
                     onMoveFile={handleMoveFile} 
                     onOpenFolder={handleOpenFolderWrapper} 
+                    onOpenGoogleDrive={handleOpenGoogleDrive}
                     onSwitchFolder={handleSwitchFolder}
                     onResetFileSystem={resetFileSystem}
                 />

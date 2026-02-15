@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment, ChatSession } from '../types';
 import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity, MessageSquarePlus, History, Clock } from 'lucide-react';
@@ -370,6 +369,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             )}
                         </div>
                     )}
+                    
+                    <div className={`text-[10px] text-gray-500/70 mt-1 select-none ${msg.role === 'user' ? 'mr-1' : 'ml-1'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                 </div>
             </div>
 

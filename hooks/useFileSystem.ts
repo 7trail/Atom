@@ -2,15 +2,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { FileData, ToolAction } from '../types';
 import { readLocalDirectory, writeLocalFile, deleteLocalFile, createLocalFolder, renameLocalFile, verifyPermission } from '../services/fileSystem';
+import { initGoogleDrive, authenticate, showFolderPicker, listDriveFiles, saveFileToDrive, deleteFileFromDrive } from '../services/googleDrive';
 import { INITIAL_FILE, DEMO_PLAN } from '../constants';
 import * as Diff from 'diff';
 
 export const useFileSystem = () => {
     const [files, setFiles] = useState<FileData[]>([INITIAL_FILE, DEMO_PLAN]);
     const [selectedFile, setSelectedFile] = useState<FileData | null>(INITIAL_FILE);
-    const [fileSystemType, setFileSystemType] = useState<'vfs' | 'local'>('vfs');
+    const [fileSystemType, setFileSystemType] = useState<'vfs' | 'local' | 'gdrive'>('vfs');
     const [rootHandle, setRootHandle] = useState<any>(null);
     const [localPath, setLocalPath] = useState<string | null>(null);
+    const [driveFolderId, setDriveFolderId] = useState<string | null>(null);
 
     // Refs for accessing state in async operations (like polling or agent loops)
     const filesRef = useRef(files);
@@ -21,6 +23,9 @@ export const useFileSystem = () => {
     
     const fileSystemTypeRef = useRef(fileSystemType);
     useEffect(() => { fileSystemTypeRef.current = fileSystemType; }, [fileSystemType]);
+    
+    const driveFolderIdRef = useRef(driveFolderId);
+    useEffect(() => { driveFolderIdRef.current = driveFolderId; }, [driveFolderId]);
 
     // --- LOCAL PATH SYNC via .atom ---
     // Watch for changes in .atom file content to update localPath state
@@ -76,6 +81,14 @@ export const useFileSystem = () => {
     const syncFileToDisk = async (name: string, content: string) => {
         if (fileSystemType === 'local' && rootHandle) {
             await writeLocalFile(rootHandle, name, content);
+        } else if (fileSystemType === 'gdrive' && driveFolderId) {
+            // Sync to Drive
+            try {
+                await saveFileToDrive(driveFolderId, name, content);
+            } catch (e) {
+                console.error("Failed to sync file to Drive", e);
+                // Could toast here if we had access to addToast
+            }
         }
     };
 
@@ -151,11 +164,45 @@ export const useFileSystem = () => {
         return { success: false };
     };
 
+    const handleOpenGoogleDrive = async (): Promise<{ success: boolean, message?: string }> => {
+        const clientId = localStorage.getItem('atom_google_client_id');
+        const apiKey = localStorage.getItem('atom_google_api_key');
+
+        if (!clientId || !apiKey) {
+            return { success: false, message: "Please configure Google Client ID and API Key in Settings." };
+        }
+
+        const initialized = await initGoogleDrive(clientId, apiKey);
+        if (!initialized) {
+            return { success: false, message: "Failed to initialize Google Drive API." };
+        }
+
+        try {
+            await authenticate();
+            const picked = await showFolderPicker(apiKey);
+            
+            if (picked) {
+                // Load files from Drive
+                const driveFiles = await listDriveFiles(picked.id);
+                setFiles(driveFiles);
+                setFileSystemType('gdrive');
+                setDriveFolderId(picked.id);
+                setSelectedFile(driveFiles.find(f => f.name.toLowerCase().endsWith('readme.md')) || driveFiles[0] || null);
+                return { success: true };
+            }
+            return { success: false, message: "No folder selected." };
+        } catch (e: any) {
+            console.error("Drive Error", e);
+            return { success: false, message: e.message || "Unknown Drive Error" };
+        }
+    };
+
     const resetFileSystem = () => {
         setFiles([]);
         setFileSystemType('vfs');
         setRootHandle(null);
         setLocalPath(null);
+        setDriveFolderId(null);
     };
 
     const handleDeleteFile = async (name: string) => {
@@ -176,6 +223,8 @@ export const useFileSystem = () => {
 
         if (fileSystemType === 'local' && rootHandle) {
             await deleteLocalFile(rootHandle, name);
+        } else if (fileSystemType === 'gdrive' && driveFolderId) {
+            await deleteFileFromDrive(driveFolderId, name);
         }
     };
 
@@ -196,6 +245,12 @@ export const useFileSystem = () => {
           if (fileSystemType === 'local' && rootHandle) {
               if (isFolder) createLocalFolder(rootHandle, name);
               else writeLocalFile(rootHandle, name, ''); 
+          } else if (fileSystemType === 'gdrive' && driveFolderId) {
+              // For drive, we only create on "write" usually, but we can init empty
+              // If folder, create it immediately. If file, create empty file.
+              // Note: saveFileToDrive handles folder creation implicitly for file paths
+              if (!isFolder) saveFileToDrive(driveFolderId, name, ''); 
+              // TODO: explicit folder creation for empty folders not fully implemented in saveFileToDrive yet for pure folders
           }
         }
     };
@@ -211,6 +266,8 @@ export const useFileSystem = () => {
                   if (fileSystemType === 'local' && rootHandle) {
                       if (nf.name.endsWith('/')) createLocalFolder(rootHandle, nf.name);
                       else writeLocalFile(rootHandle, nf.name, nf.content);
+                  } else if (fileSystemType === 'gdrive' && driveFolderId) {
+                      if (!nf.name.endsWith('/')) saveFileToDrive(driveFolderId, nf.name, nf.content);
                   }
               });
               return combined;
@@ -225,8 +282,14 @@ export const useFileSystem = () => {
               return f;
           }));
           if (selectedFile && selectedFile.name === oldPath) setSelectedFile(prev => prev ? { ...prev, name: newPath } : null);
+          
           if (fileSystemType === 'local' && rootHandle && fileToMove) {
               renameLocalFile(rootHandle, oldPath, newPath, fileToMove.content);
+          } else if (fileSystemType === 'gdrive' && driveFolderId && fileToMove) {
+              // Drive doesn't support easy rename of paths without IDs. 
+              // Strategy: Copy (Write new) + Delete Old
+              saveFileToDrive(driveFolderId, newPath, fileToMove.content)
+                  .then(() => deleteFileFromDrive(driveFolderId!, oldPath));
           }
     };
 
@@ -342,6 +405,7 @@ export const useFileSystem = () => {
         handleImportFiles,
         handleUpdateFileContent,
         handleOpenFolder,
+        handleOpenGoogleDrive,
         resetFileSystem,
         applyFileAction
     };

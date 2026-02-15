@@ -1,7 +1,6 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye } from 'lucide-react';
+import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye, Cloud } from 'lucide-react';
 import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey } from '../services/cerebras';
 import { connectDiscord } from '../services/tools';
 import { SettingsProps, Agent } from '../types';
@@ -46,6 +45,10 @@ const Settings: React.FC<SettingsProps> = ({
   const [discordUserId, setDiscordUserId] = useState('');
   const [discordStatus, setDiscordStatus] = useState<string>('');
   
+  // Google Config
+  const [googleClientId, setGoogleClientId] = useState('');
+  const [googleApiKey, setGoogleApiKey] = useState('');
+
   // Timezone Config
   const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +64,9 @@ const Settings: React.FC<SettingsProps> = ({
           setDiscordToken(token || '');
           setDiscordUserId(userId || '');
       }
+      
+      setGoogleClientId(localStorage.getItem('atom_google_client_id') || '');
+      setGoogleApiKey(localStorage.getItem('atom_google_api_key') || '');
       
       try {
           // @ts-ignore
@@ -107,6 +113,12 @@ const Settings: React.FC<SettingsProps> = ({
           localStorage.setItem('atom_discord_config', JSON.stringify({ token: discordToken, userId: discordUserId }));
       }
   };
+  
+  const handleSaveGoogleConfig = () => {
+      localStorage.setItem('atom_google_client_id', googleClientId.trim());
+      localStorage.setItem('atom_google_api_key', googleApiKey.trim());
+      alert("Google Drive configuration saved. You can now use the Drive button in the File Explorer.");
+  };
 
   const handleExportConfig = () => {
       const config = {
@@ -116,6 +128,10 @@ const Settings: React.FC<SettingsProps> = ({
           discord_config: {
               token: discordToken,
               userId: discordUserId
+          },
+          google_config: {
+              clientId: googleClientId,
+              apiKey: googleApiKey
           },
           disabled_tools: globalDisabledTools,
           disabled_sub_agents: disabledSubAgents,
@@ -156,12 +172,21 @@ const Settings: React.FC<SettingsProps> = ({
               if (config.disabled_tools) localStorage.setItem('atom_disabled_tools', JSON.stringify(config.disabled_tools));
               if (config.disabled_sub_agents) localStorage.setItem('atom_disabled_sub_agents', JSON.stringify(config.disabled_sub_agents));
               
+              if (config.google_config) {
+                  localStorage.setItem('atom_google_client_id', config.google_config.clientId || '');
+                  localStorage.setItem('atom_google_api_key', config.google_config.apiKey || '');
+              }
+              
               // Refresh state in this modal
               setCerebrasKeys(getApiKeys());
               setNvidiaKeys(getNvidiaApiKeys());
               if (config.discord_config) {
                   setDiscordToken(config.discord_config.token);
                   setDiscordUserId(config.discord_config.userId);
+              }
+              if (config.google_config) {
+                  setGoogleClientId(config.google_config.clientId || '');
+                  setGoogleApiKey(config.google_config.apiKey || '');
               }
               
               if (confirm("Configuration imported successfully! To apply all changes (like disabled tools), the application needs to reload. Reload now?")) {
@@ -359,8 +384,6 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="grid grid-cols-2 gap-2">
                 {GLOBAL_TOOLS_LIST.map(tool => {
                     const isRestricted = isRenderHosted && (tool as any).restricted;
-                    // If restricted, it's always considered disabled for UI purposes in toggle state, 
-                    // though state logic handles the actual disabled list
                     const isEnabled = !globalDisabledTools.includes(tool.id) && !isRestricted;
                     
                     return (
@@ -523,6 +546,48 @@ const Settings: React.FC<SettingsProps> = ({
                     <Plus className="w-4 h-4" />
                 </button>
             </form>
+          </div>
+
+          <div className="border-t border-dark-border pt-4"></div>
+
+          {/* Google Drive Configuration */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+                <Cloud className="w-3.5 h-3.5 text-yellow-500" />
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Google Drive Integration</label>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Required to use the "Open Google Drive" feature.</p>
+            
+            <div className="space-y-3">
+                <div>
+                    <label className="text-[10px] text-gray-400 mb-1 block">Google Client ID</label>
+                    <input 
+                        type="text"
+                        value={googleClientId}
+                        onChange={(e) => setGoogleClientId(e.target.value)}
+                        placeholder="1234...apps.googleusercontent.com"
+                        className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-yellow-500 focus:outline-none font-mono"
+                    />
+                </div>
+                <div>
+                    <label className="text-[10px] text-gray-400 mb-1 block">Google API Key</label>
+                    <input 
+                        type="password"
+                        value={googleApiKey}
+                        onChange={(e) => setGoogleApiKey(e.target.value)}
+                        placeholder="AIza..."
+                        className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-yellow-500 focus:outline-none font-mono"
+                    />
+                </div>
+                <div className="flex justify-end">
+                    <button 
+                        onClick={handleSaveGoogleConfig}
+                        className="bg-yellow-600 text-white px-3 py-1.5 rounded text-xs hover:bg-yellow-500 transition-colors"
+                    >
+                        Save Drive Config
+                    </button>
+                </div>
+            </div>
           </div>
 
           <div className="border-t border-dark-border pt-4"></div>

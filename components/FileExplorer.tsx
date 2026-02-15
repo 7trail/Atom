@@ -1,18 +1,20 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileData } from '../types';
-import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw } from 'lucide-react';
+import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw, Cloud } from 'lucide-react';
 import JSZip from 'jszip';
 
 interface FileExplorerProps {
   files: FileData[];
   selectedFile: FileData | null;
-  fileSystemType: 'vfs' | 'local';
+  fileSystemType: 'vfs' | 'local' | 'gdrive';
   onSelectFile: (file: FileData) => void;
   onCreateFile: (name: string) => void;
   onDeleteFile: (name: string) => void;
   onImportFiles?: (files: FileData[]) => void;
   onMoveFile: (oldPath: string, newPath: string) => void;
   onOpenFolder?: () => void;
+  onOpenGoogleDrive?: () => Promise<{ success: boolean, message?: string }>;
   onSwitchFolder?: () => void;
   onResetFileSystem?: () => void;
 }
@@ -339,6 +341,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onImportFiles,
   onMoveFile,
   onOpenFolder,
+  onOpenGoogleDrive,
   onSwitchFolder,
   onResetFileSystem
 }) => {
@@ -603,6 +606,15 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       onMoveFile(oldPath, newPath);
       setRenamingPath(null);
   };
+  
+  const handleDriveClick = async () => {
+      if (onOpenGoogleDrive) {
+          const res = await onOpenGoogleDrive();
+          if (!res.success && res.message) {
+              alert(res.message);
+          }
+      }
+  };
 
   return (
     <div className="flex flex-col h-full w-full relative">
@@ -670,9 +682,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                  <button 
                     onClick={onOpenFolder}
                     className="flex-1 bg-dark-panel hover:bg-white/5 border border-dark-border text-gray-400 text-xs py-1.5 px-2 rounded flex items-center justify-center gap-2 transition-colors"
+                    title="Open Local Folder"
                  >
-                    <HardDrive className="w-3.5 h-3.5" /> Open Local Folder
+                    <HardDrive className="w-3.5 h-3.5" /> Local
                  </button>
+                 {onOpenGoogleDrive && (
+                     <button 
+                        onClick={handleDriveClick}
+                        className="flex-1 bg-dark-panel hover:bg-white/5 border border-dark-border text-gray-400 text-xs py-1.5 px-2 rounded flex items-center justify-center gap-2 transition-colors"
+                        title="Open Google Drive Folder"
+                     >
+                        <Cloud className="w-3.5 h-3.5" /> Drive
+                     </button>
+                 )}
                  {onResetFileSystem && (
                     <button 
                        onClick={() => setResetConfirmationOpen(true)}
@@ -693,7 +715,23 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                      <button 
                         onClick={onSwitchFolder}
                         className="p-1.5 bg-dark-panel border border-dark-border hover:bg-white/5 text-gray-400 rounded transition-colors"
-                        title="Switch Local Folder (Resets State)"
+                        title="Switch Folder (Resets State)"
+                     >
+                         <RefreshCw className="w-3.5 h-3.5" />
+                     </button>
+                )}
+             </div>
+         )}
+         {fileSystemType === 'gdrive' && (
+             <div className="flex items-center gap-1 w-full">
+                <div className="flex-1 bg-yellow-900/20 border border-yellow-500/30 text-yellow-400 text-xs py-1.5 px-2 rounded flex items-center justify-center gap-2 truncate">
+                    <Cloud className="w-3.5 h-3.5" /> Drive
+                </div>
+                {onSwitchFolder && (
+                     <button 
+                        onClick={onSwitchFolder}
+                        className="p-1.5 bg-dark-panel border border-dark-border hover:bg-white/5 text-gray-400 rounded transition-colors"
+                        title="Switch Drive Folder (Resets State)"
                      >
                          <RefreshCw className="w-3.5 h-3.5" />
                      </button>
@@ -706,7 +744,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         <div className="flex justify-between items-center">
             <h2 className="text-sm font-semibold text-dark-text uppercase tracking-wider">Explorer</h2>
             <div className="flex gap-1">
-                {fileSystemType === 'vfs' && (
+                {(fileSystemType === 'vfs' || fileSystemType === 'gdrive') && (
                     <button 
                         onClick={() => fileInputRef.current?.click()}
                         className="p-1 hover:bg-white/10 rounded transition-colors"
@@ -776,6 +814,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           <div className="text-xs text-gray-500 text-center mt-10 italic px-4">
             {fileSystemType === 'local' 
                 ? "No files in this folder. Create one!" 
+                : fileSystemType === 'gdrive'
+                ? "Empty Drive folder or loading..."
                 : "No files yet. Drag and drop to move, or create new ones."}
           </div>
         )}

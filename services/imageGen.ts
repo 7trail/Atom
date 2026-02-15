@@ -76,7 +76,7 @@ async function _processImageGeneration(prompt: string, height: number, width: nu
   for (let attempt = 1; attempt <= MAX_PRIMARY_ATTEMPTS; attempt++) {
     try {
       const originalUrl = imageAPI();
-      const proxiedUrl = applyProxy(originalUrl);
+      const proxiedUrl = originalUrl;
 
       const response = await fetch(proxiedUrl, {
         method: "POST",
