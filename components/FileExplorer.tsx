@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileData, Workspace } from '../types';
-import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw, Cloud, Box, MoreVertical, Layout } from 'lucide-react';
+import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw, Cloud, Box, MoreVertical, Layout, Copy, Check } from 'lucide-react';
 import JSZip from 'jszip';
 
 interface FileExplorerProps {
@@ -23,6 +23,7 @@ interface FileExplorerProps {
   onSwitchWorkspace: (id: string) => void;
   onRenameWorkspace: (id: string, name: string) => void;
   onDeleteWorkspace: (id: string) => void;
+  onDuplicateWorkspace: (id: string) => void;
 }
 
 // Tree Data Structure Helpers
@@ -343,8 +344,9 @@ const WorkspaceMenu: React.FC<{
     onSwitch: (id: string) => void,
     onCreate: (name: string) => void,
     onRename: (id: string, name: string) => void,
-    onDelete: (id: string) => void
-}> = ({ workspaces, activeId, onSwitch, onCreate, onRename, onDelete }) => {
+    onDelete: (id: string) => void,
+    onDuplicate: (id: string) => void
+}> = ({ workspaces, activeId, onSwitch, onCreate, onRename, onDelete, onDuplicate }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [newName, setNewName] = useState('');
@@ -509,6 +511,16 @@ const WorkspaceMenu: React.FC<{
                     onClick={(e) => e.stopPropagation()} 
                 >
                     <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDuplicate(contextMenu.id);
+                            setContextMenu(null);
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-[10px] text-gray-300 hover:bg-white/10 rounded flex items-center gap-2"
+                    >
+                        <Copy className="w-3 h-3" /> Duplicate
+                    </button>
+                    <button 
                         onClick={handleContextMenuRename}
                         className="w-full text-left px-2 py-1.5 text-[10px] text-gray-300 hover:bg-white/10 rounded flex items-center gap-2"
                     >
@@ -543,12 +555,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onCreateWorkspace,
   onSwitchWorkspace,
   onRenameWorkspace,
-  onDeleteWorkspace
+  onDeleteWorkspace,
+  onDuplicateWorkspace
 }) => {
   const [isCreating, setIsCreating] = useState<'file' | 'folder' | null>(null);
   const [newFileName, setNewFileName] = useState('');
   const [isRootDragOver, setIsRootDragOver] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
+  const [isResetConfirming, setIsResetConfirming] = useState(false);
   
   // Rename & Context Menu State
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(null);
@@ -854,6 +868,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                         onCreate={onCreateWorkspace}
                         onRename={onRenameWorkspace}
                         onDelete={onDeleteWorkspace}
+                        onDuplicate={onDuplicateWorkspace}
                      />
                  </div>
                  <div className="flex gap-2 w-full">
@@ -866,11 +881,23 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     </button>
                     {onResetFileSystem && (
                         <button 
-                            onClick={onResetFileSystem}
-                            className="bg-dark-panel hover:bg-red-900/20 hover:text-red-400 border border-dark-border text-gray-400 text-xs py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors"
-                            title="Reset VFS"
+                            onClick={() => {
+                                if (isResetConfirming) {
+                                    onResetFileSystem();
+                                    setIsResetConfirming(false);
+                                } else {
+                                    setIsResetConfirming(true);
+                                    setTimeout(() => setIsResetConfirming(false), 3000);
+                                }
+                            }}
+                            className={`border border-dark-border text-xs py-2 px-3 rounded flex items-center justify-center gap-2 transition-all ${
+                                isResetConfirming 
+                                    ? 'bg-red-900/50 text-red-400 border-red-500/50 hover:bg-red-900/70' 
+                                    : 'bg-dark-panel text-gray-400 hover:bg-red-900/20 hover:text-red-400'
+                            }`}
+                            title={isResetConfirming ? "Click to Confirm Reset" : "Reset VFS"}
                         >
-                            <RefreshCw className="w-3.5 h-3.5" />
+                            {isResetConfirming ? <Check className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
                         </button>
                     )}
                  </div>

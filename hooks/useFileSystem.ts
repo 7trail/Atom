@@ -9,6 +9,11 @@ import { getWorkspacesFromDB, saveWorkspacesToDB } from '../services/db';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 
+// Helper for fuzzy regex matching
+const escapeRegExp = (string: string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+};
+
 export const useFileSystem = () => {
     // --- WORKSPACE INITIALIZATION ---
     // Load workspace ID from local storage (lightweight preference)
@@ -159,6 +164,26 @@ export const useFileSystem = () => {
         const nextWorkspaces = workspaces.map(w => w.id === id ? { ...w, name: newName } : w);
         setWorkspaces(nextWorkspaces);
         saveWorkspacesToDB(nextWorkspaces);
+    };
+
+    const handleDuplicateWorkspace = (id: string) => {
+        const target = workspaces.find(w => w.id === id);
+        if (!target) return;
+
+        const newId = generateId();
+        const newWorkspace: Workspace = {
+            id: newId,
+            name: `${target.name} (Copy)`,
+            files: JSON.parse(JSON.stringify(target.files)), // Deep copy files
+            lastModified: Date.now()
+        };
+
+        const nextWorkspaces = [...workspaces, newWorkspace];
+        setWorkspaces(nextWorkspaces);
+        saveWorkspacesToDB(nextWorkspaces);
+        
+        // Switch to the new copy
+        handleSwitchWorkspace(newId);
     };
 
     const handleDeleteWorkspace = (id: string) => {
@@ -475,14 +500,33 @@ export const useFileSystem = () => {
         } else if (action.action === 'edit_file' && action.filename) {
             newFiles = newFiles.map(f => {
                 if (f.name === action.filename) {
-                    if (f.content.includes(action.search_text!)) {
+                    // Create fuzzy matcher
+                    const searchParts = action.search_text!.split(/\s+/).filter(p => p.length > 0);
+                    let regex: RegExp;
+                    if (searchParts.length === 0 && action.search_text!.length > 0) {
+                        regex = /\s+/;
+                    } else {
+                        const regexStr = searchParts.map(escapeRegExp).join('\\s+');
+                        regex = new RegExp(regexStr); 
+                    }
+
+                    if (regex.test(f.content)) {
                         pushHistory(f);
-                        const newContent = f.content.replace(action.search_text!, action.replacement_text!);
+                        const newContent = f.content.replace(regex, action.replacement_text!);
                         modifiedFile = { ...f, content: newContent, history: f.history, unsaved: !isAutoSave };
                         result = `Edited ${action.filename}`;
                         if (isAutoSave) syncFileToDisk(action.filename, newContent);
                         return modifiedFile;
                     } else {
+                        // Fallback exact check
+                        if (f.content.includes(action.search_text!)) {
+                             pushHistory(f);
+                             const newContent = f.content.replace(action.search_text!, action.replacement_text!);
+                             modifiedFile = { ...f, content: newContent, history: f.history, unsaved: !isAutoSave };
+                             result = `Edited ${action.filename} (Exact Match)`;
+                             if (isAutoSave) syncFileToDisk(action.filename, newContent);
+                             return modifiedFile;
+                        }
                         result = `Error: Search text not found in ${action.filename}`;
                     }
                 }
@@ -495,7 +539,10 @@ export const useFileSystem = () => {
                         const patchedContent = Diff.applyPatch(f.content, action.patch, {
                             fuzzFactor: 3,
                             compareLine(lineNumber, line, operation, patchContent) {
-                                if (operation === ' ') return line.trim() === patchContent.trim();
+                                // Ignore whitespace for Context and Remove lines
+                                if (operation === ' ' || operation === '-') {
+                                    return line.trim().replace(/\s+/g, ' ') === patchContent.trim().replace(/\s+/g, ' ');
+                                }
                                 return line === patchContent;
                             }
                         });
@@ -531,6 +578,6 @@ export const useFileSystem = () => {
         workspaces, activeWorkspaceId,
         handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles, handleUpdateFileContent,
         handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
-        handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace
+        handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace, handleDuplicateWorkspace
     };
 };

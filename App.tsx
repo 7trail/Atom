@@ -52,7 +52,8 @@ const App: React.FC = () => {
       handleCreateWorkspace,
       handleSwitchWorkspace,
       handleRenameWorkspace,
-      handleDeleteWorkspace
+      handleDeleteWorkspace,
+      handleDuplicateWorkspace
   } = useFileSystem();
 
   const [activeView, setActiveView] = useState<string>('chat'); 
@@ -1231,6 +1232,26 @@ CRITICAL RULES:
                      // Handle 400 Errors (Malformed Tool Calls)
                      if (responseContent.includes("400")) {
                         console.warn("400 Error detected - Rewinding last turn and retrying");
+
+                        // --- DEBUG: Log previous context on 400 error ---
+                        try {
+                            const lastAssistantMsg = [...apiLoopMessages].reverse().find(m => m.role === 'assistant');
+                            console.log(">>> NVIDIA 400 ERROR DETECTED. DUMPING PREVIOUS ASSISTANT MESSAGE:");
+                            if (lastAssistantMsg) {
+                                console.log(JSON.stringify(lastAssistantMsg, null, 2));
+                            } else {
+                                console.log("(No assistant message found in history)");
+                            }
+                            console.log(">>> DUMPING FULL HISTORY CONTEXT:");
+                            console.log(JSON.stringify(apiLoopMessages, null, 2));
+                        } catch(e) {
+                            console.error("Error dumping debug context:", e);
+                        }
+                        // ------------------------------------------------
+                        
+                        // Handle 400 Errors (Malformed Tool Calls)
+                     if (responseContent.includes("400")) {
+                        console.warn("400 Error detected - Rewinding last turn and retrying");
                         
                         // 1. Rewind API History
                         while (apiLoopMessages.length > 0) {
@@ -1509,6 +1530,7 @@ CRITICAL RULES:
                 }
             } else keepGoing = false;
         }
+        }
     } catch (error: any) { 
         if (error.name !== 'AbortError' && !agentControlRef.current.stop) {
             setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Error: ${error.message}`, timestamp: Date.now() }]); 
@@ -1619,6 +1641,7 @@ CRITICAL RULES:
                     onSwitchWorkspace={handleSwitchWorkspace}
                     onRenameWorkspace={handleRenameWorkspace}
                     onDeleteWorkspace={handleDeleteWorkspace}
+                    onDuplicateWorkspace={handleDuplicateWorkspace}
                 />
             ) : (
                 <div className="flex flex-col h-full w-full">
