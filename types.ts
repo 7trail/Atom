@@ -170,12 +170,13 @@ export type AppModel =
   | 'qwen/qwen3-next-80b-a3b-thinking'
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'qwen/qwen3-235b-a22b'
-  | 'qwen/qwen3-coder-480b-a35b-instruct'
+  | 'moonshotai/kimi-k2-instruct-0905'
   | 'mistralai/mistral-medium-3-instruct'
   | 'moonshotai/kimi-k2.5'
   | 'stepfun-ai/step-3.5-flash'
   | 'minimaxai/minimax-m2.1'
-  | 'z-ai/glm5';
+  | 'z-ai/glm5'
+  | 'qwen/qwen3.5-397b-a17b';
 
 export interface Agent {
   id: string;
@@ -207,17 +208,19 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'qwen/qwen3-next-80b-a3b-thinking',
   'nvidia/nemotron-nano-12b-v2-vl',
   'qwen/qwen3-235b-a22b',
-  'qwen/qwen3-coder-480b-a35b-instruct',
+  'moonshotai/kimi-k2-instruct-0905',
   'mistralai/mistral-medium-3-instruct',
   'moonshotai/kimi-k2.5',
   'stepfun-ai/step-3.5-flash',
   'minimaxai/minimax-m2.1',
-  'z-ai/glm5'
+  'z-ai/glm5',
+  'qwen/qwen3.5-397b-a17b'
 ];
 
 export const MULTIMODAL_MODELS: AppModel[] = [
   'nvidia/nemotron-nano-12b-v2-vl',
-  'moonshotai/kimi-k2.5'
+  'moonshotai/kimi-k2.5',
+  'qwen/qwen3.5-397b-a17b'
 ];
 
 export interface SettingsProps {
