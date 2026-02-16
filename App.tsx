@@ -37,6 +37,7 @@ const App: React.FC = () => {
       fileSystemType, fileSystemTypeRef,
       rootHandle,
       localPath, localPathRef,
+      workspaces, activeWorkspaceId,
       handleCreateFile,
       handleDeleteFile,
       handleSaveFile,
@@ -47,7 +48,11 @@ const App: React.FC = () => {
       handleOpenFolder,
       handleOpenGoogleDrive,
       resetFileSystem,
-      applyFileAction
+      applyFileAction,
+      handleCreateWorkspace,
+      handleSwitchWorkspace,
+      handleRenameWorkspace,
+      handleDeleteWorkspace
   } = useFileSystem();
 
   const [activeView, setActiveView] = useState<string>('chat'); 
@@ -381,9 +386,12 @@ const App: React.FC = () => {
         }
     };
     
-    loadSkills();
+    // Only load skills if files are ready
+    if (files.length > 0 || fileSystemType === 'vfs') {
+        loadSkills();
+    }
     
-  }, [files, skillRefresh]); 
+  }, [files, skillRefresh, fileSystemType]); 
 
   // Handlers for Skill UI
   const handleImportSkill = (files: FileData[]) => {
@@ -1603,9 +1611,14 @@ CRITICAL RULES:
                     onImportFiles={handleImportFiles} 
                     onMoveFile={handleMoveFile} 
                     onOpenFolder={handleOpenFolderWrapper} 
-                    onOpenGoogleDrive={handleOpenGoogleDrive}
                     onSwitchFolder={handleSwitchFolder}
                     onResetFileSystem={resetFileSystem}
+                    workspaces={workspaces}
+                    activeWorkspaceId={activeWorkspaceId}
+                    onCreateWorkspace={handleCreateWorkspace}
+                    onSwitchWorkspace={handleSwitchWorkspace}
+                    onRenameWorkspace={handleRenameWorkspace}
+                    onDeleteWorkspace={handleDeleteWorkspace}
                 />
             ) : (
                 <div className="flex flex-col h-full w-full">

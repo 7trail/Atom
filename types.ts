@@ -11,6 +11,13 @@ export interface FileData {
   unsaved?: boolean;
 }
 
+export interface Workspace {
+  id: string;
+  name: string;
+  files: FileData[];
+  lastModified: number;
+}
+
 export interface Skill {
   id: string; // generated or from file path
   name: string;

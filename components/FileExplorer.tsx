@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { FileData } from '../types';
-import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw, Cloud } from 'lucide-react';
+import { FileData, Workspace } from '../types';
+import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw, Cloud, Box, MoreVertical, Layout } from 'lucide-react';
 import JSZip from 'jszip';
 
 interface FileExplorerProps {
@@ -14,9 +14,15 @@ interface FileExplorerProps {
   onImportFiles?: (files: FileData[]) => void;
   onMoveFile: (oldPath: string, newPath: string) => void;
   onOpenFolder?: () => void;
-  onOpenGoogleDrive?: () => Promise<{ success: boolean, message?: string }>;
   onSwitchFolder?: () => void;
   onResetFileSystem?: () => void;
+  // Workspace Props
+  workspaces: Workspace[];
+  activeWorkspaceId: string;
+  onCreateWorkspace: (name: string) => void;
+  onSwitchWorkspace: (id: string) => void;
+  onRenameWorkspace: (id: string, name: string) => void;
+  onDeleteWorkspace: (id: string) => void;
 }
 
 // Tree Data Structure Helpers
@@ -331,6 +337,195 @@ const ConfirmationModal: React.FC<{
     );
 };
 
+const WorkspaceMenu: React.FC<{
+    workspaces: Workspace[],
+    activeId: string,
+    onSwitch: (id: string) => void,
+    onCreate: (name: string) => void,
+    onRename: (id: string, name: string) => void,
+    onDelete: (id: string) => void
+}> = ({ workspaces, activeId, onSwitch, onCreate, onRename, onDelete }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newName, setNewName] = useState('');
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [renameVal, setRenameVal] = useState('');
+    
+    // For the context menu (3 dots)
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            // Close main menu if clicked outside
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                // Check if we clicked inside the context menu
+                const target = e.target as HTMLElement;
+                if (!target.closest('.workspace-context-menu')) {
+                    setIsOpen(false);
+                    setIsCreating(false);
+                    setRenamingId(null);
+                }
+            }
+            // Close context menu on any click
+            setContextMenu(null);
+        };
+        
+        // Use capture to handle the context menu closing logic before others if needed, 
+        // or just bubble. Window click clears context menu.
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, []);
+
+    const handleCreateSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newName.trim()) {
+            onCreate(newName.trim());
+            setNewName('');
+            setIsCreating(false);
+            setIsOpen(false);
+        }
+    };
+
+    const handleRenameSubmit = (e: React.FormEvent, id: string) => {
+        e.preventDefault();
+        if (renameVal.trim()) {
+            onRename(id, renameVal.trim());
+            setRenamingId(null);
+        }
+    };
+
+    const handleContextMenuClick = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        // Anchor to the left side of the trigger button to prevent clipping
+        setContextMenu({ x: rect.left, y: rect.top, id });
+    };
+
+    const handleContextMenuDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (contextMenu) {
+            if(confirm(`Delete workspace?`)) onDelete(contextMenu.id);
+            setContextMenu(null);
+        }
+    }
+
+    const handleContextMenuRename = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (contextMenu) {
+            setRenamingId(contextMenu.id); 
+            setRenameVal(workspaces.find(w => w.id === contextMenu.id)?.name || ''); 
+            setContextMenu(null);
+        }
+    }
+
+    const activeWorkspace = workspaces.find(w => w.id === activeId);
+
+    return (
+        <div className="relative w-full" ref={menuRef}>
+            {/* Trigger Button */}
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 px-3 py-2 bg-dark-panel border border-dark-border rounded hover:bg-white/5 transition-colors text-sm text-gray-300 w-full justify-between"
+            >
+                <div className="flex items-center gap-2 truncate">
+                    <Box className="w-4 h-4 text-blue-400" />
+                    <span className="truncate flex-1 text-left">{activeWorkspace?.name || 'Workspace'}</span>
+                </div>
+                <ChevronDown className="w-3 h-3 text-gray-500" />
+            </button>
+
+            {/* Main Dropdown */}
+            {isOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-dark-panel border border-dark-border rounded-lg shadow-xl z-40 w-full flex flex-col max-h-[60vh]">
+                    <div className="p-2 border-b border-dark-border bg-dark-bg/50 rounded-t-lg shrink-0">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pl-2 block mb-2">My Workspaces</span>
+                        
+                        {/* New Workspace Input/Button (Moved to Top) */}
+                        {isCreating ? (
+                            <form onSubmit={handleCreateSubmit} className="flex gap-1 animate-in fade-in slide-in-from-top-1">
+                                <input 
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                    placeholder="Name..."
+                                    className="flex-1 bg-dark-bg border border-dark-border rounded px-2 py-1 text-xs text-white focus:border-blue-500 focus:outline-none"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                                <button type="submit" className="p-1 bg-blue-600 text-white rounded hover:bg-blue-500"><Plus className="w-3 h-3" /></button>
+                            </form>
+                        ) : (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setIsCreating(true); }}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/20 rounded text-xs text-blue-400 transition-colors"
+                            >
+                                <Plus className="w-3 h-3" /> New Workspace
+                            </button>
+                        )}
+                    </div>
+                    
+                    <div className="overflow-y-auto p-1 space-y-0.5 flex-1 min-h-0">
+                        {workspaces.map(w => (
+                            <div key={w.id} className={`group flex items-center justify-between p-2 rounded hover:bg-white/5 relative ${w.id === activeId ? 'bg-blue-900/20' : ''}`}>
+                                {renamingId === w.id ? (
+                                    <form onSubmit={(e) => handleRenameSubmit(e, w.id)} className="flex-1 mr-2">
+                                        <input 
+                                            value={renameVal} 
+                                            onChange={(e) => setRenameVal(e.target.value)}
+                                            className="w-full bg-dark-bg border border-blue-500/50 rounded px-1 py-0.5 text-xs text-white focus:outline-none"
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                            onBlur={() => setRenamingId(null)}
+                                        />
+                                    </form>
+                                ) : (
+                                    <button 
+                                        onClick={() => { onSwitch(w.id); setIsOpen(false); }}
+                                        className={`flex-1 text-left truncate text-xs ${w.id === activeId ? 'text-blue-400 font-medium' : 'text-gray-300'}`}
+                                    >
+                                        {w.name}
+                                    </button>
+                                )}
+                                
+                                <button 
+                                    onClick={(e) => handleContextMenuClick(e, w.id)}
+                                    className="p-1 text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <MoreVertical className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Context Menu (Fixed Position) */}
+            {contextMenu && (
+                <div 
+                    className="workspace-context-menu fixed z-[100] bg-dark-panel border border-dark-border rounded shadow-lg p-1 min-w-[120px] animate-in fade-in zoom-in duration-100 -translate-x-full origin-top-right"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={(e) => e.stopPropagation()} 
+                >
+                    <button 
+                        onClick={handleContextMenuRename}
+                        className="w-full text-left px-2 py-1.5 text-[10px] text-gray-300 hover:bg-white/10 rounded flex items-center gap-2"
+                    >
+                        <Pencil className="w-3 h-3" /> Rename
+                    </button>
+                    <button 
+                        onClick={handleContextMenuDelete}
+                        className="w-full text-left px-2 py-1.5 text-[10px] text-red-400 hover:bg-white/10 rounded flex items-center gap-2"
+                    >
+                        <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const FileExplorer: React.FC<FileExplorerProps> = ({ 
   files, 
   selectedFile, 
@@ -341,15 +536,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onImportFiles,
   onMoveFile,
   onOpenFolder,
-  onOpenGoogleDrive,
   onSwitchFolder,
-  onResetFileSystem
+  onResetFileSystem,
+  workspaces,
+  activeWorkspaceId,
+  onCreateWorkspace,
+  onSwitchWorkspace,
+  onRenameWorkspace,
+  onDeleteWorkspace
 }) => {
   const [isCreating, setIsCreating] = useState<'file' | 'folder' | null>(null);
   const [newFileName, setNewFileName] = useState('');
   const [isRootDragOver, setIsRootDragOver] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
-  const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   
   // Rename & Context Menu State
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(null);
@@ -422,14 +621,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         const file = node.fileData;
         let blob: Blob;
         
-        // Check for binary content that needs fetching or special handling
         if (file.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|xls|pptx)$/i) && (file.content.startsWith('http') || file.content.startsWith('data:'))) {
             try {
                 const response = await fetch(file.content);
                 blob = await response.blob();
             } catch (e) {
                 console.error("Failed to fetch binary file for download", e);
-                // Fallback to text if fetch fails
                 blob = new Blob([file.content], { type: 'text/plain' });
             }
         } else {
@@ -447,7 +644,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
     } else if (node.type === 'folder') {
         const zip = new JSZip();
-        // Ensure folder path ends with / for filtering
         const folderPrefix = node.path.endsWith('/') ? node.path : node.path + '/';
         const folderFiles = files.filter(f => f.name.startsWith(folderPrefix) && !f.name.endsWith('/'));
 
@@ -457,7 +653,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         }
 
         for (const file of folderFiles) {
-            // Remove the folder prefix to get relative path inside zip
             const relativeName = file.name.slice(folderPrefix.length);
             
             if (file.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|xls|pptx)$/i) && (file.content.startsWith('http') || file.content.startsWith('data:'))) {
@@ -511,9 +706,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 if (filename.endsWith('png')) mime = 'image/png';
                 else if (filename.endsWith('jpg') || filename.endsWith('jpeg')) mime = 'image/jpeg';
                 else if (filename.endsWith('svg')) mime = 'image/svg+xml';
-                else if (filename.match(/\.docx$/i)) mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                else if (filename.match(/\.xlsx$/i)) mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-                else if (filename.match(/\.pptx$/i)) mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
                 content = `data:${mime};base64,${base64}`;
               } else {
                 content = await entry.async('string');
@@ -586,13 +778,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       }
   };
   
-  const handleConfirmReset = () => {
-      if (onResetFileSystem) {
-          onResetFileSystem();
-      }
-      setResetConfirmationOpen(false);
-  };
-
   const handleContextMenu = (e: React.MouseEvent, node: TreeNode) => {
       e.preventDefault();
       e.stopPropagation();
@@ -607,15 +792,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       setRenamingPath(null);
   };
   
-  const handleDriveClick = async () => {
-      if (onOpenGoogleDrive) {
-          const res = await onOpenGoogleDrive();
-          if (!res.success && res.message) {
-              alert(res.message);
-          }
-      }
-  };
-
   return (
     <div className="flex flex-col h-full w-full relative">
       <ConfirmationModal 
@@ -625,15 +801,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         onCancel={() => setDeleteConfirmation(null)} 
       />
       
-      <ConfirmationModal 
-        isOpen={resetConfirmationOpen} 
-        title="Reset Virtual File System?"
-        message="Are you sure you want to clear all files? This cannot be undone."
-        confirmText="Clear All"
-        onConfirm={handleConfirmReset} 
-        onCancel={() => setResetConfirmationOpen(false)} 
-      />
-
       {/* Context Menu */}
       {contextMenu && (
         <div 
@@ -676,34 +843,37 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       )}
 
       {/* Mode Switcher */}
-      <div className="p-3 bg-dark-bg border-b border-dark-border flex gap-2 shrink-0">
+      <div className="p-3 bg-dark-bg border-b border-dark-border flex flex-col gap-2 shrink-0">
          {fileSystemType === 'vfs' && (
-             <div className="flex gap-2 w-full">
-                 <button 
-                    onClick={onOpenFolder}
-                    className="flex-1 bg-dark-panel hover:bg-white/5 border border-dark-border text-gray-400 text-xs py-1.5 px-2 rounded flex items-center justify-center gap-2 transition-colors"
-                    title="Open Local Folder"
-                 >
-                    <HardDrive className="w-3.5 h-3.5" /> Local
-                 </button>
-                 {onOpenGoogleDrive && (
-                     <button 
-                        onClick={handleDriveClick}
-                        className="flex-1 bg-dark-panel hover:bg-white/5 border border-dark-border text-gray-400 text-xs py-1.5 px-2 rounded flex items-center justify-center gap-2 transition-colors"
-                        title="Open Google Drive Folder"
-                     >
-                        <Cloud className="w-3.5 h-3.5" /> Drive
-                     </button>
-                 )}
-                 {onResetFileSystem && (
+             <div className="flex flex-col gap-2 w-full">
+                 <div className="w-full">
+                     <WorkspaceMenu 
+                        workspaces={workspaces}
+                        activeId={activeWorkspaceId}
+                        onSwitch={onSwitchWorkspace}
+                        onCreate={onCreateWorkspace}
+                        onRename={onRenameWorkspace}
+                        onDelete={onDeleteWorkspace}
+                     />
+                 </div>
+                 <div className="flex gap-2 w-full">
                     <button 
-                       onClick={() => setResetConfirmationOpen(true)}
-                       className="p-1.5 bg-dark-panel border border-dark-border hover:bg-red-900/20 hover:border-red-500/30 hover:text-red-400 text-gray-500 rounded transition-colors"
-                       title="Reset Virtual Filesystem (Clear All)"
+                        onClick={onOpenFolder}
+                        className="flex-1 bg-dark-panel hover:bg-white/5 border border-dark-border text-gray-400 text-xs py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+                        title="Open Local Folder"
                     >
-                        <RotateCcw className="w-3.5 h-3.5" />
+                        <HardDrive className="w-3.5 h-3.5" /> Local
                     </button>
-                 )}
+                    {onResetFileSystem && (
+                        <button 
+                            onClick={onResetFileSystem}
+                            className="bg-dark-panel hover:bg-red-900/20 hover:text-red-400 border border-dark-border text-gray-400 text-xs py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors"
+                            title="Reset VFS"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                 </div>
              </div>
          )}
          {fileSystemType === 'local' && (

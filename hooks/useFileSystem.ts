@@ -1,20 +1,78 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { FileData, ToolAction } from '../types';
+import { FileData, ToolAction, Workspace } from '../types';
 import { readLocalDirectory, writeLocalFile, deleteLocalFile, createLocalFolder, renameLocalFile, verifyPermission } from '../services/fileSystem';
 import { initGoogleDrive, authenticate, showFolderPicker, listDriveFiles, saveFileToDrive, deleteFileFromDrive } from '../services/googleDrive';
 import { INITIAL_FILE, DEMO_PLAN } from '../constants';
 import * as Diff from 'diff';
+import { getWorkspacesFromDB, saveWorkspacesToDB } from '../services/db';
+
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 
 export const useFileSystem = () => {
-    const [files, setFiles] = useState<FileData[]>([INITIAL_FILE, DEMO_PLAN]);
-    const [selectedFile, setSelectedFile] = useState<FileData | null>(INITIAL_FILE);
+    // --- WORKSPACE INITIALIZATION ---
+    // Load workspace ID from local storage (lightweight preference)
+    const loadActiveWorkspaceId = (): string => {
+        if (typeof localStorage === 'undefined') return 'default';
+        return localStorage.getItem('atom_active_workspace_id') || 'default';
+    };
+
+    // Initial state is empty, populated by Effect
+    const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+    const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(loadActiveWorkspaceId);
+    const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(true);
+
+    // --- IDB LOADING ---
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const stored = await getWorkspacesFromDB();
+                if (stored && stored.length > 0) {
+                    setWorkspaces(stored);
+                    
+                    // If current active ID doesn't exist, switch to first
+                    if (!stored.find(w => w.id === activeWorkspaceId)) {
+                        setActiveWorkspaceId(stored[0].id);
+                        setFiles(stored[0].files);
+                        setSelectedFile(stored[0].files[0] || null);
+                    } else {
+                        // Load files for active workspace
+                        const active = stored.find(w => w.id === activeWorkspaceId);
+                        if (active) {
+                            setFiles(active.files);
+                            setSelectedFile(active.files[0] || null);
+                        }
+                    }
+                } else {
+                    // Initialize default workspace if DB is empty
+                    const defaultWorkspace = { 
+                        id: 'default', 
+                        name: 'Default Workspace', 
+                        files: [INITIAL_FILE, DEMO_PLAN], 
+                        lastModified: Date.now() 
+                    };
+                    setWorkspaces([defaultWorkspace]);
+                    setFiles(defaultWorkspace.files);
+                    setSelectedFile(defaultWorkspace.files[0]);
+                    saveWorkspacesToDB([defaultWorkspace]);
+                }
+            } catch (e) {
+                console.error("Failed to load workspaces from DB", e);
+            } finally {
+                setIsLoadingWorkspaces(false);
+            }
+        };
+        load();
+    }, []);
+
+    const [files, setFiles] = useState<FileData[]>([]);
+    const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
     const [fileSystemType, setFileSystemType] = useState<'vfs' | 'local' | 'gdrive'>('vfs');
     const [rootHandle, setRootHandle] = useState<any>(null);
     const [localPath, setLocalPath] = useState<string | null>(null);
     const [driveFolderId, setDriveFolderId] = useState<string | null>(null);
 
-    // Refs for accessing state in async operations (like polling or agent loops)
+    // Refs
     const filesRef = useRef(files);
     useEffect(() => { filesRef.current = files; }, [files]);
     
@@ -27,8 +85,107 @@ export const useFileSystem = () => {
     const driveFolderIdRef = useRef(driveFolderId);
     useEffect(() => { driveFolderIdRef.current = driveFolderId; }, [driveFolderId]);
 
+    // --- WORKSPACE PERSISTENCE ---
+    // Whenever files change in VFS mode, sync to current workspace in DB
+    useEffect(() => {
+        if (!isLoadingWorkspaces && fileSystemType === 'vfs' && workspaces.length > 0) {
+            setWorkspaces(prev => {
+                const updated = prev.map(w => 
+                    w.id === activeWorkspaceId 
+                        ? { ...w, files: files, lastModified: Date.now() } 
+                        : w
+                );
+                
+                // If active workspace missing (edge case during init), append
+                if (!updated.find(w => w.id === activeWorkspaceId) && files.length > 0) {
+                    updated.push({
+                        id: activeWorkspaceId,
+                        name: 'Restored Workspace',
+                        files: files,
+                        lastModified: Date.now()
+                    });
+                }
+                
+                // Save to IndexedDB
+                saveWorkspacesToDB(updated);
+                return updated;
+            });
+        }
+    }, [files, activeWorkspaceId, fileSystemType, isLoadingWorkspaces]);
+
+    useEffect(() => {
+        localStorage.setItem('atom_active_workspace_id', activeWorkspaceId);
+    }, [activeWorkspaceId]);
+
+    // --- WORKSPACE ACTIONS ---
+
+    const handleCreateWorkspace = (name: string) => {
+        const newId = generateId();
+        const newWorkspace: Workspace = {
+            id: newId,
+            name: name,
+            files: [{ ...INITIAL_FILE, name: 'README.md', content: `# ${name}\n\nNew workspace created.` }],
+            lastModified: Date.now()
+        };
+        
+        const nextWorkspaces = [...workspaces, newWorkspace];
+        setWorkspaces(nextWorkspaces);
+        saveWorkspacesToDB(nextWorkspaces);
+        
+        // Switch to it
+        setActiveWorkspaceId(newId);
+        setFiles(newWorkspace.files);
+        setSelectedFile(newWorkspace.files[0]);
+        setFileSystemType('vfs');
+        setRootHandle(null);
+        setLocalPath(null);
+    };
+
+    const handleSwitchWorkspace = (id: string) => {
+        const target = workspaces.find(w => w.id === id);
+        if (target) {
+            // Ensure we are in VFS mode
+            setFileSystemType('vfs');
+            setRootHandle(null);
+            setLocalPath(null);
+            
+            setActiveWorkspaceId(id);
+            setFiles(target.files);
+            setSelectedFile(target.files[0] || null);
+        }
+    };
+
+    const handleRenameWorkspace = (id: string, newName: string) => {
+        const nextWorkspaces = workspaces.map(w => w.id === id ? { ...w, name: newName } : w);
+        setWorkspaces(nextWorkspaces);
+        saveWorkspacesToDB(nextWorkspaces);
+    };
+
+    const handleDeleteWorkspace = (id: string) => {
+        const nextWorkspaces = workspaces.filter(w => w.id !== id);
+        setWorkspaces(nextWorkspaces);
+        saveWorkspacesToDB(nextWorkspaces);
+        
+        // If we deleted the active one, switch to the first available or create default
+        if (id === activeWorkspaceId) {
+            if (nextWorkspaces.length > 0) {
+                const fallback = nextWorkspaces[0];
+                setActiveWorkspaceId(fallback.id);
+                setFiles(fallback.files);
+                setSelectedFile(fallback.files[0]);
+            } else {
+                // Re-init default if all deleted
+                const def = { id: 'default', name: 'Default Workspace', files: [INITIAL_FILE], lastModified: Date.now() };
+                setActiveWorkspaceId('default');
+                setFiles(def.files);
+                setSelectedFile(def.files[0]);
+                setWorkspaces([def]);
+                saveWorkspacesToDB([def]);
+            }
+        }
+    };
+
     // --- LOCAL PATH SYNC via .atom ---
-    // Watch for changes in .atom file content to update localPath state
     const atomContent = files.find(f => f.name === '.atom')?.content;
     useEffect(() => {
         if (!atomContent) return;
@@ -53,7 +210,6 @@ export const useFileSystem = () => {
                 const prevNames = filesRef.current.map(f => f.name).sort().join(',');
                 const newNames = currentFiles.map(f => f.name).sort().join(',');
                 
-                // Also check specifically for .atom content change
                 const newAtom = currentFiles.find(f => f.name === '.atom');
                 const oldAtom = filesRef.current.find(f => f.name === '.atom');
                 const atomChanged = newAtom?.content !== oldAtom?.content;
@@ -62,7 +218,6 @@ export const useFileSystem = () => {
                      setFiles(prev => {
                          const merged = [...currentFiles];
                          return merged.map(newF => {
-                             // Preserve unsaved changes in memory if user is editing
                              const oldF = prev.find(p => p.name === newF.name);
                              if (oldF && oldF.unsaved) return oldF;
                              return newF;
@@ -74,7 +229,7 @@ export const useFileSystem = () => {
             }
         };
 
-        const intervalId = setInterval(pollLocalFiles, 3000); // Poll every 3 seconds
+        const intervalId = setInterval(pollLocalFiles, 3000); 
         return () => clearInterval(intervalId);
     }, [fileSystemType, rootHandle]);
 
@@ -82,12 +237,10 @@ export const useFileSystem = () => {
         if (fileSystemType === 'local' && rootHandle) {
             await writeLocalFile(rootHandle, name, content);
         } else if (fileSystemType === 'gdrive' && driveFolderId) {
-            // Sync to Drive
             try {
                 await saveFileToDrive(driveFolderId, name, content);
             } catch (e) {
                 console.error("Failed to sync file to Drive", e);
-                // Could toast here if we had access to addToast
             }
         }
     };
@@ -117,20 +270,16 @@ export const useFileSystem = () => {
             // @ts-ignore
             const handle = await window.showDirectoryPicker();
             if (handle) {
-                // Immediately verify/request permissions
                 const hasPermission = await verifyPermission(handle, true);
                 if (!hasPermission) {
-                    return { success: false, message: "Permission denied. Atom needs read/write access to manage files locally." };
+                    return { success: false, message: "Permission denied." };
                 }
 
                 const localFiles = await readLocalDirectory(handle);
-                
-                // Check for .atom configuration file
                 const atomFile = localFiles.find(f => f.name === '.atom');
                 let currentPath = null;
 
                 if (!atomFile) {
-                    // Create default .atom file if not exists
                     const content = JSON.stringify({ path: null }, null, 2);
                     await writeLocalFile(handle, '.atom', content);
                     localFiles.push({
@@ -182,7 +331,6 @@ export const useFileSystem = () => {
             const picked = await showFolderPicker(apiKey);
             
             if (picked) {
-                // Load files from Drive
                 const driveFiles = await listDriveFiles(picked.id);
                 setFiles(driveFiles);
                 setFileSystemType('gdrive');
@@ -206,16 +354,13 @@ export const useFileSystem = () => {
     };
 
     const handleDeleteFile = async (name: string) => {
-        // VFS Recursive Delete Logic
         setFiles(prev => prev.filter(f => {
             if (f.name === name) return false;
-            // If deleting a folder (ends with /), delete its children
             if (name.endsWith('/') && f.name.startsWith(name)) return false; 
             return true;
         }));
 
         if (selectedFile) {
-            // If selected file is the deleted file OR inside the deleted folder
             if (selectedFile.name === name || (name.endsWith('/') && selectedFile.name.startsWith(name))) {
                 setSelectedFile(null);
             }
@@ -246,11 +391,7 @@ export const useFileSystem = () => {
               if (isFolder) createLocalFolder(rootHandle, name);
               else writeLocalFile(rootHandle, name, ''); 
           } else if (fileSystemType === 'gdrive' && driveFolderId) {
-              // For drive, we only create on "write" usually, but we can init empty
-              // If folder, create it immediately. If file, create empty file.
-              // Note: saveFileToDrive handles folder creation implicitly for file paths
               if (!isFolder) saveFileToDrive(driveFolderId, name, ''); 
-              // TODO: explicit folder creation for empty folders not fully implemented in saveFileToDrive yet for pure folders
           }
         }
     };
@@ -286,8 +427,6 @@ export const useFileSystem = () => {
           if (fileSystemType === 'local' && rootHandle && fileToMove) {
               renameLocalFile(rootHandle, oldPath, newPath, fileToMove.content);
           } else if (fileSystemType === 'gdrive' && driveFolderId && fileToMove) {
-              // Drive doesn't support easy rename of paths without IDs. 
-              // Strategy: Copy (Write new) + Delete Old
               saveFileToDrive(driveFolderId, newPath, fileToMove.content)
                   .then(() => deleteFileFromDrive(driveFolderId!, oldPath));
           }
@@ -331,7 +470,6 @@ export const useFileSystem = () => {
                 modifiedFile = newFile;
                 result = `Created ${action.filename}`;
             }
-            // Side Effect: Sync to disk if automatic (Agents usually save automatically)
             if (isAutoSave && modifiedFile && action.content) syncFileToDisk(action.filename, action.content);
     
         } else if (action.action === 'edit_file' && action.filename) {
@@ -342,7 +480,6 @@ export const useFileSystem = () => {
                         const newContent = f.content.replace(action.search_text!, action.replacement_text!);
                         modifiedFile = { ...f, content: newContent, history: f.history, unsaved: !isAutoSave };
                         result = `Edited ${action.filename}`;
-                        // Side Effect: Sync to disk if automatic
                         if (isAutoSave) syncFileToDisk(action.filename, newContent);
                         return modifiedFile;
                     } else {
@@ -355,22 +492,16 @@ export const useFileSystem = () => {
             newFiles = newFiles.map(f => {
                 if (f.name === action.filename) {
                     try {
-                        // Advanced Patch Application with Fuzzing and Lenient Whitespace
                         const patchedContent = Diff.applyPatch(f.content, action.patch, {
-                            fuzzFactor: 3, // Allow up to 3 lines of mismatch
+                            fuzzFactor: 3,
                             compareLine(lineNumber, line, operation, patchContent) {
-                                // If it's a context line (neither added nor removed), 
-                                // allow minor whitespace variations to prevent brittleness
-                                if (operation === ' ') {
-                                    return line.trim() === patchContent.trim();
-                                }
-                                // For added/removed lines, we require exact matches to ensure correctness
+                                if (operation === ' ') return line.trim() === patchContent.trim();
                                 return line === patchContent;
                             }
                         });
 
                         if (patchedContent === false) {
-                            result = `Error: Failed to apply patch to ${action.filename}. Hunks may not match even with fuzzy logic.`;
+                            result = `Error: Failed to apply patch to ${action.filename}.`;
                         } else {
                             pushHistory(f);
                             modifiedFile = { ...f, content: patchedContent, history: f.history, unsaved: !isAutoSave };
@@ -397,16 +528,9 @@ export const useFileSystem = () => {
         fileSystemType, fileSystemTypeRef,
         rootHandle,
         localPath, localPathRef,
-        handleCreateFile,
-        handleDeleteFile,
-        handleSaveFile,
-        handleSaveAll,
-        handleMoveFile,
-        handleImportFiles,
-        handleUpdateFileContent,
-        handleOpenFolder,
-        handleOpenGoogleDrive,
-        resetFileSystem,
-        applyFileAction
+        workspaces, activeWorkspaceId,
+        handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles, handleUpdateFileContent,
+        handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
+        handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace
     };
 };
