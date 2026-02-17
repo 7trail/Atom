@@ -277,7 +277,10 @@ export const TOOL_DEFINITIONS = [
             description: "List all files currently in the filesystem.",
             parameters: {
                 type: "object",
-                properties: {},
+                properties: {
+                    dir: { type: "string", description: "The directory, only supports '/'." }
+                },
+                required: ["dir"]
             }
         }
     },

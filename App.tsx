@@ -1229,14 +1229,17 @@ CRITICAL RULES:
                          return;
                      }
                      
-                     // Handle 400 Errors (Malformed Tool Calls)
-                     if (responseContent.includes("400")) {
-                        console.warn("400 Error detected - Rewinding last turn and retrying");
+                     // Handle 400 Errors (Malformed Tool Calls) or No Body errors
+                     if (responseContent.includes("400") || responseContent.toLowerCase().includes("no body")) {
+                        console.warn("API Error (400 or No Body) detected - Debugging...");
 
-                        // --- DEBUG: Log previous context on 400 error ---
+                        // --- DEBUG: Log response and context ---
                         try {
+                            console.log(">>> ERROR RESPONSE FULL DUMP:");
+                            console.log(JSON.stringify(completion, null, 2));
+
                             const lastAssistantMsg = [...apiLoopMessages].reverse().find(m => m.role === 'assistant');
-                            console.log(">>> NVIDIA 400 ERROR DETECTED. DUMPING PREVIOUS ASSISTANT MESSAGE:");
+                            console.log(">>> DUMPING PREVIOUS ASSISTANT MESSAGE:");
                             if (lastAssistantMsg) {
                                 console.log(JSON.stringify(lastAssistantMsg, null, 2));
                             } else {
@@ -1247,7 +1250,7 @@ CRITICAL RULES:
                         } catch(e) {
                             console.error("Error dumping debug context:", e);
                         }
-                        // ------------------------------------------------
+                     }
                         
                         // Handle 400 Errors (Malformed Tool Calls)
                      if (responseContent.includes("400")) {
@@ -1529,7 +1532,6 @@ CRITICAL RULES:
                     apiLoopMessages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
                 }
             } else keepGoing = false;
-        }
         }
     } catch (error: any) { 
         if (error.name !== 'AbortError' && !agentControlRef.current.stop) {
