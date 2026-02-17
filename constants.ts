@@ -1,4 +1,5 @@
 
+
 import { Agent, FileData } from './types';
 
 // Detection for Render hosting environment
@@ -99,18 +100,10 @@ YOUR CORE CAPABILITIES:
     `;
 
     if (!disabledTools.includes('patch')) {
-        header += `PATCH: You have access to the 'patch' tool. This allows you to apply a unified diff to modify files.
-   - Use this for surgical edits where 'edit_file' (search/replace) is too brittle or 'update_file' (full overwrite) is too wasteful.
-   - FORMAT: The patch MUST be a standard Unified Diff format.
-     It must include the file header lines:
-     --- filename
-     +++ filename
-     @@ -start,count +start,count @@
-      context line
-     -removed line
-     +added line
-      context line
-   - HINT: The environment supports 'fuzzy' matching, so minor whitespace differences in context lines are ignored. However, you should still aim for accuracy. Use at least 2-3 lines of context to ensure the hunk is unique.`;
+        header += `PATCH: You have access to the 'patch' tool. This allows you to apply structured search/replace changes to a file.
+   - Use this for multiple surgical edits in the same file.
+   - You provide a list of changes, each with a 'search' block and a 'replace' block.
+   - The system uses fuzzy matching to find the code, so exact whitespace match isn't always required, but aim for accuracy.`;
     }
 
 
@@ -176,7 +169,8 @@ export const TOOL_DEFINITIONS = [
                 properties: {
                     filename: { type: "string" },
                     search_text: { type: "string", description: "Exact unique text to find" },
-                    replacement_text: { type: "string", description: "New text to replace with" }
+                    replacement_text: { type: "string", description: "New text to replace with" },
+                    all: { type: "boolean", description: "If true, replace all occurrences of search_text. Default is false." }
                 },
                 required: ["filename", "search_text", "replacement_text"]
             }
@@ -186,14 +180,24 @@ export const TOOL_DEFINITIONS = [
         type: "function",
         function: {
             name: "patch",
-            description: "Apply a unified diff patch to a file. Useful for multiple changes or when exact context matching is difficult. Format must be a valid unified diff.",
+            description: "Apply structured changes to a file. Each change replaces a specific code block found by exact or fuzzy matching.",
             parameters: {
                 type: "object",
                 properties: {
                     filename: { type: "string" },
-                    patch: { type: "string", description: "The unified diff content to apply." }
+                    changes: { 
+                        type: "array", 
+                        items: {
+                            type: "object",
+                            properties: {
+                                search: { type: "string", description: "The exact code block to replace." },
+                                replace: { type: "string", description: "The new code block." }
+                            },
+                            required: ["search", "replace"]
+                        }
+                    }
                 },
-                required: ["filename", "patch"]
+                required: ["filename", "changes"]
             }
         }
     },

@@ -1,10 +1,8 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { FileData, ToolAction, Workspace } from '../types';
 import { readLocalDirectory, writeLocalFile, deleteLocalFile, createLocalFolder, renameLocalFile, verifyPermission } from '../services/fileSystem';
 import { initGoogleDrive, authenticate, showFolderPicker, listDriveFiles, saveFileToDrive, deleteFileFromDrive } from '../services/googleDrive';
 import { INITIAL_FILE, DEMO_PLAN } from '../constants';
-import * as Diff from 'diff';
 import { getWorkspacesFromDB, saveWorkspacesToDB } from '../services/db';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -457,6 +455,39 @@ export const useFileSystem = () => {
           }
     };
 
+    // Helper to apply changes to content string
+    const performTextEdit = (content: string, search: string, replace: string, replaceAll: boolean = false): { success: boolean, newContent: string } => {
+        // 1. Try Exact Match (Fastest/Safest)
+        if (replaceAll) {
+            if (content.includes(search)) {
+                return { success: true, newContent: content.split(search).join(replace) };
+            }
+        } else {
+            if (content.includes(search)) {
+                return { success: true, newContent: content.replace(search, replace) };
+            }
+        }
+
+        // 2. Fuzzy Match (Whitespace insensitive)
+        const searchParts = search.split(/\s+/).filter(p => p.length > 0);
+        let regex: RegExp;
+        const flags = replaceAll ? 'g' : '';
+        
+        if (searchParts.length === 0 && search.length > 0) {
+            // Only whitespace provided in search
+            regex = new RegExp(/\s+/, flags);
+        } else {
+            const regexStr = searchParts.map(escapeRegExp).join('\\s+');
+            regex = new RegExp(regexStr, flags);
+        }
+
+        if (regex.test(content)) {
+            return { success: true, newContent: content.replace(regex, replace) };
+        }
+
+        return { success: false, newContent: content };
+    };
+
     // Agent Helper for File Operations
     const applyFileAction = (action: ToolAction, currentFiles: FileData[], isAutoSave: boolean = true): { newFiles: FileData[], modifiedFile: FileData | null, result: string } => {
         let newFiles = [...currentFiles];
@@ -497,67 +528,48 @@ export const useFileSystem = () => {
             }
             if (isAutoSave && modifiedFile && action.content) syncFileToDisk(action.filename, action.content);
     
-        } else if (action.action === 'edit_file' && action.filename) {
+        } else if (action.action === 'edit_file' && action.filename && action.search_text && action.replacement_text !== undefined) {
             newFiles = newFiles.map(f => {
                 if (f.name === action.filename) {
-                    // Create fuzzy matcher
-                    const searchParts = action.search_text!.split(/\s+/).filter(p => p.length > 0);
-                    let regex: RegExp;
-                    if (searchParts.length === 0 && action.search_text!.length > 0) {
-                        regex = /\s+/;
-                    } else {
-                        const regexStr = searchParts.map(escapeRegExp).join('\\s+');
-                        regex = new RegExp(regexStr); 
-                    }
-
-                    if (regex.test(f.content)) {
+                    const editRes = performTextEdit(f.content, action.search_text!, action.replacement_text!, action.all);
+                    
+                    if (editRes.success) {
                         pushHistory(f);
-                        const newContent = f.content.replace(regex, action.replacement_text!);
-                        modifiedFile = { ...f, content: newContent, history: f.history, unsaved: !isAutoSave };
-                        result = `Edited ${action.filename}`;
-                        if (isAutoSave) syncFileToDisk(action.filename, newContent);
+                        modifiedFile = { ...f, content: editRes.newContent, history: f.history, unsaved: !isAutoSave };
+                        result = `Edited ${action.filename} ${action.all ? '(Global Replace)' : ''}`;
+                        if (isAutoSave) syncFileToDisk(action.filename, editRes.newContent);
                         return modifiedFile;
                     } else {
-                        // Fallback exact check
-                        if (f.content.includes(action.search_text!)) {
-                             pushHistory(f);
-                             const newContent = f.content.replace(action.search_text!, action.replacement_text!);
-                             modifiedFile = { ...f, content: newContent, history: f.history, unsaved: !isAutoSave };
-                             result = `Edited ${action.filename} (Exact Match)`;
-                             if (isAutoSave) syncFileToDisk(action.filename, newContent);
-                             return modifiedFile;
-                        }
                         result = `Error: Search text not found in ${action.filename}`;
                     }
                 }
                 return f;
             });
-        } else if (action.action === 'patch' && action.filename && action.patch) {
+        } else if (action.action === 'patch' && action.filename && action.changes) {
             newFiles = newFiles.map(f => {
                 if (f.name === action.filename) {
-                    try {
-                        const patchedContent = Diff.applyPatch(f.content, action.patch, {
-                            fuzzFactor: 3,
-                            compareLine(lineNumber, line, operation, patchContent) {
-                                // Ignore whitespace for Context and Remove lines
-                                if (operation === ' ' || operation === '-') {
-                                    return line.trim().replace(/\s+/g, ' ') === patchContent.trim().replace(/\s+/g, ' ');
-                                }
-                                return line === patchContent;
-                            }
-                        });
-
-                        if (patchedContent === false) {
-                            result = `Error: Failed to apply patch to ${action.filename}.`;
+                    let patchedContent = f.content;
+                    let successCount = 0;
+                    let failCount = 0;
+                    
+                    for (const change of action.changes) {
+                        const editRes = performTextEdit(patchedContent, change.search, change.replace, false);
+                        if (editRes.success) {
+                            patchedContent = editRes.newContent;
+                            successCount++;
                         } else {
-                            pushHistory(f);
-                            modifiedFile = { ...f, content: patchedContent, history: f.history, unsaved: !isAutoSave };
-                            result = `Patched ${action.filename}`;
-                            if (isAutoSave) syncFileToDisk(action.filename, patchedContent);
-                            return modifiedFile;
+                            failCount++;
                         }
-                    } catch (e: any) {
-                        result = `Error applying patch: ${e.message}`;
+                    }
+
+                    if (successCount > 0) {
+                        pushHistory(f);
+                        modifiedFile = { ...f, content: patchedContent, history: f.history, unsaved: !isAutoSave };
+                        result = `Patched ${action.filename}: ${successCount} applied, ${failCount} failed.`;
+                        if (isAutoSave) syncFileToDisk(action.filename, patchedContent);
+                        return modifiedFile;
+                    } else {
+                        result = `Error: No patch changes could be applied to ${action.filename}.`;
                     }
                 }
                 return f;

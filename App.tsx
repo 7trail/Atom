@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -327,14 +328,14 @@ const App: React.FC = () => {
   const [globalDisabledTools, setGlobalDisabledTools] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('atom_disabled_tools');
-        let tools = saved ? JSON.parse(saved) : [];
+        let tools = saved ? JSON.parse(saved) : ['ask_question', 'google_search', 'run_terminal_command', 'start_browser_session', 'discord_message', 'patch'];
         if (isRenderHosted) {
             // Enforce restricted tools
             tools = [...new Set([...tools, ...RESTRICTED_TOOLS])];
         }
         return tools;
     }
-    return [];
+    return ['ask_question', 'google_search', 'run_terminal_command', 'start_browser_session', 'discord_message', 'patch'];
   });
 
   const [disabledSubAgents, setDisabledSubAgents] = useState<string[]>(() => {
@@ -772,7 +773,7 @@ const App: React.FC = () => {
 
   const handleOpenFolderWrapper = async () => {
       if (isRenderHosted) {
-          addToast("Local Mode is disabled in this environment.");
+          addToast("Local Mode is disabled in this hosted environment.");
           return;
       }
       setIsLoading(true);

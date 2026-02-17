@@ -44,6 +44,12 @@ export interface ToolAction {
   replacement_text?: string;
   patch?: string;
   
+  // Patch Tool - Structured Diff
+  changes?: { search: string; replace: string }[];
+  
+  // Edit File - Replace All
+  all?: boolean;
+  
   // Move File
   source?: string;
   destination?: string;
