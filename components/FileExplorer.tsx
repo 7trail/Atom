@@ -433,7 +433,7 @@ const WorkspaceMenu: React.FC<{
                 className="flex items-center gap-2 px-3 py-2 bg-dark-panel border border-dark-border rounded hover:bg-white/5 transition-colors text-sm text-gray-300 w-full justify-between"
             >
                 <div className="flex items-center gap-2 truncate">
-                    <Box className="w-4 h-4 text-blue-400" />
+                    <Box className="w-4 h-4 text-cerebras-500" />
                     <span className="truncate flex-1 text-left">{activeWorkspace?.name || 'Workspace'}</span>
                 </div>
                 <ChevronDown className="w-3 h-3 text-gray-500" />

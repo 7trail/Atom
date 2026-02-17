@@ -348,9 +348,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     )}
 
                     {msg.role !== 'tool' && (displayContent || (msg.attachments && msg.attachments.length > 0)) && (
-                        <div className={`group relative rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 text-sm shadow-sm max-w-full overflow-hidden break-words ${
-                        msg.role === 'user' ? 'bg-cerebras-600 text-[var(--text-on-accent)]' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-dark-text border border-dark-border'
-                        }`}>
+                        <div 
+                            className={`group relative rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 text-sm shadow-sm max-w-full overflow-hidden break-words ${
+                                msg.role === 'user' ? 'text-[var(--text-on-accent)]' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-dark-text border border-dark-border'
+                            }`}
+                            style={{ background: msg.role === 'user' ? 'var(--msg-user-bg)' : undefined }}
+                        >
                             {msg.role === 'user' && msg.attachments && msg.attachments.length > 0 && (
                                 <div className="mb-2 flex flex-wrap">
                                     {msg.attachments.map((att, i) => (<AttachmentBubble key={i} attachment={att} />))}

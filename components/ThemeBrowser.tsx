@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, Palette, Check } from 'lucide-react';
 
@@ -43,7 +44,7 @@ const THEMES_DATA: ThemeDefinition[] = [
     { id: 'toxic', name: 'Toxic', description: 'Hazardous green on deep purple.', bg: '#0d0221', panel: '#19053d', accent: '#a6ff00', text: '#a6ff00' },
     { id: 'pumpkin', name: 'Pumpkin', description: 'Spooky orange and black.', bg: '#1a0f00', panel: '#2e1a00', accent: '#ff8800', text: '#ffecd1' },
     
-    // New Themes (Requested)
+    // New Themes (Previously Added)
     { id: 'pastel-pink', name: 'Sakura', description: 'Soft pinks and white.', bg: '#fff0f5', panel: '#ffffff', accent: '#f472b6', text: '#db2777' },
     { id: 'pastel-purple', name: 'Lavender', description: 'Calming purple pastels.', bg: '#faf5ff', panel: '#ffffff', accent: '#c084fc', text: '#7e22ce' },
     { id: 'pastel-mint', name: 'Mint', description: 'Fresh minty greens.', bg: '#f0fdf4', panel: '#ffffff', accent: '#4ade80', text: '#15803d' },
@@ -56,6 +57,21 @@ const THEMES_DATA: ThemeDefinition[] = [
     { id: 'gruvbox-light', name: 'Gruvbox Light', description: 'Retro cream and dark brown.', bg: '#fbf1c7', panel: '#ebdbb2', accent: '#b57614', text: '#3c3836' },
     { id: 'high-contrast-light', name: 'High Contrast Light', description: 'Pure white and black.', bg: '#ffffff', panel: '#ffffff', accent: '#000000', text: '#000000' },
     { id: 'high-contrast-dark', name: 'High Contrast Dark', description: 'Pure black and white.', bg: '#000000', panel: '#000000', accent: '#ffff00', text: '#ffffff' },
+
+    // --- NEW GRADIENT & COLOR THEMES ---
+    { id: 'aurora', name: 'Aurora Borealis', description: 'Deep teal and blue gradient.', bg: 'linear-gradient(135deg, #0f2027, #203a43, #2c5364)', panel: '#162a33', accent: '#4dd0e1', text: '#e2e8f0' },
+    { id: 'sunset-glow', name: 'Sunset Glow', description: 'Warm crimson gradient.', bg: 'linear-gradient(to bottom, #3e1e24, #2b1016)', panel: '#4a1c24', accent: '#ff7043', text: '#ffd1d1' },
+    { id: 'nebula', name: 'Cosmic Nebula', description: 'Purple and orange gradient messages.', bg: '#120c1f', panel: '#1a1625', accent: '#c084fc', text: '#e0d4fc' },
+    { id: 'tropical', name: 'Tropical Rainforest', description: 'Lush green gradient.', bg: '#001f24', panel: '#002b30', accent: '#1de9b6', text: '#e0f2f1' },
+    { id: 'ruby', name: 'Ruby Gem', description: 'Deep jewel-tone red.', bg: '#2b0505', panel: '#420a0a', accent: '#ef4444', text: '#fecaca' },
+    { id: 'slate', name: 'Clean Slate', description: 'Professional cool gray.', bg: '#334155', panel: '#475569', accent: '#cbd5e1', text: '#f1f5f9' },
+    
+    // --- NEW ADDITIONS (More Gradients) ---
+    { id: 'synth-horizon', name: 'Synth Horizon', description: 'Retro purple fade to black.', bg: 'linear-gradient(to bottom, #2d1b4e, #000000)', panel: '#1a102e', accent: '#a855f7', text: '#e0d4fc' },
+    { id: 'golden-hour', name: 'Golden Hour', description: 'Warm amber glow.', bg: 'linear-gradient(135deg, #78350f, #451a03)', panel: '#291002', accent: '#f59e0b', text: '#fef3c7' },
+    { id: 'oceanic-depths', name: 'Oceanic Depths', description: 'Deep radial blue abyss.', bg: 'radial-gradient(circle at center, #1e3a8a, #0f172a 80%)', panel: '#0f172a', accent: '#3b82f6', text: '#e0f2fe' },
+    { id: 'cotton-candy', name: 'Cotton Candy', description: 'Sweet pink and blue swirl.', bg: 'linear-gradient(to bottom right, #fce7f3, #e0f2fe)', panel: '#ffffff', accent: '#f472b6', text: '#475569' },
+    { id: 'galaxy', name: 'Galaxy', description: 'Interstellar travel.', bg: 'linear-gradient(to bottom, #000000, #1e1b4b, #312e81)', panel: '#0f0c29', accent: '#6366f1', text: '#c7d2fe' },
 ];
 
 interface ThemeBrowserProps {
@@ -96,7 +112,7 @@ const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentThe
                                 }`}
                             >
                                 {/* Preview Area */}
-                                <div className="h-32 w-full relative" style={{ backgroundColor: theme.bg }}>
+                                <div className="h-32 w-full relative" style={{ background: theme.bg }}>
                                     {/* Sidebar Simulation */}
                                     <div className="absolute left-0 top-0 bottom-0 w-12 border-r border-white/10" style={{ backgroundColor: theme.panel }}></div>
                                     {/* Content Simulation */}
@@ -105,7 +121,7 @@ const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentThe
                                     <div className="absolute top-14 left-16 right-20 h-2 rounded opacity-50" style={{ backgroundColor: theme.text }}></div>
                                     
                                     {/* Button Simulation */}
-                                    <div className="absolute bottom-4 right-4 px-3 py-1 rounded text-[10px] font-bold shadow-lg" style={{ backgroundColor: theme.accent, color: theme.bg }}>
+                                    <div className="absolute bottom-4 right-4 px-3 py-1 rounded text-[10px] font-bold shadow-lg" style={{ backgroundColor: theme.accent, color: '#000' }}>
                                         Action
                                     </div>
 
@@ -125,7 +141,7 @@ const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentThe
                                     
                                     {/* Palette Strip */}
                                     <div className="flex gap-1 mt-4">
-                                        <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: theme.bg }} title="Background"></div>
+                                        <div className="w-4 h-4 rounded-full border border-white/10" style={{ background: theme.bg }} title="Background"></div>
                                         <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: theme.panel }} title="Panel"></div>
                                         <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: theme.accent }} title="Accent"></div>
                                         <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: theme.text }} title="Text"></div>
