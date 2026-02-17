@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment, ChatSession } from '../types';
 import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity, MessageSquarePlus, History, Clock } from 'lucide-react';
 import AgentCreator from './AgentCreator';
@@ -32,7 +32,7 @@ interface ChatInterfaceProps {
   onLoadChat?: (session: ChatSession) => void;
 }
 
-const ToolCallDisplay: React.FC<{ tool: ToolAction }> = ({ tool }) => {
+const ToolCallDisplay: React.FC<{ tool: ToolAction }> = React.memo(({ tool }) => {
     const [isOpen, setIsOpen] = useState(false);
     
     if (tool.action === 'ask_question') {
@@ -68,9 +68,9 @@ const ToolCallDisplay: React.FC<{ tool: ToolAction }> = ({ tool }) => {
             )}
         </div>
     );
-};
+});
 
-const ToolResultDisplay: React.FC<{ name?: string, content: string }> = ({ name, content }) => {
+const ToolResultDisplay: React.FC<{ name?: string, content: string }> = React.memo(({ name, content }) => {
     const [isOpen, setIsOpen] = useState(false);
     const useMarkdown = name === 'browser_action';
     
@@ -108,9 +108,9 @@ const ToolResultDisplay: React.FC<{ name?: string, content: string }> = ({ name,
             )}
         </div>
     );
-};
+});
 
-const AttachmentBubble: React.FC<{ attachment: Attachment }> = ({ attachment }) => {
+const AttachmentBubble: React.FC<{ attachment: Attachment }> = React.memo(({ attachment }) => {
     if (attachment.type === 'image') {
         return (
             <div className="relative group border border-gray-700 rounded-lg overflow-hidden bg-black/40 inline-block mr-2 mb-2">
@@ -137,7 +137,137 @@ const AttachmentBubble: React.FC<{ attachment: Attachment }> = ({ attachment }) 
             </div>
         </div>
     );
-}
+});
+
+const MessageItem: React.FC<{ msg: Message, onSpeak: (text: string) => void }> = React.memo(({ msg, onSpeak }) => {
+    let displayContent = msg.content || '';
+    if (msg.role === 'assistant') displayContent = displayContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    else if (msg.role === 'user') {
+        const attachmentStart = displayContent.indexOf('\n\n--- User Attachments ---');
+        if (attachmentStart !== -1) displayContent = displayContent.substring(0, attachmentStart).trim();
+        else displayContent = displayContent.trim();
+    } else displayContent = displayContent.trim();
+
+    if (msg.role === 'assistant' && !displayContent && (!msg.toolCalls || msg.toolCalls.length === 0) && (!msg.attachments || msg.attachments.length === 0)) return null;
+
+    return (
+        <div className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role !== 'user' && (
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${msg.role === 'system' ? 'bg-red-900/50 text-red-400' : msg.role === 'tool' ? 'bg-gray-800 text-gray-500' : 'bg-cerebras-900/50 text-cerebras-400'}`}>
+                    {msg.role === 'system' ? <Sparkles className="w-4 h-4" /> : msg.role === 'tool' ? <Wrench className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                </div>
+            )}
+            
+            <div className={`max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'w-auto' : 'w-full min-w-0'}`}>
+                <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                    {msg.toolCalls && msg.toolCalls.length > 0 && (
+                        <div className="space-y-1 mb-2 w-full">
+                            {msg.toolCalls.map((tool, idx) => (<ToolCallDisplay key={idx} tool={tool} />))}
+                        </div>
+                    )}
+
+                    {msg.role === 'tool' && (
+                        <ToolResultDisplay name={msg.name} content={msg.content} />
+                    )}
+
+                    {msg.role !== 'tool' && (displayContent || (msg.attachments && msg.attachments.length > 0)) && (
+                        <div 
+                            className={`group relative rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 text-sm shadow-sm max-w-full overflow-hidden break-words ${
+                                msg.role === 'user' ? 'text-[var(--text-on-accent)]' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-dark-text border border-dark-border'
+                            }`}
+                            style={{ background: msg.role === 'user' ? 'var(--msg-user-bg)' : undefined }}
+                        >
+                            {msg.role === 'user' && msg.attachments && msg.attachments.length > 0 && (
+                                <div className="mb-2 flex flex-wrap">
+                                    {msg.attachments.map((att, i) => (<AttachmentBubble key={i} attachment={att} />))}
+                                </div>
+                            )}
+                            {displayContent && (
+                                <div className="markdown-body !bg-transparent !text-inherit !p-0 overflow-x-auto max-w-full" dangerouslySetInnerHTML={{ __html: parse(displayContent) as string }} />
+                            )}
+                            {msg.role === 'assistant' && (
+                                <button 
+                                    onClick={() => onSpeak(displayContent)}
+                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 bg-black/20 rounded hover:bg-black/40 text-gray-400 hover:text-white transition-all"
+                                >
+                                    <Volume2 className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    
+                    <div className={`text-[10px] text-gray-500/70 mt-1 select-none ${msg.role === 'user' ? 'mr-1' : 'ml-1'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                </div>
+            </div>
+
+            {msg.role === 'user' && (
+                <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 mt-1 text-gray-300">
+                    <User className="w-4 h-4" />
+                </div>
+            )}
+        </div>
+    );
+}, (prevProps, nextProps) => {
+    // Only re-render if the message object reference changes
+    return prevProps.msg === nextProps.msg;
+});
+
+const MessageList = React.memo(({ messages, isLoading, selectedAgent, streamMetrics, showStreamDebug, onSpeak }: any) => {
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, isLoading, streamMetrics]);
+
+    return (
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 container mx-auto max-w-5xl pb-24">
+            {messages.length === 0 && (
+                <div className="text-center mt-20">
+                    <div className="bg-cerebras-900/30 text-cerebras-500 p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 border border-cerebras-500/30">
+                        <Bot className="w-10 h-10" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-dark-text mb-2">{selectedAgent.name}</h2>
+                    <p className="text-gray-500 text-sm max-w-md mx-auto">{selectedAgent.description}</p>
+                </div>
+            )}
+            
+            {messages.map((msg: Message) => (
+                <MessageItem key={msg.id} msg={msg} onSpeak={onSpeak} />
+            ))}
+
+            {isLoading && (
+                <div className="flex gap-4 justify-start">
+                    <div className="w-8 h-8 rounded-full bg-cerebras-900/50 text-cerebras-400 flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4" /></div>
+                    <div className="flex flex-col gap-2">
+                        <div className="bg-dark-panel border border-dark-border rounded-lg px-4 py-2 w-fit max-w-md shadow-sm">
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 text-cerebras-500 animate-spin flex-shrink-0" />
+                                <span className="text-xs text-gray-500 font-medium">Thinking...</span>
+                            </div>
+                            {showStreamDebug && streamMetrics && (
+                                <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in">
+                                    <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                                        <span className="font-mono uppercase tracking-wider font-bold text-cerebras-500">Stream Debug</span>
+                                        <span>{streamMetrics.totalWords} w</span>
+                                    </div>
+                                    <div className="font-mono text-[10px] text-green-400 bg-black rounded p-2 border border-green-900/30 shadow-inner min-w-[200px] overflow-hidden relative">
+                                        <div className="break-all whitespace-pre-wrap">
+                                            <span className="opacity-50 text-gray-500">{streamMetrics.lastTokens.slice(0, -streamMetrics.latestChunk.length)}</span>
+                                            <span className="text-white bg-green-900/50">{streamMetrics.latestChunk}</span>
+                                            <span className="animate-pulse inline-block w-1.5 h-3 bg-green-500 ml-0.5 align-middle"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            <div ref={messagesEndRef} />
+        </div>
+    );
+});
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages, isLoading, selectedModel, selectedAgent, availableAgents, enableSubAgents,
@@ -147,14 +277,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -163,22 +288,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [input]);
 
+  const speak = useCallback((text: string) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
   useEffect(() => {
-    scrollToBottom();
     // Auto TTS for last message if enabled
-    if (ttsEnabled && messages.length > 0) {
+    if (ttsEnabled && messages.length > 0 && !isLoading) {
         const lastMsg = messages[messages.length - 1];
         if (lastMsg.role === 'assistant' && lastMsg.content && !lastMsg.toolCalls) {
             speak(lastMsg.content);
         }
     }
-  }, [messages, isLoading, pendingAttachments.length]);
-
-  const speak = (text: string) => {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(utterance);
-  };
+  }, [messages, isLoading, ttsEnabled, speak]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -305,118 +429,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
          </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 container mx-auto max-w-5xl pb-24">
-        {messages.length === 0 && (
-          <div className="text-center mt-20">
-            <div className="bg-cerebras-900/30 text-cerebras-500 p-6 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 border border-cerebras-500/30">
-                <Bot className="w-10 h-10" />
-            </div>
-            <h2 className="text-2xl font-bold text-dark-text mb-2">{selectedAgent.name}</h2>
-            <p className="text-gray-500 text-sm max-w-md mx-auto">{selectedAgent.description}</p>
-          </div>
-        )}
-        
-        {messages.map((msg) => {
-            let displayContent = msg.content || '';
-            if (msg.role === 'assistant') displayContent = displayContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            else if (msg.role === 'user') {
-                const attachmentStart = displayContent.indexOf('\n\n--- User Attachments ---');
-                if (attachmentStart !== -1) displayContent = displayContent.substring(0, attachmentStart).trim();
-                else displayContent = displayContent.trim();
-            } else displayContent = displayContent.trim();
-
-            if (msg.role === 'assistant' && !displayContent && (!msg.toolCalls || msg.toolCalls.length === 0) && (!msg.attachments || msg.attachments.length === 0)) return null;
-
-            return (
-          <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role !== 'user' && (
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${msg.role === 'system' ? 'bg-red-900/50 text-red-400' : msg.role === 'tool' ? 'bg-gray-800 text-gray-500' : 'bg-cerebras-900/50 text-cerebras-400'}`}>
-                {msg.role === 'system' ? <Sparkles className="w-4 h-4" /> : msg.role === 'tool' ? <Wrench className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-              </div>
-            )}
-            
-            <div className={`max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'w-auto' : 'w-full min-w-0'}`}>
-                <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    {msg.toolCalls && msg.toolCalls.length > 0 && (
-                        <div className="space-y-1 mb-2 w-full">
-                            {msg.toolCalls.map((tool, idx) => (<ToolCallDisplay key={idx} tool={tool} />))}
-                        </div>
-                    )}
-
-                    {msg.role === 'tool' && (
-                        <ToolResultDisplay name={msg.name} content={msg.content} />
-                    )}
-
-                    {msg.role !== 'tool' && (displayContent || (msg.attachments && msg.attachments.length > 0)) && (
-                        <div 
-                            className={`group relative rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 text-sm shadow-sm max-w-full overflow-hidden break-words ${
-                                msg.role === 'user' ? 'text-[var(--text-on-accent)]' : msg.role === 'system' ? 'bg-red-900/10 text-red-300 border border-red-900/20 font-mono text-xs' : 'bg-dark-panel text-dark-text border border-dark-border'
-                            }`}
-                            style={{ background: msg.role === 'user' ? 'var(--msg-user-bg)' : undefined }}
-                        >
-                            {msg.role === 'user' && msg.attachments && msg.attachments.length > 0 && (
-                                <div className="mb-2 flex flex-wrap">
-                                    {msg.attachments.map((att, i) => (<AttachmentBubble key={i} attachment={att} />))}
-                                </div>
-                            )}
-                            {displayContent && (
-                                <div className="markdown-body !bg-transparent !text-inherit !p-0 overflow-x-auto max-w-full" dangerouslySetInnerHTML={{ __html: parse(displayContent) as string }} />
-                            )}
-                            {msg.role === 'assistant' && (
-                                <button 
-                                    onClick={() => speak(displayContent)}
-                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 bg-black/20 rounded hover:bg-black/40 text-gray-400 hover:text-white transition-all"
-                                >
-                                    <Volume2 className="w-3 h-3" />
-                                </button>
-                            )}
-                        </div>
-                    )}
-                    
-                    <div className={`text-[10px] text-gray-500/70 mt-1 select-none ${msg.role === 'user' ? 'mr-1' : 'ml-1'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                </div>
-            </div>
-
-            {msg.role === 'user' && (
-               <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 mt-1 text-gray-300">
-                <User className="w-4 h-4" />
-              </div>
-            )}
-          </div>
-        )})}
-
-        {isLoading && (
-          <div className="flex gap-4 justify-start">
-             <div className="w-8 h-8 rounded-full bg-cerebras-900/50 text-cerebras-400 flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4" /></div>
-              <div className="flex flex-col gap-2">
-                  <div className="bg-dark-panel border border-dark-border rounded-lg px-4 py-2 w-fit max-w-md shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-cerebras-500 animate-spin flex-shrink-0" />
-                        <span className="text-xs text-gray-500 font-medium">Thinking...</span>
-                    </div>
-                    {showStreamDebug && streamMetrics && (
-                        <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in">
-                             <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
-                                <span className="font-mono uppercase tracking-wider font-bold text-cerebras-500">Stream Debug</span>
-                                <span>{streamMetrics.totalWords} w</span>
-                             </div>
-                             <div className="font-mono text-[10px] text-green-400 bg-black rounded p-2 border border-green-900/30 shadow-inner min-w-[200px] overflow-hidden relative">
-                                 <div className="break-all whitespace-pre-wrap">
-                                    <span className="opacity-50 text-gray-500">{streamMetrics.lastTokens.slice(0, -streamMetrics.latestChunk.length)}</span>
-                                    <span className="text-white bg-green-900/50">{streamMetrics.latestChunk}</span>
-                                    <span className="animate-pulse inline-block w-1.5 h-3 bg-green-500 ml-0.5 align-middle"></span>
-                                 </div>
-                             </div>
-                        </div>
-                    )}
-                  </div>
-              </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+      <MessageList 
+         messages={messages} 
+         isLoading={isLoading} 
+         selectedAgent={selectedAgent}
+         streamMetrics={streamMetrics}
+         showStreamDebug={showStreamDebug}
+         onSpeak={speak} 
+      />
 
       <div className="p-2 sm:p-4 border-t border-dark-border bg-dark-panel sticky bottom-0 z-30">
         <div className="container mx-auto max-w-5xl">

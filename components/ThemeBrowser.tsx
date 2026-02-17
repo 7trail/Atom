@@ -72,6 +72,17 @@ const THEMES_DATA: ThemeDefinition[] = [
     { id: 'oceanic-depths', name: 'Oceanic Depths', description: 'Deep radial blue abyss.', bg: 'radial-gradient(circle at center, #1e3a8a, #0f172a 80%)', panel: '#0f172a', accent: '#3b82f6', text: '#e0f2fe' },
     { id: 'cotton-candy', name: 'Cotton Candy', description: 'Sweet pink and blue swirl.', bg: 'linear-gradient(to bottom right, #fce7f3, #e0f2fe)', panel: '#ffffff', accent: '#f472b6', text: '#475569' },
     { id: 'galaxy', name: 'Galaxy', description: 'Interstellar travel.', bg: 'linear-gradient(to bottom, #000000, #1e1b4b, #312e81)', panel: '#0f0c29', accent: '#6366f1', text: '#c7d2fe' },
+
+    // --- NEWEST THEMES ---
+    { id: 'pastel-sunset', name: 'Pastel Sunset', description: 'Soft gradient from peach to lilac.', bg: 'linear-gradient(to bottom, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)', panel: 'rgba(255, 255, 255, 0.6)', accent: '#ff6b6b', text: '#6b4c4c' },
+    { id: 'ocean-breeze', name: 'Ocean Breeze', description: 'Calm gradient from aquamarine to blue.', bg: 'linear-gradient(to top, #48c6ef 0%, #6f86d6 100%)', panel: 'rgba(255, 255, 255, 0.1)', accent: '#38bdf8', text: '#f0f9ff' },
+    { id: 'fire-opal', name: 'Fire Opal', description: 'Fiery orange and soft white mix.', bg: 'linear-gradient(to right, #ffecd2 0%, #fcb69f 100%)', panel: 'rgba(255, 255, 255, 0.5)', accent: '#ff7043', text: '#5d4037' },
+    { id: 'northern-lights', name: 'Northern Lights', description: 'Dark skies with emerald waves.', bg: 'linear-gradient(to right, #434343 0%, black 100%)', panel: 'rgba(20, 20, 20, 0.8)', accent: '#00ffcc', text: '#e0e0e0' },
+    { id: 'cherry-blossom', name: 'Cherry Blossom', description: 'Soft pinks and blue skies.', bg: 'linear-gradient(to top, #fbc2eb 0%, #a6c1ee 100%)', panel: 'rgba(255, 255, 255, 0.7)', accent: '#f06292', text: '#5c4b51' },
+    { id: 'midnight-haze', name: 'Midnight Haze', description: 'Dark purple mist.', bg: 'linear-gradient(to bottom, #000000 0%, #434343 100%)', panel: 'rgba(30, 30, 40, 0.8)', accent: '#8b5cf6', text: '#dcdce6' },
+    { id: 'electric-violet', name: 'Electric Violet', description: 'Vibrant purple and blue energy.', bg: 'linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)', panel: 'rgba(255, 255, 255, 0.1)', accent: '#FFCC70', text: '#ffffff' },
+    { id: 'golden-sands', name: 'Golden Sands', description: 'Warm gold and beige.', bg: 'linear-gradient(to top, #e6b980 0%, #eacda3 100%)', panel: 'rgba(255, 253, 240, 0.8)', accent: '#d84315', text: '#5c4033' },
+    { id: 'trans-pride', name: 'Trans Pride', description: 'Blue, Pink, and White.', bg: '#121212', panel: '#1e1e1e', accent: '#5BCEFA', text: '#FFFFFF' },
 ];
 
 interface ThemeBrowserProps {

@@ -79,29 +79,7 @@ export const removeNvidiaApiKey = (key: string) => {
 // Removes massive file content strings from the history sent to the LLM to save tokens
 function optimizeMessages(messages: any[]): any[] {
     return messages.map(msg => {
-        // Deep clone to avoid mutating original UI state
-        if (msg.role === 'assistant' && msg.tool_calls) {
-            const newToolCalls = msg.tool_calls.map((tc: any) => {
-                if (['create_file', 'update_file', 'edit_file'].includes(tc.function.name)) {
-                    try {
-                        const args = JSON.parse(tc.function.arguments);
-                        // No changes to args logic here currently needed, kept structure for future
-                    } catch (e) {
-                        // ignore parse errors
-                    }
-                }
-                return tc;
-            });
-            return { ...msg, tool_calls: newToolCalls };
-        }
-        
-        // NEW: Optimize tool role content (results) if it's a huge base64 image
-        if (msg.role === 'tool' && typeof msg.content === 'string' && msg.content.startsWith('data:image')) {
-             return {
-                 ...msg,
-                 content: '(Base64 Image Data Truncated for History)'
-             };
-        }
+        // We've temporarily removed this code while we work on improvements.
 
         return msg;
     });
