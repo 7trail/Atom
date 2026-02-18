@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -137,6 +139,30 @@ const App: React.FC = () => {
   
   // Refresh trigger for skills
   const [skillRefresh, setSkillRefresh] = useState(0);
+
+  // Notification Title Logic
+  const wasLoadingRef = useRef(false);
+  useEffect(() => {
+      if (isLoading) {
+          wasLoadingRef.current = true;
+          document.title = "Atom (Running...)";
+      } else if (wasLoadingRef.current) {
+          document.title = "Atom (*)";
+          wasLoadingRef.current = false;
+      }
+  }, [isLoading]);
+
+  useEffect(() => {
+      const resetTitle = () => {
+          document.title = "Atom";
+      };
+      window.addEventListener('focus', resetTitle);
+      window.addEventListener('click', resetTitle);
+      return () => {
+          window.removeEventListener('focus', resetTitle);
+          window.removeEventListener('click', resetTitle);
+      };
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
