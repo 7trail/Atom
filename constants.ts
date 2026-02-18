@@ -482,7 +482,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: 'Personal Assistant',
     description: 'A helpful, organized, and friendly assistant for general tasks.',
     systemPrompt: "Role: You are a highly capable Personal Assistant. You are friendly, organized, and obedient. Your goal is to help the user with whatever they need, whether it's scheduling, research, drafting emails, or just chatting. You have a neutral but warm personality. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'gpt-oss-120b',
+    preferredModel: 'z-ai/glm4.7',
     enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call']
   },
   {
@@ -506,7 +506,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: 'Creative Writer',
     description: 'Specializes in content creation, storytelling, and markdown.',
     systemPrompt: "Role: You are a Creative Writer. Focus on engaging copy, clear documentation, and storytelling. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'qwen-3-32b',
+    preferredModel: 'minimaxai/minimax-m2',
     enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'discord_message', 'manage_schedule', 'create_office_file']
   },
   {
@@ -514,7 +514,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: 'Roleplay Master',
     description: 'Adapts to any character or scenario for immersive storytelling.',
     systemPrompt: "Role: You are a Roleplay Master. You can adopt any persona, setting, or writing style requested by the user. You stay in character at all times during the roleplay. You are creative, descriptive, and reactive to the user's actions. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'qwen-3-32b',
+    preferredModel: 'minimaxai/minimax-m2',
     enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'fetch_url', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment']
   },
   {
@@ -538,7 +538,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: 'QA Engineer',
     description: 'Validates code, checks for bugs, and creates test plans.',
     systemPrompt: "Role: You are a QA Engineer. You create .md reports as needed. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
-    preferredModel: 'zai-glm-4.7',
+    preferredModel: 'z-ai/glm4.7',
     enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'fetch_url', 'ask_question', 'run_terminal_command', 'start_browser_session', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call']
   },
   {

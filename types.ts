@@ -34,6 +34,7 @@ export interface SubAgentConfig {
     agentName: string;
     task: string;
     detailedInstructions: string;
+    model?: AppModel;
 }
 
 export interface ToolAction {
@@ -172,11 +173,7 @@ export interface BrowserSessionInfo {
 }
 
 export type AppModel = 
-  | 'qwen-3-32b'
   | 'gpt-oss-120b'
-  | 'zai-glm-4.6'
-  | 'zai-glm-4.7'
-  | 'qwen-3-235b-a22b-instruct-2507'
   | 'nvidia/nemotron-3-nano-30b-a3b'
   | 'minimaxai/minimax-m2'
   | 'z-ai/glm4.7'
@@ -210,11 +207,7 @@ export interface SubAgentTask {
 }
 
 export const SUPPORTED_MODELS: AppModel[] = [
-  'qwen-3-32b',
   'gpt-oss-120b',
-  'zai-glm-4.6',
-  'zai-glm-4.7',
-  'qwen-3-235b-a22b-instruct-2507',
   'nvidia/nemotron-3-nano-30b-a3b',
   'minimaxai/minimax-m2',
   'z-ai/glm4.7',

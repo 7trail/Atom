@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -11,6 +12,7 @@ import ThemeBrowser from './components/ThemeBrowser';
 import ScheduleManager from './components/ScheduleManager';
 import SkillBrowser from './components/SkillBrowser';
 import Terminal from './components/Terminal';
+import ShareModal from './components/ShareModal';
 import { Toast } from './components/Toast';
 import { FileData, Message, AppModel, ToolAction, Agent, SubAgentSession, AgentSessionLog, Attachment, BrowserSessionInfo, ScheduledEvent, SubAgentConfig, Skill, ChatSession, SUPPORTED_MODELS, MULTIMODAL_MODELS } from './types';
 import { chatCompletion, generateText, getApiKeys } from './services/cerebras';
@@ -22,7 +24,7 @@ import { createWordDoc, createExcelSheet, createPresentation } from './services/
 import { shouldRunSchedule } from './services/scheduler';
 import { parseSkill, fetchServerSkills, saveSkillToStorage, getLocalStorageSkills, deleteSkillFromStorage } from './services/skillParser';
 import { ragService } from './services/rag';
-import { Code2, Eye, PanelLeftClose, PanelLeftOpen, X, Bot, Loader2, CheckCircle2, MessageSquare, Clock, TerminalSquare, Menu, BrainCircuit, FolderTree, History, Pencil, Trash2 } from 'lucide-react';
+import { Code2, Eye, PanelLeftClose, PanelLeftOpen, X, Bot, Loader2, CheckCircle2, MessageSquare, Clock, TerminalSquare, Menu, BrainCircuit, FolderTree, History, Pencil, Trash2, Share2 } from 'lucide-react';
 import { useFileSystem } from './hooks/useFileSystem';
 import { INITIAL_FILE, DEMO_PLAN, getSystemHeader, TOOL_DEFINITIONS, DEFAULT_AGENTS, isRenderHosted } from './constants';
 import { getRandomName } from './names';
@@ -54,7 +56,8 @@ const App: React.FC = () => {
       handleSwitchWorkspace,
       handleRenameWorkspace,
       handleDeleteWorkspace,
-      handleDuplicateWorkspace
+      handleDuplicateWorkspace,
+      handleImportWorkspace
   } = useFileSystem();
 
   const [activeView, setActiveView] = useState<string>('chat'); 
@@ -74,6 +77,7 @@ const App: React.FC = () => {
   const [enableSubAgents, setEnableSubAgents] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isThemeBrowserOpen, setIsThemeBrowserOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [sessions, setSessions] = useState<SubAgentSession[]>([]);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [sidebarMode, setSidebarMode] = useState<'files' | 'history'>('files');
@@ -657,7 +661,12 @@ const App: React.FC = () => {
 
   const startEphemeralAgent = (config: SubAgentConfig, switchView: boolean = true, isScheduled: boolean = false) => {
     const sessionId = generateId();
-    const agentDef = agents.find(a => a.name === config.agentName) || agents[0];
+    let agentDef = agents.find(a => a.name === config.agentName) || agents[0];
+    
+    // Override model if provided in config
+    if (config.model) {
+        agentDef = { ...agentDef, preferredModel: config.model };
+    }
     
     // Assign a unique persona name
     const personaName = getRandomName();
@@ -1018,6 +1027,19 @@ CRITICAL RULES:
   };
   
   const handlePauseAgent = () => { agentControlRef.current.pause = true; setIsPaused(true); };
+
+  const handleSpawnAgentManual = (agentId: string, model: AppModel, task: string, instructions: string) => {
+      const agent = agents.find(a => a.id === agentId);
+      const config: SubAgentConfig = {
+          agentName: agent ? agent.name : 'Sub-Agent',
+          task,
+          detailedInstructions: instructions,
+          model
+      };
+      
+      const sessionId = startEphemeralAgentRef.current(config);
+      addToast(`Spawned agent: ${config.agentName} (ID: ${sessionId})`);
+  };
 
   const attemptContextReset = async (lastContext: Message[]) => {
     setIsLoading(true);
@@ -1555,6 +1577,8 @@ CRITICAL RULES:
 
   const closeSession = (e: React.MouseEvent, sessionId: string) => { e.stopPropagation(); setSessions(prev => prev.filter(s => s.id !== sessionId)); if (activeView === `session:${sessionId}`) setActiveView('chat'); };
 
+  const currentWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+
   return (
     <div className="flex h-full w-full bg-dark-bg text-gray-200 overflow-hidden font-sans relative">
       <Settings 
@@ -1585,6 +1609,16 @@ CRITICAL RULES:
           onClose={() => setIsThemeBrowserOpen(false)}
           currentTheme={theme}
           onSetTheme={setTheme}
+      />
+
+      <ShareModal 
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          currentWorkspace={currentWorkspace}
+          onImportWorkspace={(ws) => {
+              handleImportWorkspace(ws);
+              addToast(`Imported shared workspace: ${ws.name}`);
+          }}
       />
 
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50 pointer-events-none">{toasts.map((msg, i) => (<Toast key={i} message={msg} onClose={() => setToasts(prev => prev.filter(m => m !== msg))} />))}</div>
@@ -1712,6 +1746,15 @@ CRITICAL RULES:
                 <button onClick={() => setActiveView('schedules')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'schedules' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Clock className="w-3 h-3" /> Time</button>
                 <button onClick={() => setActiveView('skills')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'skills' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><BrainCircuit className="w-3 h-3" /> Skills</button>
              </div>
+             
+             {/* Share Button */}
+             <button 
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded text-xs bg-indigo-900/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-900/50 transition-colors flex-shrink-0"
+             >
+                <Share2 className="w-3 h-3" /> Share
+             </button>
+
              <div className="w-[1px] h-6 bg-dark-border flex-shrink-0 mx-1"></div>
              
              <div className="flex gap-1 overflow-x-auto no-scrollbar">
@@ -1750,6 +1793,7 @@ CRITICAL RULES:
                   setAttachments={setChatAttachments} 
                   streamMetrics={streamMetrics} 
                   showStreamDebug={showStreamDebug} 
+                  onSpawnAgent={handleSpawnAgentManual}
               />
           ) : activeView === 'edit' ? (
             <CodeEditor file={selectedFile} onUpdate={handleUpdateFileContent} onSmartEdit={handleSmartEdit} onSave={() => selectedFile && handleSaveFileWrapper(selectedFile)} />

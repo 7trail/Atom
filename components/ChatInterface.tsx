@@ -1,8 +1,11 @@
 
+
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment, ChatSession } from '../types';
-import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity, MessageSquarePlus, History, Clock } from 'lucide-react';
+import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity, MessageSquarePlus, History, Clock, Users } from 'lucide-react';
 import AgentCreator from './AgentCreator';
+import SpawnAgentModal from './SpawnAgentModal';
 import { parse } from 'marked';
 
 interface ChatInterfaceProps {
@@ -30,6 +33,7 @@ interface ChatInterfaceProps {
   showStreamDebug?: boolean;
   chatHistory?: ChatSession[];
   onLoadChat?: (session: ChatSession) => void;
+  onSpawnAgent?: (agentId: string, model: AppModel, task: string, instructions: string) => void;
 }
 
 const ToolCallDisplay: React.FC<{ tool: ToolAction }> = React.memo(({ tool }) => {
@@ -273,9 +277,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages, isLoading, selectedModel, selectedAgent, availableAgents, enableSubAgents,
   onModelChange, onAgentChange, onSendMessage, onClearChat, onAddAgent, onToggleSubAgents,
   onOpenSettings, onStop, onPause, isPaused, input, setInput, attachments: pendingAttachments, setAttachments: setPendingAttachments,
-  streamMetrics, showStreamDebug
+  streamMetrics, showStreamDebug, onSpawnAgent
 }) => {
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+  const [isSpawnModalOpen, setIsSpawnModalOpen] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -379,6 +384,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col h-full bg-dark-bg text-dark-text w-full relative">
       <AgentCreator isOpen={isCreatorOpen} onClose={() => setIsCreatorOpen(false)} onSave={onAddAgent} />
+      
+      {onSpawnAgent && (
+          <SpawnAgentModal 
+            isOpen={isSpawnModalOpen} 
+            onClose={() => setIsSpawnModalOpen(false)} 
+            onConfirm={onSpawnAgent}
+            agents={availableAgents}
+          />
+      )}
 
       <div className="p-4 border-b border-dark-border bg-dark-panel">
          <div className="flex flex-col gap-4">
@@ -413,10 +427,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
 
             <div className="flex items-center justify-between gap-2 sm:gap-4 border-t border-dark-border pt-2">
-                 <button onClick={onClearChat} className="flex items-center gap-2 text-gray-400 hover:text-cerebras-400 transition-colors p-2 rounded hover:bg-white/5 text-xs font-medium" title="Start New Chat">
-                     <MessageSquarePlus className="w-4 h-4" />
-                     <span className="hidden sm:inline">New Chat</span>
-                 </button>
+                 <div className="flex gap-2">
+                     <button onClick={onClearChat} className="flex items-center gap-2 text-gray-400 hover:text-cerebras-400 transition-colors p-2 rounded hover:bg-white/5 text-xs font-medium" title="Start New Chat">
+                         <MessageSquarePlus className="w-4 h-4" />
+                         <span className="hidden sm:inline">New Chat</span>
+                     </button>
+                     {onSpawnAgent && (
+                         <button onClick={() => setIsSpawnModalOpen(true)} className="flex items-center gap-2 text-gray-400 hover:text-purple-400 transition-colors p-2 rounded hover:bg-white/5 text-xs font-medium" title="Spawn Subagent">
+                             <Users className="w-4 h-4" />
+                             <span className="hidden sm:inline">Spawn Subagent</span>
+                         </button>
+                     )}
+                 </div>
                  
                  <div className="flex items-center gap-2">
                     <button onClick={() => setTtsEnabled(!ttsEnabled)} className={`p-2 rounded hover:bg-white/5 transition-colors ${ttsEnabled ? 'text-green-400' : 'text-gray-400'}`} title="Toggle Text-to-Speech">

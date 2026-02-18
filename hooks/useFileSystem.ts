@@ -144,6 +144,32 @@ export const useFileSystem = () => {
         setLocalPath(null);
     };
 
+    const handleImportWorkspace = (importedWorkspace: Workspace) => {
+        const newId = generateId();
+        const newName = `${importedWorkspace.name} (Net)`;
+        
+        const newWorkspace: Workspace = {
+            id: newId,
+            name: newName,
+            files: importedWorkspace.files || [],
+            lastModified: Date.now()
+        };
+
+        const nextWorkspaces = [...workspaces, newWorkspace];
+        setWorkspaces(nextWorkspaces);
+        saveWorkspacesToDB(nextWorkspaces);
+
+        // Switch to it
+        setFileSystemType('vfs');
+        setRootHandle(null);
+        setLocalPath(null);
+        setActiveWorkspaceId(newId);
+        setFiles(newWorkspace.files);
+        if (newWorkspace.files.length > 0) {
+            setSelectedFile(newWorkspace.files[0]);
+        }
+    };
+
     const handleSwitchWorkspace = (id: string) => {
         const target = workspaces.find(w => w.id === id);
         if (target) {
@@ -590,6 +616,7 @@ export const useFileSystem = () => {
         workspaces, activeWorkspaceId,
         handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles, handleUpdateFileContent,
         handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
-        handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace, handleDuplicateWorkspace
+        handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace, handleDuplicateWorkspace,
+        handleImportWorkspace
     };
 };
