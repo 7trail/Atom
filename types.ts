@@ -185,6 +185,7 @@ export type AppModel =
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'qwen/qwen3-235b-a22b'
   | 'moonshotai/kimi-k2-instruct-0905'
+  | 'moonshotai/kimi-k2-thinking'
   | 'mistralai/mistral-medium-3-instruct'
   | 'moonshotai/kimi-k2.5'
   | 'stepfun-ai/step-3.5-flash'
@@ -219,6 +220,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'nvidia/nemotron-nano-12b-v2-vl',
   'qwen/qwen3-235b-a22b',
   'moonshotai/kimi-k2-instruct-0905',
+  'moonshotai/kimi-k2-thinking',
   'mistralai/mistral-medium-3-instruct',
   'moonshotai/kimi-k2.5',
   'stepfun-ai/step-3.5-flash',
