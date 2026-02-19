@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye, Cloud } from 'lucide-react';
 import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey } from '../services/cerebras';
@@ -22,6 +24,7 @@ const GLOBAL_TOOLS_LIST = [
     { id: 'discord_message', label: 'Discord', desc: 'Send DMs via Discord.', restricted: true },
     { id: 'manage_schedule', label: 'Scheduler', desc: 'Create recurring/scheduled tasks.' },
     { id: 'api_call', label: 'HTTP API Client', desc: 'Make GET/POST requests to external APIs.' },
+    { id: 'grep', label: 'Grep Search', desc: 'Regex search across workspace files.' },
 ];
 
 const Settings: React.FC<SettingsProps> = ({ 

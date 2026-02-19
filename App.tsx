@@ -3,6 +3,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
@@ -1020,6 +1022,29 @@ CRITICAL RULES:
                         }
                     } else if (fnName === 'api_call') {
                          result = await performApiCall(args.url, args.method, args.headers, args.body);
+                    } else if (fnName === 'grep') {
+                        try {
+                            const regex = new RegExp(args.pattern, args.case_insensitive ? 'i' : '');
+                            let output = "";
+                            let count = 0;
+                            const MAX_MATCHES = 500;
+                            for (const file of filesRef.current) {
+                                if (count >= MAX_MATCHES) break;
+                                // Skip binary roughly
+                                if (file.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i)) continue;
+                                
+                                const lines = file.content.split('\n');
+                                lines.forEach((line, idx) => {
+                                    if (regex.test(line)) {
+                                        output += `${file.name}:${idx + 1}: ${line.trim()}\n`;
+                                        count++;
+                                    }
+                                });
+                            }
+                            if (count === 0) result = "No matches found.";
+                            else if (count >= MAX_MATCHES) result = output + "\n... (Limit reached)";
+                            else result = output;
+                        } catch(e: any) { result = `Grep Error: ${e.message}`; }
                     } else result = `Unknown tool was called`;
                     
                     if (!result) result = "Done.";
@@ -1572,6 +1597,29 @@ CRITICAL RULES:
                         }
                     } else if (fnName === 'api_call') {
                          result = await performApiCall(args.url, args.method, args.headers, args.body);
+                    } else if (fnName === 'grep') {
+                        try {
+                            const regex = new RegExp(args.pattern, args.case_insensitive ? 'i' : '');
+                            let output = "";
+                            let count = 0;
+                            const MAX_MATCHES = 500;
+                            for (const file of filesRef.current) {
+                                if (count >= MAX_MATCHES) break;
+                                // Skip binary roughly
+                                if (file.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i)) continue;
+                                
+                                const lines = file.content.split('\n');
+                                lines.forEach((line, idx) => {
+                                    if (regex.test(line)) {
+                                        output += `${file.name}:${idx + 1}: ${line.trim()}\n`;
+                                        count++;
+                                    }
+                                });
+                            }
+                            if (count === 0) result = "No matches found.";
+                            else if (count >= MAX_MATCHES) result = output + "\n... (Limit reached)";
+                            else result = output;
+                        } catch(e: any) { result = `Grep Error: ${e.message}`; }
                     } else {
                         result = "Executed."; 
                     }
