@@ -1,12 +1,14 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye, Cloud } from 'lucide-react';
+import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye, Cloud, Volume2 } from 'lucide-react';
 import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey } from '../services/cerebras';
 import { connectDiscord } from '../services/tools';
 import { SettingsProps, Agent } from '../types';
-import { isRenderHosted } from '../constants';
+import { isRenderHosted, TTS_VOICES } from '../constants';
 
 const GLOBAL_TOOLS_LIST = [
     { id: 'ask_question', label: 'Ask User Questions', desc: 'Allow AI to pause and ask for clarification.' },
@@ -35,7 +37,8 @@ const Settings: React.FC<SettingsProps> = ({
     customInstructions, onSetCustomInstructions,
     showStreamDebug, onToggleStreamDebug,
     proxyMode, onToggleProxyMode,
-    defaultVlModel, onSetDefaultVlModel
+    defaultVlModel, onSetDefaultVlModel,
+    ttsVoice, onSetTtsVoice
 }) => {
   const [cerebrasKeys, setCerebrasKeys] = useState<string[]>([]);
   const [nvidiaKeys, setNvidiaKeys] = useState<string[]>([]);
@@ -141,6 +144,7 @@ const Settings: React.FC<SettingsProps> = ({
           timezone: timezone,
           customInstructions: customInstructions,
           proxy_mode: proxyMode,
+          tts_voice: ttsVoice,
           timestamp: Date.now()
       };
 
@@ -167,6 +171,7 @@ const Settings: React.FC<SettingsProps> = ({
               if (config.timezone) onSetTimezone(config.timezone);
               if (config.customInstructions !== undefined) onSetCustomInstructions(config.customInstructions);
               if (config.proxy_mode !== undefined && config.proxy_mode !== proxyMode) onToggleProxyMode();
+              if (config.tts_voice) onSetTtsVoice(config.tts_voice);
               
               // Update LocalStorage
               if (config.cerebras_api_keys) localStorage.setItem('cerebras_api_keys', JSON.stringify(config.cerebras_api_keys));
@@ -326,6 +331,25 @@ const Settings: React.FC<SettingsProps> = ({
               >
                   <option value="nvidia/nemotron-nano-12b-v2-vl">Nemotron VL (12B)</option>
                   <option value="moonshotai/kimi-k2.5">Kimi k2.5</option>
+              </select>
+          </div>
+
+          <div className="border-t border-dark-border pt-2"></div>
+
+          {/* TTS Settings */}
+          <div>
+              <div className="flex items-center gap-2 mb-2">
+                  <Volume2 className="w-3.5 h-3.5 text-purple-400" />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Text-to-Speech Voice</label>
+              </div>
+              <select 
+                value={ttsVoice} 
+                onChange={(e) => onSetTtsVoice(e.target.value)}
+                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none capitalize"
+              >
+                  {TTS_VOICES.map(v => (
+                      <option key={v} value={v}>{v}</option>
+                  ))}
               </select>
           </div>
 

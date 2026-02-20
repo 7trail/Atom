@@ -10,6 +10,8 @@ interface PreviewProps {
   onSelectFile: (file: FileData) => void;
   onExecutePlanStep?: (step: string) => void;
   onExecuteFullPlan?: () => void;
+  hostWindow?: Window;
+  lastUpdated?: number;
 }
 
 const getMimeType = (filename: string) => {
@@ -102,7 +104,7 @@ const ImagePreview: React.FC<{ file: FileData }> = ({ file }) => {
     );
 };
 
-const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan }) => {
+const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan, hostWindow = window, lastUpdated }) => {
   const [iframeSrc, setIframeSrc] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const blobUrlsRef = useRef<string[]>([]);
@@ -122,9 +124,9 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
               }
           }
       };
-      window.addEventListener('message', handleMessage);
-      return () => window.removeEventListener('message', handleMessage);
-  }, [file, allFiles, onSelectFile]);
+      hostWindow.addEventListener('message', handleMessage);
+      return () => hostWindow.removeEventListener('message', handleMessage);
+  }, [file, allFiles, onSelectFile, hostWindow]);
 
   // --- Blob Engine for HTML Previews ---
   useEffect(() => {
@@ -321,7 +323,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
     const timer = setTimeout(processFiles, 50);
     return () => clearTimeout(timer);
 
-  }, [file, allFiles]);
+  }, [file, allFiles, lastUpdated]);
 
 
   // --- Content Resolution for Non-HTML ---

@@ -1,6 +1,4 @@
 
-
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Message, AppModel, SUPPORTED_MODELS, Agent, ToolAction, Attachment, ChatSession } from '../types';
 import { Send, Bot, User, Loader2, Eraser, Sparkles, PlusCircle, ChevronRight, ChevronDown, Wrench, Settings as SettingsIcon, Download, Upload, PauseCircle, StopCircle, PlayCircle, Paperclip, X, Image as ImageIcon, Video, FileText, Globe, Volume2, Activity, MessageSquarePlus, History, Clock, Users } from 'lucide-react';
@@ -34,6 +32,7 @@ interface ChatInterfaceProps {
   chatHistory?: ChatSession[];
   onLoadChat?: (session: ChatSession) => void;
   onSpawnAgent?: (agentId: string, model: AppModel, task: string, instructions: string) => void;
+  ttsVoice?: string;
 }
 
 const ToolCallDisplay: React.FC<{ tool: ToolAction }> = React.memo(({ tool }) => {
@@ -96,7 +95,7 @@ const ToolResultDisplay: React.FC<{ name?: string, content: string }> = React.me
                 <div className="p-2 border-t border-green-500/10 bg-black/40 overflow-x-auto">
                     {isImage ? (
                         <div className="flex flex-col gap-2">
-                             <img src={content} alt="Result" className="max-w-full h-auto rounded border border-white/10" />
+                             <img src={content} alt={name} className="max-w-full h-auto rounded border border-white/10" />
                              <span className="text-[10px] text-gray-500 italic">Image output from {name}</span>
                         </div>
                     ) : useMarkdown ? (
@@ -277,14 +276,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages, isLoading, selectedModel, selectedAgent, availableAgents, enableSubAgents,
   onModelChange, onAgentChange, onSendMessage, onClearChat, onAddAgent, onToggleSubAgents,
   onOpenSettings, onStop, onPause, isPaused, input, setInput, attachments: pendingAttachments, setAttachments: setPendingAttachments,
-  streamMetrics, showStreamDebug, onSpawnAgent
+  streamMetrics, showStreamDebug, onSpawnAgent, ttsVoice
 }) => {
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [isSpawnModalOpen, setIsSpawnModalOpen] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  
   const importInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -293,11 +295,104 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [input]);
 
-  const speak = useCallback((text: string) => {
+  const cleanMarkdown = (text: string) => {
+      if (!text) return "";
+      let clean = text;
+      // Remove code blocks
+      clean = clean.replace(/```[\s\S]*?```/g, ''); 
+      // Remove images
+      clean = clean.replace(/!\[.*?\]\(.*?\)/g, '');
+      // Remove links
+      clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+      // Remove bold/italic
+      clean = clean.replace(/(\*\*|__)(.*?)\1/g, '$2');
+      clean = clean.replace(/(\*|_)(.*?)\1/g, '$2');
+      // Remove headers
+      clean = clean.replace(/^#+\s+/gm, '');
+      // Remove blockquotes
+      clean = clean.replace(/^>\s+/gm, '');
+      // Remove list markers
+      clean = clean.replace(/^[\*\-\+]\s+/gm, '');
+      // Remove inline code
+      clean = clean.replace(/`([^`]+)`/g, '$1');
+      
+      return clean.trim();
+  };
+
+  const speak = useCallback(async (text: string) => {
+    // If speaking, block new requests
+    if (isSpeaking) return;
+    // Check if audio is actually playing (safety sync)
+    if (currentAudioRef.current && !currentAudioRef.current.paused) return;
+
+    // Clean text before sending
+    const cleanedText = cleanMarkdown(text);
+    if (!cleanedText) return;
+
+    // Try legacy cleanup just in case
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(utterance);
-  }, []);
+    
+    setIsSpeaking(true);
+
+    try {
+        const response = await fetch("https://atomtts.anothersaiemail.workers.dev/", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer ATH3NA",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                text: cleanedText,
+                voice: ttsVoice || 'delia'
+            })
+        });
+
+        if (!response.ok) {
+            console.error("TTS API Error:", response.status, response.statusText);
+            setIsSpeaking(false);
+            return;
+        }
+
+        // The API returns the MP3 encoded as a Base64 string in the body
+        const base64String = await response.text();
+        const cleanBase64 = base64String.replace(/"/g, ''); // Remove potential quotes if JSON stringified
+
+        // Decode Base64 to binary
+        const binaryString = window.atob(cleanBase64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: 'audio/mp3' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        currentAudioRef.current = audio;
+        
+        audio.onended = () => {
+            URL.revokeObjectURL(url);
+            if (currentAudioRef.current === audio) {
+                currentAudioRef.current = null;
+            }
+            setIsSpeaking(false);
+        };
+        
+        audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            if (currentAudioRef.current === audio) {
+                currentAudioRef.current = null;
+            }
+            setIsSpeaking(false);
+        };
+        
+        await audio.play();
+
+    } catch (e) {
+        console.error("TTS Failed", e);
+        setIsSpeaking(false);
+    }
+  }, [ttsVoice, isSpeaking]);
 
   useEffect(() => {
     // Auto TTS for last message if enabled

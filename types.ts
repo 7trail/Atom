@@ -1,5 +1,6 @@
 
 
+
 export interface FileData {
   name: string;
   content: string;
@@ -256,4 +257,6 @@ export interface SettingsProps {
   onToggleProxyMode: () => void;
   defaultVlModel: string;
   onSetDefaultVlModel: (model: string) => void;
+  ttsVoice: string;
+  onSetTtsVoice: (voice: string) => void;
 }

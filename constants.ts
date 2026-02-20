@@ -18,6 +18,14 @@ export const applyProxy = (url: string): string => {
     return `https://cloudflare-cors-anywhere.anothersaiemail.workers.dev/?${encodeURIComponent(url)}`;
 };
 
+export const TTS_VOICES = [
+    "amalthea", "andromeda", "apollo", "arcas", "aries", "asteria", "athena", "atlas", "aurora", 
+    "callista", "cora", "cordelia", "delia", "draco", "electra", "harmonia", "helena", "hera", 
+    "hermes", "hyperion", "iris", "janus", "juno", "jupiter", "luna", "mars", "minerva", "neptune", 
+    "odysseus", "ophelia", "orion", "orpheus", "pandora", "phoebe", "pluto", "saturn", "thalia", 
+    "theia", "vesta", "zeus"
+];
+
 export const INITIAL_FILE: FileData = {
   name: 'welcome.md',
   content: '# Welcome to Atom\n\nI can create files, write code, search Google, check the weather, and generate images.\n\n**NEW CAPABILITY:** I can now control a web browser using advanced agentic automation! I can perform complex tasks like "Find the cheapest flight to Tokyo" or "Log in to X and post a tweet".\n\nIn Local Mode, I can execute terminal commands! Switch to Local Mode (folder icon), and I will create a `.atom` configuration file for you.\n\nYou can also link to other files: [See Demo Plan](demo.plan)',

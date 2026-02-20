@@ -1,25 +1,14 @@
 
 
 
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
-import FileExplorer from './components/FileExplorer';
-import CodeEditor from './components/CodeEditor';
-import Preview from './components/Preview';
-import ChatInterface from './components/ChatInterface';
-import SubAgentView from './components/SubAgentView';
 import Settings from './components/Settings';
 import ThemeBrowser from './components/ThemeBrowser';
-import ScheduleManager from './components/ScheduleManager';
-import SkillBrowser from './components/SkillBrowser';
-import Terminal from './components/Terminal';
 import ShareModal from './components/ShareModal';
 import { Toast } from './components/Toast';
-import { FileData, Message, AppModel, ToolAction, Agent, SubAgentSession, AgentSessionLog, Attachment, BrowserSessionInfo, ScheduledEvent, SubAgentConfig, Skill, ChatSession, SUPPORTED_MODELS, MULTIMODAL_MODELS } from './types';
-import { chatCompletion, generateText, getApiKeys } from './services/cerebras';
+import MainLayout from './components/MainLayout';
+import { Agent, ToolAction, Attachment, BrowserSessionInfo, ScheduledEvent, SubAgentConfig, Skill, AppModel, Message, SUPPORTED_MODELS, MULTIMODAL_MODELS, FileData } from './types';
+import { chatCompletion, getApiKeys } from './services/cerebras';
 import { searchGoogle, downloadImage, runBrowserAgent, checkDiscordMessages, connectDiscord, sendDiscordMessage, fetchUrl, performApiCall } from './services/tools';
 import { generateImage } from './services/imageGen';
 import { runTerminalCommand } from './services/terminalService';
@@ -28,40 +17,23 @@ import { createWordDoc, createExcelSheet, createPresentation } from './services/
 import { shouldRunSchedule } from './services/scheduler';
 import { parseSkill, fetchServerSkills, saveSkillToStorage, getLocalStorageSkills, deleteSkillFromStorage } from './services/skillParser';
 import { ragService } from './services/rag';
-import { Code2, Eye, PanelLeftClose, PanelLeftOpen, X, Bot, Loader2, CheckCircle2, MessageSquare, Clock, TerminalSquare, Menu, BrainCircuit, FolderTree, History, Pencil, Trash2, Share2 } from 'lucide-react';
 import { useFileSystem } from './hooks/useFileSystem';
-import { INITIAL_FILE, DEMO_PLAN, getSystemHeader, TOOL_DEFINITIONS, DEFAULT_AGENTS, isRenderHosted } from './constants';
-import { getRandomName } from './names';
+import { useChatHistory } from './hooks/useChatHistory';
+import { useSubAgents } from './hooks/useSubAgents';
+import { getSystemHeader, TOOL_DEFINITIONS, DEFAULT_AGENTS, isRenderHosted } from './constants';
+import { Pencil, Trash2 } from 'lucide-react';
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 const RESTRICTED_TOOLS = ['run_terminal_command', 'browser_action', 'start_browser_session', 'discord_message'];
 
 const App: React.FC = () => {
   const {
-      files, setFiles, filesRef,
-      selectedFile, setSelectedFile,
-      fileSystemType, fileSystemTypeRef,
-      rootHandle,
-      localPath, localPathRef,
-      workspaces, activeWorkspaceId,
-      handleCreateFile,
-      handleDeleteFile,
-      handleSaveFile,
-      handleSaveAll,
-      handleMoveFile,
-      handleImportFiles,
-      handleUpdateFileContent,
-      handleOpenFolder,
-      handleOpenGoogleDrive,
-      resetFileSystem,
-      applyFileAction,
-      handleCreateWorkspace,
-      handleSwitchWorkspace,
-      handleRenameWorkspace,
-      handleDeleteWorkspace,
-      handleDuplicateWorkspace,
-      handleImportWorkspace
+      files, setFiles, filesRef, selectedFile, setSelectedFile, fileSystemType, fileSystemTypeRef,
+      rootHandle, localPath, localPathRef, workspaces, activeWorkspaceId,
+      handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles,
+      handleUpdateFileContent, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
+      handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace,
+      handleDuplicateWorkspace, handleImportWorkspace
   } = useFileSystem();
 
   const [activeView, setActiveView] = useState<string>('chat'); 
@@ -69,467 +41,72 @@ const App: React.FC = () => {
   const [selectedAgent, setSelectedAgent] = useState<Agent>(DEFAULT_AGENTS[0]);
   const [selectedModel, setSelectedModel] = useState<AppModel>('gpt-oss-120b');
   
-  // Chat State
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
-  const [currentChatId, setCurrentChatId] = useState<string>(generateId());
-  
-  // Context Menu State
-  const [chatContextMenu, setChatContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null);
-
   const [isLoading, setIsLoading] = useState(false);
   const [enableSubAgents, setEnableSubAgents] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isThemeBrowserOpen, setIsThemeBrowserOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [sessions, setSessions] = useState<SubAgentSession[]>([]);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [sidebarMode, setSidebarMode] = useState<'files' | 'history'>('files');
-  
-  // Streaming Debug State
-  const [streamMetrics, setStreamMetrics] = useState<{ totalWords: number, lastTokens: string, latestChunk: string } | null>(null);
-  const [showStreamDebug, setShowStreamDebug] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem('atom_show_stream_debug') === 'true';
-    }
-    return false;
-  });
-
-  // Default VL Model State
-  const [defaultVlModel, setDefaultVlModel] = useState<AppModel>(() => {
-      if (typeof window !== 'undefined') {
-          return (localStorage.getItem('atom_default_vl_model') as AppModel) || 'nvidia/nemotron-nano-12b-v2-vl';
-      }
-      return 'nvidia/nemotron-nano-12b-v2-vl';
-  });
-
-  const handleSetDefaultVlModel = (model: string) => {
-      setDefaultVlModel(model as AppModel);
-      localStorage.setItem('atom_default_vl_model', model);
-  };
-
-  const handleToggleStreamDebug = () => {
-    setShowStreamDebug(prev => {
-        const next = !prev;
-        localStorage.setItem('atom_show_stream_debug', String(next));
-        return next;
-    });
-  };
-
-  // Proxy Mode State
-  const [proxyMode, setProxyMode] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem('atom_proxy_mode') === 'true';
-    }
-    return false;
-  });
-
-  const handleToggleProxyMode = () => {
-    setProxyMode(prev => {
-        const next = !prev;
-        localStorage.setItem('atom_proxy_mode', String(next));
-        return next;
-    });
-  };
-
-  // Mobile Detection
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Skill System State
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [enabledSkillIds, setEnabledSkillIds] = useState<string[]>([]);
-  
-  // Refresh trigger for skills
-  const [skillRefresh, setSkillRefresh] = useState(0);
-
-  // Notification Title Logic
-  const wasLoadingRef = useRef(false);
-  useEffect(() => {
-      if (isLoading) {
-          wasLoadingRef.current = true;
-          document.title = "Atom (Running...)";
-      } else if (wasLoadingRef.current) {
-          document.title = "Atom (*)";
-          wasLoadingRef.current = false;
-      }
-  }, [isLoading]);
-
-  useEffect(() => {
-      const resetTitle = () => {
-          document.title = "Atom";
-      };
-      window.addEventListener('focus', resetTitle);
-      window.addEventListener('click', resetTitle);
-      return () => {
-          window.removeEventListener('focus', resetTitle);
-          window.removeEventListener('click', resetTitle);
-      };
-  }, []);
-
-  useEffect(() => {
-    const checkMobile = () => {
-        const isMob = window.innerWidth < 768;
-        setIsMobile(isMob);
-        if (isMob) setLeftSidebarOpen(false);
-        else setLeftSidebarOpen(true);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const [toasts, setToasts] = useState<string[]>([]);
+  const addToast = (msg: string) => setToasts(prev => [...prev, msg]);
 
   const [chatInput, setChatInput] = useState('');
   const [chatAttachments, setChatAttachments] = useState<Attachment[]>([]);
+  const agentControlRef = useRef<{ stop: boolean, pause: boolean }>({ stop: false, pause: false });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const { 
+      messages, setMessages, chatHistory, currentChatId, 
+      handleNewChat, handleLoadChat, handleDeleteChat, 
+      handleRenameChat, generateChatTitle 
+  } = useChatHistory({ 
+      handleStopAgent: () => { agentControlRef.current.stop = true; setIsLoading(false); },
+      setChatInput, 
+      setChatAttachments,
+      setIsLoading,
+      setActiveView
+  });
+
+  const [streamMetrics, setStreamMetrics] = useState<{ totalWords: number, lastTokens: string, latestChunk: string } | null>(null);
+  const [showStreamDebug, setShowStreamDebug] = useState<boolean>(() => localStorage.getItem('atom_show_stream_debug') === 'true');
+  const [defaultVlModel, setDefaultVlModel] = useState<AppModel>(() => (localStorage.getItem('atom_default_vl_model') as AppModel) || 'nvidia/nemotron-nano-12b-v2-vl');
+  const [proxyMode, setProxyMode] = useState<boolean>(() => localStorage.getItem('atom_proxy_mode') === 'true');
+  const [ttsVoice, setTtsVoice] = useState<string>(() => localStorage.getItem('atom_tts_voice') || 'delia');
   
-  // Blocking logic for sub-agents
-  const [waitingForSubAgents, setWaitingForSubAgents] = useState(false);
-  const [pendingSubAgentIds, setPendingSubAgentIds] = useState<string[]>([]);
-  const [pendingToolCallId, setPendingToolCallId] = useState<string | null>(null);
-  
+  const [isMobile, setIsMobile] = useState(false);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [enabledSkillIds, setEnabledSkillIds] = useState<string[]>([]);
+  const [skillRefresh, setSkillRefresh] = useState(0);
   const [workspaceInstructions, setWorkspaceInstructions] = useState<string>('');
-
   const [schedules, setSchedules] = useState<ScheduledEvent[]>(() => {
-      if (typeof window !== 'undefined') {
-          const saved = localStorage.getItem('atom_schedules');
-          return saved ? JSON.parse(saved) : [];
-      }
-      return [];
+      const saved = localStorage.getItem('atom_schedules');
+      return saved ? JSON.parse(saved) : [];
   });
-  
-  const [timezone, setTimezone] = useState<string>(() => {
-       try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
-  });
+  const schedulesRef = useRef(schedules);
+  useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
 
-  // Load Chat History
-  useEffect(() => {
-      const savedHistory = localStorage.getItem('atom_chat_history');
-      if (savedHistory) {
-          try {
-              const parsed = JSON.parse(savedHistory);
-              setChatHistory(parsed);
-          } catch (e) {
-              console.error("Failed to parse chat history", e);
-          }
-      }
-  }, []);
-
-  // Sync Current Chat to History
-  useEffect(() => {
-      setChatHistory(prev => {
-          const existingIndex = prev.findIndex(s => s.id === currentChatId);
-          let newHistory = [...prev];
-
-          // Only proceed if we have an active chat session to save or update
-          if (messages.length === 0 && existingIndex === -1) {
-              return prev;
-          }
-          
-          if (existingIndex >= 0) {
-              const existingSession = newHistory[existingIndex];
-              
-              const isNewActivity = messages.length !== existingSession.messages.length;
-              
-              newHistory[existingIndex] = {
-                  ...existingSession,
-                  messages: messages,
-                  // Only update timestamp if new activity occurred
-                  timestamp: isNewActivity ? Date.now() : existingSession.timestamp
-              };
-
-              // Only re-sort if timestamp changed
-              if (isNewActivity) {
-                  newHistory.sort((a, b) => b.timestamp - a.timestamp);
-              }
-          } else {
-              // New Chat - Add to top
-              const session: ChatSession = {
-                  id: currentChatId,
-                  title: 'New Chat',
-                  messages,
-                  timestamp: Date.now()
-              };
-              newHistory = [session, ...newHistory];
-              newHistory.sort((a, b) => b.timestamp - a.timestamp);
-          }
-          
-          return newHistory.slice(0, 20); // Limit to 20 chats
-      });
-  }, [messages, currentChatId]);
-
-  // Persist History
-  useEffect(() => {
-      localStorage.setItem('atom_chat_history', JSON.stringify(chatHistory));
-  }, [chatHistory]);
-
-  // Close context menu on global click
-  useEffect(() => {
-      const handleClick = () => setChatContextMenu(null);
-      window.addEventListener('click', handleClick);
-      return () => window.removeEventListener('click', handleClick);
-  }, []);
-
-  const handleNewChat = () => {
-      handleStopAgent();
-      setCurrentChatId(generateId());
-      setMessages([]);
-      setChatInput('');
-      setChatAttachments([]);
-      setIsLoading(false);
-  };
-
-  const handleLoadChat = (session: ChatSession) => {
-      handleStopAgent();
-      setCurrentChatId(session.id);
-      setMessages(session.messages);
-      setChatInput('');
-      setChatAttachments([]);
-      setActiveView('chat');
-  };
-
-  const handleChatContextMenu = (e: React.MouseEvent, sessionId: string) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setChatContextMenu({ x: e.clientX, y: e.clientY, sessionId });
-  };
-
-  const handleDeleteChat = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!chatContextMenu) return;
-      
-      const idToDelete = chatContextMenu.sessionId;
-      setChatHistory(prev => prev.filter(s => s.id !== idToDelete));
-      
-      if (currentChatId === idToDelete) {
-          handleNewChat();
-      }
-      setChatContextMenu(null);
-  };
-
-  const handleRenameChat = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!chatContextMenu) return;
-
-      const idToRename = chatContextMenu.sessionId;
-      const session = chatHistory.find(s => s.id === idToRename);
-      
-      if (session) {
-          const newTitle = window.prompt("Rename chat:", session.title);
-          if (newTitle && newTitle.trim()) {
-              setChatHistory(prev => prev.map(s => s.id === idToRename ? { ...s, title: newTitle.trim() } : s));
-          }
-      }
-      setChatContextMenu(null);
-  };
-
-  const generateChatTitle = async (firstMessage: string) => {
-      const keys = getApiKeys();
-      const titleModel = keys.length > 0 ? 'gpt-oss-120b' : 'nvidia/nemotron-nano-12b-v2-vl';
-      
-      try {
-          const result = await generateText(
-              `Generate a very short, concise title (3-4 words max) for a chat that starts with the following message. Do not use quotes or punctuation. Message: "${firstMessage}"`,
-              {},
-              titleModel
-          );
-          
-          if (result) {
-              const cleanTitle = result.trim().replace(/^["']|["']$/g, '');
-              setChatHistory(prev => prev.map(s => s.id === currentChatId ? { ...s, title: cleanTitle } : s));
-          }
-      } catch (e) {
-          console.error("Failed to generate chat title", e);
-      }
-  };
-
-  useEffect(() => {
-      if (fileSystemType !== 'local') {
-          localStorage.setItem('atom_schedules', JSON.stringify(schedules));
-      }
-  }, [schedules, fileSystemType]);
-
+  const [timezone, setTimezone] = useState<string>(() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; } });
   const [browserSessions, setBrowserSessions] = useState<BrowserSessionInfo[]>([]);
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem('atom_theme') || 'default';
-    }
-    return 'default';
-  });
-
-  const [toasts, setToasts] = useState<string[]>([]);
+  const [theme, setTheme] = useState(() => localStorage.getItem('atom_theme') || 'default');
   
   const [globalDisabledTools, setGlobalDisabledTools] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('atom_disabled_tools');
-        let tools = saved ? JSON.parse(saved) : ['ask_question', 'google_search', 'run_terminal_command', 'start_browser_session', 'discord_message', 'patch'];
-        if (isRenderHosted) {
-            // Enforce restricted tools
-            tools = [...new Set([...tools, ...RESTRICTED_TOOLS])];
-        }
-        return tools;
-    }
-    return ['ask_question', 'google_search', 'run_terminal_command', 'start_browser_session', 'discord_message', 'patch'];
+    const saved = localStorage.getItem('atom_disabled_tools');
+    let tools = saved ? JSON.parse(saved) : ['ask_question', 'google_search', 'run_terminal_command', 'start_browser_session', 'discord_message', 'patch'];
+    if (isRenderHosted) tools = [...new Set([...tools, ...RESTRICTED_TOOLS])];
+    return tools;
   });
-
   const [disabledSubAgents, setDisabledSubAgents] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('atom_disabled_sub_agents');
-        return saved ? JSON.parse(saved) : [];
-    }
-    return [];
+    const saved = localStorage.getItem('atom_disabled_sub_agents');
+    return saved ? JSON.parse(saved) : [];
   });
-  
-  const agentsRef = useRef(agents);
-  useEffect(() => { agentsRef.current = agents; }, [agents]);
 
-  // Skill Parsing & Persistence Effect (Merged Local, Server, and Storage)
-  useEffect(() => {
-    const loadSkills = async () => {
-        // 1. Fetch Server Skills (from skills/ folder on server, if not disabled)
-        const serverSkills = await fetchServerSkills();
+  const [chatContextMenu, setChatContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null);
 
-        // 2. Parse Local Skills (from workspace files)
-        const localSkills: Skill[] = [];
-        files.forEach(f => {
-            if (f.name.toLowerCase().endsWith('skills.md') || f.name.toLowerCase().endsWith('skill.md')) {
-                const skill = parseSkill(f);
-                if (skill) {
-                    skill.source = 'file';
-                    localSkills.push(skill);
-                }
-            }
-        });
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
 
-        // 3. Load Storage Skills (LocalStorage)
-        const storageSkills = getLocalStorageSkills().map(s => ({ ...s, source: 'storage' as const }));
-
-        // 4. Merge Skills
-        // Priority: Local > Storage > Server (based on ID collision)
-        const skillMap = new Map<string, Skill>();
-        
-        serverSkills.forEach(s => skillMap.set(s.id, s));
-        storageSkills.forEach(s => skillMap.set(s.id, s));
-        localSkills.forEach(s => skillMap.set(s.id, s));
-        
-        const allSkills = Array.from(skillMap.values());
-
-        // Update state if different
-        const currentJson = JSON.stringify(skills);
-        const newJson = JSON.stringify(allSkills);
-        if (currentJson !== newJson) {
-            setSkills(allSkills);
-        }
-    };
-    
-    // Only load skills if files are ready
-    if (files.length > 0 || fileSystemType === 'vfs') {
-        loadSkills();
-    }
-    
-  }, [files, skillRefresh, fileSystemType]); 
-
-  // Handlers for Skill UI
-  const handleImportSkill = (files: FileData[]) => {
-      files.forEach(f => {
-          // If JSON
-          if (f.name.endsWith('.json')) {
-              try {
-                  const data = JSON.parse(f.content);
-                  if (Array.isArray(data)) {
-                      data.forEach(s => saveSkillToStorage(s));
-                  } else if (data.id && data.content) {
-                      saveSkillToStorage(data);
-                  }
-              } catch (e) { console.error("Invalid skill JSON", e); addToast("Failed to import skill JSON"); }
-          } 
-          // If Markdown
-          else {
-              const skill = parseSkill(f);
-              if (skill) saveSkillToStorage(skill);
-              else addToast(`Could not parse skill from ${f.name}`);
-          }
-      });
-      setSkillRefresh(prev => prev + 1);
-      addToast("Skills imported to Local Storage");
-  };
-
-  const handleDeleteSkill = (id: string) => {
-      deleteSkillFromStorage(id);
-      setSkillRefresh(prev => prev + 1);
-      addToast("Skill removed from storage");
-  };
-
-  const handleExportSkills = () => {
-      const storageSkills = getLocalStorageSkills();
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(storageSkills, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "atom_skills_library.json");
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-  };
-
-
-  useEffect(() => {
-    if (fileSystemType === 'local') {
-        const atomFile = files.find(f => f.name === '.atom');
-        if (atomFile) {
-            try {
-                const config = JSON.parse(atomFile.content);
-                // Ensure restricted tools stay restricted if on render
-                let tools = config.disabledTools || [];
-                if (isRenderHosted) {
-                     tools = [...new Set([...tools, ...RESTRICTED_TOOLS])];
-                }
-
-                if (JSON.stringify(tools) !== JSON.stringify(globalDisabledTools)) setGlobalDisabledTools(tools);
-                if (config.disabledSubAgents && JSON.stringify(config.disabledSubAgents) !== JSON.stringify(disabledSubAgents)) setDisabledSubAgents(config.disabledSubAgents);
-                if (config.schedules && JSON.stringify(config.schedules) !== JSON.stringify(schedules)) setSchedules(config.schedules);
-                if (config.enabledSkillIds && JSON.stringify(config.enabledSkillIds) !== JSON.stringify(enabledSkillIds)) setEnabledSkillIds(config.enabledSkillIds);
-                
-                // Load Workspace Instructions
-                if (config.instructions !== undefined && config.instructions !== workspaceInstructions) {
-                    setWorkspaceInstructions(config.instructions);
-                }
-
-                // Load Workspace Custom Agents
-                let mergedAgents = [...DEFAULT_AGENTS];
-                if (config.agents && Array.isArray(config.agents)) {
-                    mergedAgents = [...DEFAULT_AGENTS, ...config.agents];
-                }
-                
-                // Only update if different to avoid cycles
-                if (JSON.stringify(mergedAgents) !== JSON.stringify(agentsRef.current)) {
-                    setAgents(mergedAgents);
-                }
-
-            } catch (e) { console.error(e); }
-        }
-    } else {
-        // Reset to default if leaving local mode
-        if (agents.length !== DEFAULT_AGENTS.length) {
-            setAgents(DEFAULT_AGENTS);
-        }
-
-        // Load instructions from local storage if in VFS mode
-        const storedInstructions = localStorage.getItem('atom_custom_instructions');
-        if (storedInstructions && storedInstructions !== workspaceInstructions) {
-            setWorkspaceInstructions(storedInstructions);
-        }
-
-        // Load enabled skills from local storage in VFS
-        const storedSkills = localStorage.getItem('atom_enabled_skills');
-        if (storedSkills) {
-             const parsed = JSON.parse(storedSkills);
-             if (JSON.stringify(parsed) !== JSON.stringify(enabledSkillIds)) setEnabledSkillIds(parsed);
-        }
-    }
-    
-    // Update RAG Index whenever files change
-    ragService.updateIndex(files);
-
-  }, [files, fileSystemType]); 
-
+  // Config Update Helper
   const updateAtomConfig = (updates: any) => {
     if (fileSystemTypeRef.current !== 'local') return;
     const atomFile = filesRef.current.find(f => f.name === '.atom');
@@ -541,221 +118,65 @@ const App: React.FC = () => {
     if (atomFile && atomFile.content === newContent) return;
     const { newFiles } = applyFileAction({ action: 'update_file', filename: '.atom', content: newContent }, filesRef.current, true); 
     setFiles(newFiles);
+    // Config updates don't necessarily need to trigger preview reload, but consistent state is good.
+    // However, the user asked for preview refresh on file edits.
   };
 
-  const handleToggleGlobalTool = (toolId: string) => {
-      setGlobalDisabledTools(prev => {
-          const newVal = prev.includes(toolId) ? prev.filter(t => t !== toolId) : [...prev, toolId];
-          if (fileSystemTypeRef.current === 'local') updateAtomConfig({ disabledTools: newVal });
-          return newVal;
-      });
-  };
+  const {
+      sessions, setSessions, waitingForSubAgents, setWaitingForSubAgents,
+      pendingSubAgentIds, setPendingSubAgentIds, pendingToolCallId, setPendingToolCallId,
+      startEphemeralAgent, runAgentLoop, completeSession, updateSessionLog
+  } = useSubAgents({
+      agents, filesRef, applyFileAction, setFiles, browserSessions, workspaceInstructions,
+      addToast, fileSystemTypeRef, localPathRef, updateAtomConfig, setSchedules, schedulesRef, setActiveView
+  });
 
-  const handleToggleSubAgent = (agentId: string) => {
-      setDisabledSubAgents(prev => {
-          const newVal = prev.includes(agentId) ? prev.filter(a => a !== agentId) : [...prev, agentId];
-          if (fileSystemTypeRef.current === 'local') updateAtomConfig({ disabledSubAgents: newVal });
-          return newVal;
-      });
-  };
-
-  const handleToggleSkill = (skillId: string) => {
-      setEnabledSkillIds(prev => {
-          const newVal = prev.includes(skillId) ? prev.filter(s => s !== skillId) : [...prev, skillId];
-          if (fileSystemTypeRef.current === 'local') {
-              updateAtomConfig({ enabledSkillIds: newVal });
-          } else {
-              localStorage.setItem('atom_enabled_skills', JSON.stringify(newVal));
-          }
-          return newVal;
-      });
-  };
-
-  const handleSetCustomInstructions = (inst: string) => {
-      setWorkspaceInstructions(inst);
-      if (fileSystemTypeRef.current === 'local') {
-          updateAtomConfig({ instructions: inst });
-      } else {
-          localStorage.setItem('atom_custom_instructions', inst);
-      }
-  };
-  
-  const handleAddAgent = (newAgent: Agent) => {
-      if (fileSystemType === 'local') {
-          // Add to .atom config
-          const atomFile = filesRef.current.find(f => f.name === '.atom');
-          let currentCustomAgents: Agent[] = [];
-          if (atomFile) {
-              try {
-                  const config = JSON.parse(atomFile.content);
-                  if (config.agents && Array.isArray(config.agents)) {
-                      currentCustomAgents = config.agents;
-                  }
-              } catch {}
-          }
-          const agentToSave = { ...newAgent, isCustom: true };
-          updateAtomConfig({ agents: [...currentCustomAgents, agentToSave] });
-          // Optimistically select it (state update happens via file effect)
-          setSelectedAgent(agentToSave);
-      } else {
-          setAgents(prev => [...prev, newAgent]);
-          setSelectedAgent(newAgent);
-      }
-  };
-
-  useEffect(() => { 
-      if (typeof window !== 'undefined') {
-          localStorage.setItem('atom_theme', theme);
-      }
-      document.documentElement.setAttribute('data-theme', theme); 
-  }, [theme]);
-
-  const agentControlRef = useRef<{ stop: boolean, pause: boolean }>({ stop: false, pause: false });
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const handleSendMessageRef = useRef<(content: string, attachments?: Attachment[], previousContext?: any[], customMessageState?: Message[] | null) => void>(() => {});
-
-  useEffect(() => {
-      const handleGlobalKeyDown = (e: KeyboardEvent) => {
-          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-              e.preventDefault();
-              if (e.shiftKey) handleSaveAllWrapper();
-              else if (selectedFile) handleSaveFileWrapper(selectedFile);
-          }
-      };
-      window.addEventListener('keydown', handleGlobalKeyDown);
-      return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [selectedFile, files]);
-
+  const startEphemeralAgentRef = useRef(startEphemeralAgent);
+  useEffect(() => { startEphemeralAgentRef.current = startEphemeralAgent; });
   const messagesRef = useRef(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
-  const schedulesRef = useRef(schedules);
-  useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
+  const agentsRef = useRef(agents);
+  useEffect(() => { agentsRef.current = agents; }, [agents]);
 
-  // --- Sub-Agent Blocking Logic ---
+  // --- Effects ---
   useEffect(() => {
-    if (waitingForSubAgents && pendingSubAgentIds.length > 0) {
-        const allCompleted = pendingSubAgentIds.every(id => {
-            const session = sessions.find(s => s.id === id);
-            return session && (session.status === 'completed' || session.status === 'failed' || session.status === 'stopped');
-        });
-
-        if (allCompleted) {
-            // Wake up main agent
-            const results = pendingSubAgentIds.map(id => {
-                const session = sessions.find(s => s.id === id);
-                return `Agent [${session?.agentName}]: ${session?.status.toUpperCase()} - Result: ${session?.result || 'No output'}`;
-            }).join('\n\n');
-
-            setWaitingForSubAgents(false);
-            setPendingSubAgentIds([]);
-            
-            // Resume chat logic
-            if (pendingToolCallId) {
-                resumeChatAfterSubAgents(results, pendingToolCallId);
-            }
-        }
-    }
+      if (waitingForSubAgents && pendingSubAgentIds.length > 0) {
+          const allCompleted = pendingSubAgentIds.every(id => {
+              const session = sessions.find(s => s.id === id);
+              return session && (session.status === 'completed' || session.status === 'failed' || session.status === 'stopped');
+          });
+          if (allCompleted) {
+              const results = pendingSubAgentIds.map(id => {
+                  const session = sessions.find(s => s.id === id);
+                  return `Agent [${session?.agentName}]: ${session?.status.toUpperCase()} - Result: ${session?.result || 'No output'}`;
+              }).join('\n\n');
+              setWaitingForSubAgents(false);
+              setPendingSubAgentIds([]);
+              if (pendingToolCallId) resumeChatAfterSubAgents(results, pendingToolCallId);
+          }
+      }
   }, [sessions, waitingForSubAgents]);
 
   const resumeChatAfterSubAgents = (results: string, toolCallId: string) => {
       if (agentControlRef.current.stop) return;
-
-      const toolResultMessage: Message = {
-          id: generateId(),
-          role: 'tool',
-          tool_call_id: toolCallId,
-          content: `Sub-agents finished execution.\n\n${results}`,
-          timestamp: Date.now()
-      };
-      
+      const toolResultMessage: Message = { id: generateId(), role: 'tool', tool_call_id: toolCallId, content: `Sub-agents finished execution.\n\n${results}`, timestamp: Date.now() };
       setMessages(prev => [...prev, toolResultMessage]);
-      
-      // We pass the new full history manually to avoid race conditions with state updates
       const fullHistory = [...messagesRef.current, toolResultMessage];
-      
-      handleSendMessageRef.current('', [], [], fullHistory);
+      handleSendMessage('', [], [], fullHistory);
   };
 
-  const handleSaveFileWrapper = async (file: FileData) => {
-      const saved = await handleSaveFile(file);
-      if (saved) addToast(`Saved ${file.name}`);
-  };
-
-  const handleSaveAllWrapper = async () => {
-      const count = await handleSaveAll();
-      if (count > 0) addToast(`Saved ${count} files`);
-  };
-
-  const startEphemeralAgent = (config: SubAgentConfig, switchView: boolean = true, isScheduled: boolean = false) => {
-    const sessionId = generateId();
-    let agentDef = agents.find(a => a.name === config.agentName) || agents[0];
-    
-    // Override model if provided in config
-    if (config.model) {
-        agentDef = { ...agentDef, preferredModel: config.model };
-    }
-    
-    // Assign a unique persona name
-    const personaName = getRandomName();
-    const displayName = `${personaName} (${config.agentName || 'Sub-Agent'})`;
-
-    const newSession: SubAgentSession = {
-        id: sessionId,
-        agentId: agentDef.id,
-        agentName: displayName,
-        task: config.task || 'Unknown Task',
-        status: 'running',
-        logs: [{ id: generateId(), type: 'system', content: `Session initialized for task: ${config.task}. Assigned Identity: ${personaName}`, timestamp: Date.now() }],
-        isScheduled
-    };
-
-    setSessions(prev => [...prev, newSession]);
-    if (switchView) setActiveView(`session:${sessionId}`);
-    
-    const allowedTools = (agentDef.enabledTools || []).filter(t => t !== 'ask_question' && t !== 'spawn_agents' && t !== 'call_sub_agent');
-    const tools = TOOL_DEFINITIONS.filter(t => allowedTools.includes(t.function.name));
-
-    runAgentLoop(newSession, agentDef, config.detailedInstructions || '', tools);
-    return sessionId;
-  };
-  
-  const startEphemeralAgentRef = useRef(startEphemeralAgent);
-  useEffect(() => { startEphemeralAgentRef.current = startEphemeralAgent; });
-
+  // Schedule Check
   useEffect(() => {
       const checkSchedules = () => {
           const now = Date.now();
-          const activeSchedules = schedulesRef.current;
-          
-          activeSchedules.forEach(schedule => {
+          schedulesRef.current.forEach(schedule => {
               if (shouldRunSchedule(schedule, now, timezone)) {
                   const assignedAgent = agentsRef.current.find(a => a.id === schedule.agentId) || agentsRef.current[0];
-                  const config: SubAgentConfig = {
-                      agentName: assignedAgent.name,
-                      task: `Scheduled Task: ${schedule.prompt}`,
-                      detailedInstructions: `This is a scheduled event triggered at ${new Date().toLocaleString()}. \nPrompt: "${schedule.prompt}"\n\nExecute this task strictly. When finished, you MUST use the 'final_answer' tool.`
-                  };
-
+                  const config: SubAgentConfig = { agentName: assignedAgent.name, task: `Scheduled Task: ${schedule.prompt}`, detailedInstructions: `Scheduled event at ${new Date().toLocaleString()}.\nPrompt: "${schedule.prompt}"\nExecute strictly. Use 'final_answer' when done.` };
                   startEphemeralAgentRef.current(config, false, true);
-
                   setSchedules(prev => {
-                      const newSchedules = prev.map(s => {
-                          if (s.id === schedule.id) {
-                              const updated = { ...s, lastRun: now };
-                              if (s.type === 'one_time') updated.active = false;
-                              return updated;
-                          }
-                          return s;
-                      });
-                      if (fileSystemTypeRef.current === 'local') {
-                           const atomFile = filesRef.current.find(f => f.name === '.atom');
-                           let currentConfig: any = {};
-                           if (atomFile) try { currentConfig = JSON.parse(atomFile.content); } catch {}
-                           const newConfig = { ...currentConfig, schedules: newSchedules };
-                           const newContent = JSON.stringify(newConfig, null, 2);
-                           applyFileAction({ action: 'update_file', filename: '.atom', content: newContent }, filesRef.current, true);
-                      }
+                      const newSchedules = prev.map(s => s.id === schedule.id ? { ...s, lastRun: now, active: s.type !== 'one_time' } : s);
+                      if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: newSchedules });
                       return newSchedules;
                   });
               }
@@ -765,388 +186,99 @@ const App: React.FC = () => {
       return () => clearInterval(interval);
   }, [timezone]);
 
+  // Skill Load
+  useEffect(() => {
+    const loadSkills = async () => {
+        const serverSkills = await fetchServerSkills();
+        const localSkills: Skill[] = [];
+        files.forEach(f => { if (f.name.toLowerCase().endsWith('skills.md') || f.name.toLowerCase().endsWith('skill.md')) { const skill = parseSkill(f); if (skill) { skill.source = 'file'; localSkills.push(skill); } } });
+        const storageSkills = getLocalStorageSkills().map(s => ({ ...s, source: 'storage' as const }));
+        const skillMap = new Map<string, Skill>();
+        serverSkills.forEach(s => skillMap.set(s.id, s));
+        storageSkills.forEach(s => skillMap.set(s.id, s));
+        localSkills.forEach(s => skillMap.set(s.id, s));
+        setSkills(Array.from(skillMap.values()));
+    };
+    if (files.length > 0 || fileSystemType === 'vfs') loadSkills();
+  }, [files, skillRefresh, fileSystemType]); 
+
+  useEffect(() => {
+    if (fileSystemType === 'local') {
+        const atomFile = files.find(f => f.name === '.atom');
+        if (atomFile) {
+            try {
+                const config = JSON.parse(atomFile.content);
+                let tools = config.disabledTools || [];
+                if (isRenderHosted) tools = [...new Set([...tools, ...RESTRICTED_TOOLS])];
+                if (JSON.stringify(tools) !== JSON.stringify(globalDisabledTools)) setGlobalDisabledTools(tools);
+                if (config.disabledSubAgents) setDisabledSubAgents(config.disabledSubAgents);
+                if (config.schedules) setSchedules(config.schedules);
+                if (config.enabledSkillIds) setEnabledSkillIds(config.enabledSkillIds);
+                if (config.instructions !== undefined && config.instructions !== workspaceInstructions) setWorkspaceInstructions(config.instructions);
+                if (config.agents && Array.isArray(config.agents)) setAgents([...DEFAULT_AGENTS, ...config.agents]);
+            } catch (e) { console.error(e); }
+        }
+    } else {
+        if (agents.length !== DEFAULT_AGENTS.length) setAgents(DEFAULT_AGENTS);
+        const storedInstructions = localStorage.getItem('atom_custom_instructions');
+        if (storedInstructions) setWorkspaceInstructions(storedInstructions);
+        const storedSkills = localStorage.getItem('atom_enabled_skills');
+        if (storedSkills) setEnabledSkillIds(JSON.parse(storedSkills));
+    }
+    ragService.updateIndex(files);
+  }, [files, fileSystemType]); 
+
+  // Init
   useEffect(() => {
       const keys = getApiKeys();
-      const isNvidiaHosted = (m: string) => m.startsWith('nvidia/') || m.startsWith('minimaxai/') || m.startsWith('qwen/');
-
       if (keys.length === 0) {
-          console.log("No Cerebras API keys detected. Switching to Nvidia fallback models.");
           const fallbackModel: AppModel = 'nvidia/nemotron-3-nano-30b-a3b';
-          if (!isNvidiaHosted(selectedModel)) setSelectedModel(fallbackModel);
-          setAgents(prev => prev.map(a => !isNvidiaHosted(a.preferredModel) ? { ...a, preferredModel: fallbackModel } : a));
-          setSelectedAgent(prev => !isNvidiaHosted(prev.preferredModel) ? { ...prev, preferredModel: fallbackModel } : prev);
+          setSelectedModel(fallbackModel);
+          setAgents(prev => prev.map(a => ({ ...a, preferredModel: fallbackModel })));
       }
+      if (!isRenderHosted) {
+          const storedDiscord = localStorage.getItem('atom_discord_config');
+          if (storedDiscord) { const { token, userId } = JSON.parse(storedDiscord); if (token && userId) connectDiscord(token, userId).then(res => { if (res.success) addToast("Connected to Discord"); }); }
+      }
+      const checkMobile = () => { const isMob = window.innerWidth < 768; setIsMobile(isMob); if (isMob) setLeftSidebarOpen(false); else setLeftSidebarOpen(true); };
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      window.addEventListener('click', () => setChatContextMenu(null));
+      document.title = "Atom";
+      return () => { window.removeEventListener('resize', checkMobile); };
   }, []);
 
+  // Poll Discord
   useEffect(() => {
-      if (isRenderHosted) return; // Disable Discord connect on Render
-      const storedDiscord = localStorage.getItem('atom_discord_config');
-      if (storedDiscord) {
-          const { token, userId } = JSON.parse(storedDiscord);
-          if (token && userId) connectDiscord(token, userId).then(res => { if (res.success) addToast("Connected to Discord"); });
-      }
-  }, []);
-
-  useEffect(() => {
-      if (isRenderHosted) return; // Disable Discord poll on Render
+      if (isRenderHosted) return;
       const pollDiscord = async () => {
           if (isLoading) return; 
           const newMessages = await checkDiscordMessages();
-          
-          // Deduplicate messages based on ID
           const uniqueMessages = Array.from(new Map(newMessages.map(item => [item.id, item])).values());
-          
           if (uniqueMessages.length > 0) {
               const msgContent = uniqueMessages.map(m => m.content).join('\n\n');
-              const fullMessage = `[INCOMING MESSAGE FROM DISCORD USER]:\n${msgContent}`;
-              if (handleSendMessageRef.current) handleSendMessageRef.current(fullMessage);
+              handleSendMessage(`[INCOMING MESSAGE FROM DISCORD USER]:\n${msgContent}`);
           }
       };
       const interval = setInterval(pollDiscord, 3000);
       return () => clearInterval(interval);
   }, [isLoading]);
 
-  const addToast = (msg: string) => setToasts(prev => [...prev, msg]);
+  // Theme
+  useEffect(() => { localStorage.setItem('atom_theme', theme); document.documentElement.setAttribute('data-theme', theme); }, [theme]);
 
-  const handleOpenFolderWrapper = async () => {
-      if (isRenderHosted) {
-          addToast("Local Mode is disabled in this hosted environment.");
-          return;
-      }
-      setIsLoading(true);
-      const res = await handleOpenFolder();
-      setIsLoading(false);
-      if (res.success) {
-          const statusMsg = res.path 
-              ? `Switched to Local Mode. Root: ${rootHandle?.name} (Path: ${res.path})`
-              : `Switched to Local Mode. Root: ${rootHandle?.name}. Terminal path not set.`;
-          setMessages(prev => [...prev, { id: generateId(), role: 'system', content: statusMsg, timestamp: Date.now() }]);
-      } else if (res.message) alert(res.message);
-  };
-
-  const handleSwitchFolder = async () => {
-      handleStopAgent();
-      setIsLoading(false);
-      if (!isRenderHosted) {
-          try { await fetch('http://localhost:3001/cleanup', { method: 'POST' }); } catch (e) { console.error(e); }
-      }
-      setMessages([]);
-      setSessions([]);
-      setBrowserSessions([]);
-      resetFileSystem();
-      handleOpenFolderWrapper();
-  };
-
-  const updateSessionLog = (sessionId: string, log: AgentSessionLog) => {
-      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, logs: [...s.logs, log] } : s));
-  };
-
-  const completeSession = (sessionId: string, status: 'completed' | 'failed', result?: string) => {
-      if (activeView === `session:${sessionId}`) {
-          // If we are currently viewing a scheduled session that is about to be removed, switch back to chat
-          const session = sessions.find(s => s.id === sessionId);
-          if (session?.isScheduled) setActiveView('chat');
-      }
-
-      setSessions(prev => {
-          const session = prev.find(s => s.id === sessionId);
-          if (session?.isScheduled) {
-              return prev.filter(s => s.id !== sessionId);
-          }
-          return prev.map(s => s.id === sessionId ? { ...s, status, result } : s);
-      });
-  };
-
-  const runAgentLoop = async (session: SubAgentSession, agentDef: Agent, instructions: string, tools: any[]) => {
-      const sessionId = session.id; 
-      // Strict Instructions Upgrade
-      const subAgentPrompt = `You are ${session.agentName}, a specialized sub-agent.
-Your TASK: ${session.task}
-Your INSTRUCTIONS: ${instructions}
-
-GLOBAL CUSTOM INSTRUCTIONS:
-${workspaceInstructions}
-
-CRITICAL RULES:
-1. You must ONLY work on this specific task. Do not invent new tasks or projects.
-2. Do not attempt to communicate with the user directly (no 'ask_question').
-3. When you have completed the task to the best of your ability, you MUST use the 'final_answer' tool immediately.
-4. If you cannot complete the task, report the failure using 'final_answer'.`;
-
-      const myBrowserSessions = browserSessions.filter(s => s.agentId === sessionId);
-      let browserContext = "";
-      if (myBrowserSessions.length > 0) browserContext = `\nActive Browser Sessions:\n${myBrowserSessions.map(s => `- ID: ${s.sessionId} | URL: ${s.url}`).join('\n')}\n`;
-
-    // Use RAG to get relevant context for the task
-    const retrievedContext = await ragService.retrieve(`${session.task} ${instructions}`);
-    
-    let apiHistory: any[] = [{ role: "system", content: subAgentPrompt + browserContext }, { role: "user", content: `Context:\n${retrievedContext}\n\nBegin.` }];
-    let turns = 0;
-    const MAX_TURNS = 30;
-    let lastToolSig = "", repetitionCount = 0;
-
-    try {
-        while (turns < MAX_TURNS) {
-            await delay(2000); 
-            const effectiveTools = [...tools, { type: "function", function: { name: "final_answer", parameters: { type: "object", properties: { answer: { type: "string" } }, required: ["answer"] } } }];
-            
-            // Sub-agents don't need detailed streaming metrics in the main UI, so we pass no-op or undefined
-            const completion = await chatCompletion(apiHistory, agentDef.preferredModel, effectiveTools, undefined, (msg) => addToast(msg));
-
-            if (!completion || !completion.choices || completion.choices.length === 0) {
-                updateSessionLog(sessionId, { id: generateId(), type: 'system', content: 'Error: No response.', timestamp: Date.now() });
-                break;
-            }
-
-            const message = completion.choices[0].message;
-            
-            // Check for Context Error in Sub-Agent
-            if (message.content && (message.content.includes("System Error") || message.content.includes("context length"))) {
-                 updateSessionLog(sessionId, { id: generateId(), type: 'system', content: 'Context limit reached. Terminating sub-agent session.', timestamp: Date.now() });
-                 completeSession(sessionId, 'failed', 'Context limit reached.');
-                 break;
-            }
-
-            apiHistory.push({ ...message, content: message.content || null });
-            if (message.content) updateSessionLog(sessionId, { id: generateId(), type: 'thought', content: message.content, timestamp: Date.now() });
-
-            if (message.tool_calls && message.tool_calls.length > 0) {
-                const currentSig = message.tool_calls.map((t: any) => t.function.name + t.function.arguments).join('|');
-                if (currentSig === lastToolSig) repetitionCount++; else { lastToolSig = currentSig; repetitionCount = 0; }
-                if (repetitionCount >= 2) {
-                     updateSessionLog(sessionId, { id: generateId(), type: 'system', content: 'Infinite loop detected.', timestamp: Date.now() });
-                     completeSession(sessionId, 'failed', 'Terminated due to infinite loop.');
-                     if (session.isScheduled) addToast(`Scheduled Task Failed: ${session.task}`);
-                     return;
-                }
-
-                for (const toolCall of message.tool_calls) {
-                    const fnName = toolCall.function.name;
-                    let args: any = {};
-                    try { args = JSON.parse(toolCall.function.arguments); } catch {}
-                    updateSessionLog(sessionId, { id: generateId(), type: 'tool_call', content: `${fnName}(${JSON.stringify(args)})`, timestamp: Date.now() });
-                    let result = "";
-
-                    if (fnName === 'final_answer') { 
-                        completeSession(sessionId, 'completed', args.answer); 
-                        if (session.isScheduled) addToast(`Scheduled Task Done: ${args.answer?.substring(0, 50)}...`);
-                        return; 
-                    }
-                    else if (fnName === 'google_search') result = await searchGoogle(args.query, args.search_type || 'text');
-                    else if (fnName === 'fetch_url') {
-                         const localFile = filesRef.current.find(f => f.name === args.url || f.name === args.url.replace(/^\.\//, ''));
-                         if (localFile) result = isDocument(localFile.name) ? await parseDocument(localFile) : localFile.content;
-                         else result = await fetchUrl(args.url);
-                    } else if (fnName === 'run_terminal_command') {
-                         if (fileSystemTypeRef.current !== 'local') {
-                             result = "Error: Local Mode required.";
-                         } else if (!localPathRef.current) {
-                             result = "Error: Path not configured in .atom file.";
-                         } else {
-                             // Sub-agents don't switch view, they just run
-                             result = await runTerminalCommand(args.command, localPathRef.current, args.input);
-                         }
-                    } else if (fnName === 'start_browser_session') {
-                         result = await runBrowserAgent(args.task, (data) => {
-                             if (data.type === 'step') {
-                                 // Log intermediate steps to the session logs
-                                 updateSessionLog(sessionId, { 
-                                     id: generateId(), 
-                                     type: 'system', 
-                                     content: `[Browser Step] ${data.text}${data.screenshot ? ' (Screenshot Captured)' : ''}`, 
-                                     timestamp: Date.now() 
-                                 });
-                             }
-                         });
-                    } else if (fnName === 'list_files') result = "Files:\n" + filesRef.current.map(f => f.name).join('\n');
-                    else if (fnName === 'generate_image') {
-                         const imgUrl = await generateImage(args.prompt, "image", false, args.image_width || 512, args.image_height || 512); 
-                         if (imgUrl) {
-                            const fileRes = applyFileAction({ action: 'create_file', filename: args.output_filename || `images/${Date.now()}.png`, content: imgUrl }, filesRef.current);
-                            setFiles(fileRes.newFiles);
-                            filesRef.current = fileRes.newFiles;
-                            result = imgUrl; // Return the image URL/Data URI so it can be viewed in logs
-                        } else result = "Failed to generate.";
-                    } else if (['create_file', 'update_file', 'edit_file', 'patch'].includes(fnName)) {
-                         const fileRes = applyFileAction({ action: fnName as any, ...args }, filesRef.current);
-                         setFiles(fileRes.newFiles);
-                         filesRef.current = fileRes.newFiles;
-                         result = fileRes.result;
-                    } else if (fnName === 'move_file') {
-                        handleMoveFile(args.source, args.destination);
-                        result = `Moved ${args.source} to ${args.destination}`;
-                    } else if (fnName === 'discord_message') {
-                        result = await sendDiscordMessage(args.message, args.attachments ? args.attachments.map((n: string) => {
-                            const f = filesRef.current.find(fi => fi.name === n);
-                            return f ? { name: f.name, content: f.content } : null;
-                        }).filter(Boolean) : undefined);
-                    } else if (fnName === 'manage_schedule') {
-                        // Sub agents can create schedules
-                        if (args.schedule_action === 'create') {
-                            const newSched: ScheduledEvent = {
-                                id: generateId(),
-                                prompt: args.prompt,
-                                type: args.schedule_type,
-                                schedule: args.schedule_time,
-                                active: true,
-                                agentId: agentDef.id,
-                                createdAt: Date.now()
-                            };
-                            setSchedules(prev => {
-                                const n = [...prev, newSched];
-                                if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n });
-                                return n;
-                            });
-                            result = "Schedule created.";
-                        } else if (args.schedule_action === 'list') {
-                            result = JSON.stringify(schedulesRef.current);
-                        } else if (args.schedule_action === 'delete') {
-                            setSchedules(prev => {
-                                const n = prev.filter(s => s.id !== args.schedule_id);
-                                if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n });
-                                return n;
-                            });
-                            result = "Schedule deleted.";
-                        }
-                    } else if (fnName === 'create_office_file') {
-                        let content = null;
-                        if (args.filename.endsWith('.docx')) content = await createWordDoc(args.content, filesRef.current);
-                        else if (args.filename.endsWith('.xlsx')) content = await createExcelSheet(args.content);
-                        else if (args.filename.endsWith('.pptx')) content = await createPresentation(args.content, filesRef.current);
-                        
-                        if (content) {
-                            const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content }, filesRef.current);
-                            setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result;
-                        } else {
-                            result = "Failed to generate office file (unsupported extension?)";
-                        }
-                    } else if (fnName === 'api_call') {
-                         result = await performApiCall(args.url, args.method, args.headers, args.body);
-                    } else if (fnName === 'grep') {
-                        try {
-                            const regex = new RegExp(args.pattern, args.case_insensitive ? 'i' : '');
-                            let output = "";
-                            let count = 0;
-                            const MAX_MATCHES = 500;
-                            for (const file of filesRef.current) {
-                                if (count >= MAX_MATCHES) break;
-                                // Skip binary roughly
-                                if (file.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i)) continue;
-                                
-                                const lines = file.content.split('\n');
-                                lines.forEach((line, idx) => {
-                                    if (regex.test(line)) {
-                                        output += `${file.name}:${idx + 1}: ${line.trim()}\n`;
-                                        count++;
-                                    }
-                                });
-                            }
-                            if (count === 0) result = "No matches found.";
-                            else if (count >= MAX_MATCHES) result = output + "\n... (Limit reached)";
-                            else result = output;
-                        } catch(e: any) { result = `Grep Error: ${e.message}`; }
-                    } else result = `Unknown tool was called`;
-                    
-                    if (!result) result = "Done.";
-                    updateSessionLog(sessionId, { id: generateId(), type: 'tool_result', content: result, timestamp: Date.now() });
-                    apiHistory.push({ role: "tool", tool_call_id: toolCall.id, content: result });
-                }
-            } else break;
-            turns++;
-        }
-    } catch (e: any) { 
-        completeSession(sessionId, 'failed', e.message); 
-        if (session.isScheduled) addToast(`Scheduled Task Failed: ${session.task}`);
-    }
-  };
-
+  // Smart Edit
   const handleSmartEdit = async (file: FileData, selection: string, instruction: string): Promise<string> => {
      const prompt = `Assistant: Coding Engine\nFile: ${file.name}\nContext:\n${file.content}\nInstruction: ${instruction}\nTarget:\n${selection}\nRewrite Target. Output ONLY code.`;
-     const result = await generateText(prompt, { outputFormat: 'text' }, selectedModel, "Output only code.");
-     return result || selection; 
-  };
-
-  const handleStopAgent = () => { 
-    agentControlRef.current.stop = true; 
-    if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-    }
-    setIsLoading(false); 
-    setIsPaused(false);
-    setMessages(prev => [...prev, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); 
-  };
-  
-  const handlePauseAgent = () => { agentControlRef.current.pause = true; setIsPaused(true); };
-
-  const handleSpawnAgentManual = (agentId: string, model: AppModel, task: string, instructions: string) => {
-      const agent = agents.find(a => a.id === agentId);
-      const config: SubAgentConfig = {
-          agentName: agent ? agent.name : 'Sub-Agent',
-          task,
-          detailedInstructions: instructions,
-          model
-      };
-      
-      const sessionId = startEphemeralAgentRef.current(config);
-      addToast(`Spawned agent: ${config.agentName} (ID: ${sessionId})`);
-  };
-
-  const attemptContextReset = async (lastContext: Message[]) => {
-    setIsLoading(true);
-    addToast("🧠 Maximum context reached. Summarizing memory...");
-    
-    // Construct summary prompt
-    const systemMsg = lastContext.find(m => m.role === 'system') || { role: 'system', content: 'You are a helpful AI.' };
-    const recentMsgs = lastContext.slice(-6); // Keep it tight
-    
-    // Convert to API format for summary generation
-    const apiMsgs = [
-        { role: 'system', content: systemMsg.content },
-        ...recentMsgs.map(m => ({ 
-            role: m.role === 'tool' ? 'user' : m.role as any, // Simple mapping
-            content: m.content || (m.toolCalls ? JSON.stringify(m.toolCalls) : "")
-        })),
-        { role: 'user', content: "CRITICAL SYSTEM ALERT: Context Limit Reached.\n\nRequired Action: Provide a lengthy, thorough, but structured summary to reboot the session.\n\nFormat:\n1. TOTAL OBJECTIVE: (One sentence goal)\n2. COMPLETED: (Bulleted list of major milestones)\n3. CURRENT STATUS: Steps that the AI has already taken\n4. NEXT STEPS: The next steps that the AI must take\n5. KEY DISCOVERIES/HURDLES: Important information that must be passed on" }
-    ];
-
-    try {
-        // We use a clean chatCompletion call here to generate the summary
-        const result = await chatCompletion(apiMsgs, selectedModel);
-        const summary = result?.choices?.[0]?.message?.content || "Failed to generate summary.";
-        
-        const resetMsg: Message = {
-            id: generateId(),
-            role: 'system',
-            content: `♻️ **CONTEXT RESET**\n\n${summary}`,
-            timestamp: Date.now()
-        };
-        
-        // Clear UI and set reset message as the new anchor
-        setMessages([resetMsg]);
-        
-        // Auto-continue with the new context
-        handleSendMessage("Acknowledged. Proceed with the NEXT STEPS listed in the summary.", [], [resetMsg]);
-        
-    } catch (e) {
-        console.error("Context reset failed", e);
-        setMessages(prev => [...prev, { id: generateId(), role: 'system', content: "Failed to perform context reset. Please clear chat manually.", timestamp: Date.now() }]);
-        setIsLoading(false);
-    }
+     const result = await chatCompletion([{role:'user', content: prompt}], selectedModel); // Direct call for simplicity
+     return result?.choices?.[0]?.message?.content || selection; 
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[] = [], previousContext: any[] = [], customMessageState: Message[] | null = null) => {
-    // If we are continuing from a pause/blocking state, previousContext will be populated
     const isContinuing = previousContext.length > 0;
-    
     if (!isContinuing && !customMessageState) {
-        // Only trigger title generation if it's the very first message of the session
-        if (messages.length === 0) {
-            generateChatTitle(content);
-        }
-
-        setChatInput(''); 
-        setChatAttachments([]);
+        if (messages.length === 0) generateChatTitle(content);
+        setChatInput(''); setChatAttachments([]);
         let finalContent = content;
         if (attachments.length > 0) {
             let ac = "\n\n--- User Attachments ---\n";
@@ -1159,247 +291,49 @@ CRITICAL RULES:
     setIsLoading(true); setIsPaused(false); agentControlRef.current = { stop: false, pause: false };
 
     let systemHeaderContent = getSystemHeader(globalDisabledTools);
-    if (!globalDisabledTools.includes('spawn_agents')) {
-        const allowedAgents = agents.filter(a => !disabledSubAgents.includes(a.id));
-        systemHeaderContent += `\nAvailable Sub-Agents:\n${allowedAgents.map(a => `- ${a.name}`).join('\n')}`;
-    }
-
-    // Inject Workspace Instructions if present
-    if (workspaceInstructions) {
-        systemHeaderContent += `\n\n[WORKSPACE / CUSTOM INSTRUCTIONS]\nThe following are global instructions for this workspace:\n${workspaceInstructions}\n`;
-    }
-
-    // Inject Enabled Skills
+    if (!globalDisabledTools.includes('spawn_agents')) systemHeaderContent += `\nAvailable Sub-Agents:\n${agents.filter(a => !disabledSubAgents.includes(a.id)).map(a => `- ${a.name}`).join('\n')}`;
+    if (workspaceInstructions) systemHeaderContent += `\n\n[WORKSPACE / CUSTOM INSTRUCTIONS]\n${workspaceInstructions}\n`;
     const enabledSkillsList = skills.filter(s => enabledSkillIds.includes(s.id));
-    if (enabledSkillsList.length > 0) {
-        const skillsText = enabledSkillsList.map(s => {
-            let desc = `[SKILL: ${s.name} (${s.emoji || '📦'})]\n${s.content}`;
-            if (s.files && s.files.length > 0) {
-                desc += `\nIncluded Files (fetch with 'fetch_url'):\n${s.files.map(f => `- skills/${s.id}/${f}`).join('\n')}`;
-            }
-            return desc;
-        }).join('\n\n');
-        systemHeaderContent += `\n\n[ENABLED SKILLS]\nThe following specialized skills are enabled for this session. Use them according to their instructions:\n${skillsText}\n`;
-    }
+    if (enabledSkillsList.length > 0) systemHeaderContent += `\n\n[ENABLED SKILLS]\n${enabledSkillsList.map(s => `[SKILL: ${s.name}]\n${s.content}`).join('\n\n')}\n`;
 
-    // --- ENHANCED CONTEXT AWARENESS ---
-    const MAX_FILES_LIST = 200;
     const allFiles = filesRef.current.map(f => f.name).sort();
-    let fileStructure = allFiles.slice(0, MAX_FILES_LIST).join('\n');
-    if (allFiles.length > MAX_FILES_LIST) {
-        fileStructure += `\n...(and ${allFiles.length - MAX_FILES_LIST} more files)`;
-    }
-
+    let fileStructure = allFiles.slice(0, 200).join('\n') + (allFiles.length > 200 ? `\n...(${allFiles.length - 200} more)` : '');
     const myBrowserSessions = browserSessions.filter(s => s.agentId === selectedAgent.id);
-    let browserContext = "";
-    if (myBrowserSessions.length > 0) browserContext = `\nActive Browser Sessions:\n${myBrowserSessions.map(s => `- ID: ${s.sessionId} | URL: ${s.url}`).join('\n')}\n`;
+    let browserContext = myBrowserSessions.length > 0 ? `\nActive Browser Sessions:\n${myBrowserSessions.map(s => `- ID: ${s.sessionId} | URL: ${s.url}`).join('\n')}\n` : '';
 
-    const systemMessage = { 
-        role: "system", 
-        content: `${selectedAgent.systemPrompt}\n\n${systemHeaderContent}\n\n[CURRENT PROJECT FILES]\n${fileStructure}\n${browserContext}\n\nDate: ${new Date().toLocaleString()}` 
-    };
+    const systemMessage = { role: "system", content: `${selectedAgent.systemPrompt}\n\n${systemHeaderContent}\n\n[CURRENT PROJECT FILES]\n${fileStructure}\n${browserContext}\n\nDate: ${new Date().toLocaleString()}` };
     
-    let apiLoopMessages: any[] = [];
-    if (isContinuing) {
-        apiLoopMessages = previousContext;
-    } else {
-        apiLoopMessages = [systemMessage];
-        
-        // Use custom message state if provided (e.g., from resumeChatAfterSubAgents)
+    let apiLoopMessages: any[] = isContinuing ? previousContext : [systemMessage];
+    if (!isContinuing) {
         const historySource = customMessageState || messagesRef.current;
-        
-        // History compression
         apiLoopMessages.push(...historySource.slice(-10).map(m => ({ role: m.role === 'tool' ? 'user' : m.role, content: m.content || ' ' })).filter(m => m.content.trim()));
-
-        // RETRIEVE CONTEXT via RAG
         const ragContext = await ragService.retrieve(content);
         let contextBlock = `Context (RAG):\n${ragContext}`;
-
-        // ADD OPEN FILE CONTEXT (Focus Mechanism)
-        if (selectedFile && activeView === 'edit') {
-             // Limit to ~20k chars to avoid token explosion
-             const truncatedContent = selectedFile.content.length > 20000 
-                ? selectedFile.content.slice(0, 20000) + "\n...[Content Truncated]" 
-                : selectedFile.content;
-             
-             contextBlock += `\n\n[CURRENTLY OPEN IN EDITOR: ${selectedFile.name}]\n\`\`\`${selectedFile.language}\n${truncatedContent}\n\`\`\``;
-        }
-
+        if (selectedFile && activeView === 'edit') contextBlock += `\n\n[CURRENTLY OPEN: ${selectedFile.name}]\n\`\`\`${selectedFile.language}\n${selectedFile.content.slice(0,20000)}\n\`\`\``;
         apiLoopMessages.push({ role: "user", content: `${contextBlock}\n\nUser Message: ${content}` });
     }
 
     try {
         let keepGoing = true, loopCount = 0;
-        let lastToolSig = "";
-        let repetitionCount = 0;
-        let retryCount = 0;
-
         const activeTools = TOOL_DEFINITIONS.filter(t => selectedAgent.enabledTools?.includes(t.function.name) && !globalDisabledTools.includes(t.function.name));
 
         while (keepGoing && loopCount < 150) {
-            if (agentControlRef.current.stop || agentControlRef.current.pause) break;
-            
-            // Check if we are waiting (double check for safety)
-            if (waitingForSubAgents) {
-                break;
-            }
-
+            if (agentControlRef.current.stop || agentControlRef.current.pause || waitingForSubAgents) break;
             loopCount++;
             
-            // Define Stream Callback for UI Updates
             const onStreamChunk = (chunk: string) => {
                 if (agentControlRef.current.stop) return;
-                setStreamMetrics(prev => {
-                     // Estimate word count by splitting by space
-                     const wordCount = chunk.split(/\s+/).filter(Boolean).length;
-                     const currentTotal = prev?.totalWords || 0;
-                     const currentTokens = prev?.lastTokens || "";
-                     
-                     // Keep roughly last 500 chars for display (increased context)
-                     const newTokens = (currentTokens + chunk).slice(-500);
-                     
-                     return { 
-                        totalWords: currentTotal + wordCount, 
-                        lastTokens: newTokens,
-                        latestChunk: chunk 
-                     };
-                });
+                setStreamMetrics(prev => ({ totalWords: (prev?.totalWords || 0) + chunk.split(/\s+/).filter(Boolean).length, lastTokens: ((prev?.lastTokens || "") + chunk).slice(-500), latestChunk: chunk }));
             };
 
-            // Auto-switch to VL model if attachments present and current model isn't multimodal
             let modelToUse = selectedModel;
-            
-            if (attachments.length > 0 && !MULTIMODAL_MODELS.includes(modelToUse)) {
-                modelToUse = defaultVlModel;
-            }
+            if (attachments.length > 0 && !MULTIMODAL_MODELS.includes(modelToUse)) modelToUse = defaultVlModel;
 
-            // Create new AbortController for this fetch turn
             abortControllerRef.current = new AbortController();
-            const completion = await chatCompletion(
-                apiLoopMessages, 
-                modelToUse, 
-                activeTools, 
-                attachments, 
-                (msg) => addToast(msg), 
-                onStreamChunk,
-                abortControllerRef.current.signal
-            );
+            const completion = await chatCompletion(apiLoopMessages, modelToUse, activeTools, attachments, (msg) => addToast(msg), onStreamChunk, abortControllerRef.current.signal);
             abortControllerRef.current = null;
-            
-            // Immediate check after fetch
             if (agentControlRef.current.stop) return;
-
-            // Clear metrics after completion of a turn
             setStreamMetrics(null);
-
-            // --- ERROR HANDLING & RETRY ---
-            if (completion?.choices?.[0]?.message?.content) {
-                const responseContent = completion.choices[0].message.content;
-
-                if (responseContent.includes("System Error")) {
-                     // Check for Context Window Exceeded specifically - only reset for this
-                     if (responseContent.toLowerCase().includes("context length") || responseContent.toLowerCase().includes("token limit")) {
-                         await attemptContextReset(messagesRef.current);
-                         return;
-                     }
-                     
-                     // Handle 400 Errors (Malformed Tool Calls) or No Body errors
-                     if (responseContent.includes("400") || responseContent.toLowerCase().includes("no body")) {
-                        console.warn("API Error (400 or No Body) detected - Debugging...");
-
-                        // --- DEBUG: Log response and context ---
-                        try {
-                            console.log(">>> ERROR RESPONSE FULL DUMP:");
-                            console.log(JSON.stringify(completion, null, 2));
-
-                            const lastAssistantMsg = [...apiLoopMessages].reverse().find(m => m.role === 'assistant');
-                            console.log(">>> DUMPING PREVIOUS ASSISTANT MESSAGE:");
-                            if (lastAssistantMsg) {
-                                console.log(JSON.stringify(lastAssistantMsg, null, 2));
-                            } else {
-                                console.log("(No assistant message found in history)");
-                            }
-                            console.log(">>> DUMPING FULL HISTORY CONTEXT:");
-                            console.log(JSON.stringify(apiLoopMessages, null, 2));
-                        } catch(e) {
-                            console.error("Error dumping debug context:", e);
-                        }
-                     }
-                        
-                        // Handle 400 Errors (Malformed Tool Calls)
-                     if (responseContent.includes("400")) {
-                        console.warn("400 Error detected - Rewinding last turn and retrying");
-                        
-                        // 1. Rewind API History
-                        while (apiLoopMessages.length > 0) {
-                             const last = apiLoopMessages[apiLoopMessages.length - 1];
-                             if (last.role === 'tool' || last.role === 'assistant') {
-                                 apiLoopMessages.pop();
-                                 if (last.role === 'assistant') break; 
-                             } else {
-                                 break;
-                             }
-                        }
-
-                        // 2. Rewind UI History
-                        setMessages(prev => {
-                             const newMsgs = [...prev];
-                             while(newMsgs.length > 0) {
-                                 const last = newMsgs[newMsgs.length - 1];
-                                 if (last.role === 'tool' || last.role === 'assistant') {
-                                     newMsgs.pop();
-                                     if (last.role === 'assistant') break; 
-                                 } else {
-                                     break;
-                                 }
-                             }
-                             return newMsgs;
-                        });
-
-                        addToast("⚠️ AI Error (400). Retrying...");
-                        await delay(1000);
-                        continue;
-                     }
-
-                     console.warn(`System Error (Attempt ${retryCount + 1}):`, responseContent);
-                     retryCount++;
-
-                     if (retryCount === 1) {
-                         // Attempt 1: Sanitize History
-                         // Remove invalid tool calls or tool results that might confuse the model
-                         apiLoopMessages = apiLoopMessages.map(msg => {
-                             if (msg.role === 'assistant' && msg.tool_calls) {
-                                 // Filter out tool calls that are obviously broken (missing id or name)
-                                 const validTools = msg.tool_calls.filter((tc: any) => tc.id && tc.function && tc.function.name);
-                                 return {
-                                     ...msg,
-                                     tool_calls: validTools.length > 0 ? validTools : undefined
-                                 };
-                             }
-                             return msg;
-                         });
-                         addToast("⚠️ API Error. Retrying with sanitized history...");
-                         await delay(2000);
-                         continue;
-                     } else if (retryCount === 2) {
-                         // Attempt 2: Inject "Continue"
-                         // Sometimes the model got stuck or returned partial JSON. Prompting "Continue" or "Retry" helps.
-                         apiLoopMessages.push({ role: 'user', content: "Previous request failed. Please continue." });
-                         addToast("⚠️ API Error. Injecting 'Continue'...");
-                         await delay(2000);
-                         continue;
-                     } else {
-                         // Give up
-                         if (!agentControlRef.current.stop) {
-                            setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Permanent System Error: ${responseContent}`, timestamp: Date.now() }]);
-                         }
-                         break;
-                     }
-                }
-            }
-
-            // Success case - reset retry count
-            retryCount = 0;
 
             if (!completion?.choices?.[0]) break;
             const message = completion.choices[0].message;
@@ -1407,222 +341,79 @@ CRITICAL RULES:
             if (message.content && !agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: message.content, timestamp: Date.now() }]);
 
             if (message.tool_calls && message.tool_calls.length > 0) {
-                // Loop Detection
-                const currentSig = message.tool_calls.map((t: any) => t.function.name + t.function.arguments).join('|');
-                if (currentSig === lastToolSig) {
-                    repetitionCount++;
-                } else {
-                    lastToolSig = currentSig;
-                    repetitionCount = 0;
-                }
-
-                if (repetitionCount >= 2) {
-                     if (!agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'system', content: "⚠️ System: Infinite loop detected (same tool call repeated). Stopping.", timestamp: Date.now() }]);
-                     break;
-                }
-
                 const uiTools: ToolAction[] = message.tool_calls.map((tc: any) => { try { return { action: tc.function.name, ...JSON.parse(tc.function.arguments) }; } catch { return { action: tc.function.name }; }});
                 if (!agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: '', timestamp: Date.now(), toolCalls: uiTools }]);
                 if (uiTools.some(t => t.action === 'ask_question')) break;
-
-                // Check for stop before tool execution loop
                 if (agentControlRef.current.stop) return;
 
-                // SPECIAL HANDLING: If spawn_agents OR call_sub_agent is present
                 const spawnAgentCall = message.tool_calls.find((tc: any) => tc.function.name === 'spawn_agents' || tc.function.name === 'call_sub_agent');
-                
                 if (spawnAgentCall) {
-                    let args: any = {};
-                    try { args = JSON.parse(spawnAgentCall.function.arguments); } catch {}
-                    
+                    let args: any = {}; try { args = JSON.parse(spawnAgentCall.function.arguments); } catch {}
                     const newIds: string[] = [];
                     const fnName = spawnAgentCall.function.name;
-
                     if (fnName === 'spawn_agents' && args.agents && Array.isArray(args.agents)) {
-                        for (const agentConfig of args.agents) {
-                            const id = startEphemeralAgentRef.current(agentConfig as SubAgentConfig, false);
-                            newIds.push(id);
-                        }
+                        for (const agentConfig of args.agents) newIds.push(startEphemeralAgentRef.current(agentConfig as SubAgentConfig, false));
                     } else if (fnName === 'call_sub_agent') {
-                         const id = startEphemeralAgentRef.current({ agentName: args.agentName, task: args.task, detailedInstructions: args.detailedInstructions }, false);
-                         newIds.push(id);
+                         newIds.push(startEphemeralAgentRef.current({ agentName: args.agentName, task: args.task, detailedInstructions: args.detailedInstructions }, false));
                     }
-                    
                     if (newIds.length > 0) {
-                        setPendingSubAgentIds(newIds);
-                        setPendingToolCallId(spawnAgentCall.id);
-                        setWaitingForSubAgents(true);
-                        
-                        // We push a "system" notification to UI
-                        if (!agentControlRef.current.stop) {
-                            setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Started ${newIds.length} sub-agent(s). Pausing main agent until completion...`, timestamp: Date.now() }]);
-                        }
-                        
-                        // BREAK THE LOOP - effectively "Sleeping"
-                        keepGoing = false;
-                        setIsLoading(true); // Keep loading spinner up
-                        return; // Exit function, wait for useEffect to resume
+                        setPendingSubAgentIds(newIds); setPendingToolCallId(spawnAgentCall.id); setWaitingForSubAgents(true);
+                        if (!agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Started ${newIds.length} sub-agent(s). Pausing main agent...`, timestamp: Date.now() }]);
+                        keepGoing = false; setIsLoading(true); return;
                     }
                 }
 
                 for (const toolCall of message.tool_calls) {
                     if (agentControlRef.current.stop) return;
-
                     const fnName = toolCall.function.name;
-                    if (fnName === 'ask_question') continue;
-                    if (fnName === 'spawn_agents' || fnName === 'call_sub_agent') continue; // Handled above
-
+                    if (fnName === 'ask_question' || fnName === 'spawn_agents' || fnName === 'call_sub_agent') continue;
                     let args: any = {}; try { args = JSON.parse(toolCall.function.arguments); } catch {}
                     let result = "";
 
                     if (fnName === 'run_terminal_command') {
-                         if (fileSystemTypeRef.current !== 'local') {
-                             result = "Error: Local Mode required.";
-                         } else if (!localPathRef.current) {
-                             result = "Error: Path not configured in .atom file.";
-                         } else {
-                             setActiveView('terminal');
-                             result = await runTerminalCommand(args.command, localPathRef.current, args.input);
-                             setActiveView('chat');
-                         }
+                         if (fileSystemTypeRef.current !== 'local' || !localPathRef.current) result = "Error: Local Mode not configured.";
+                         else { setActiveView('terminal'); result = await runTerminalCommand(args.command, localPathRef.current, args.input); setActiveView('chat'); }
                     } else if (fnName === 'create_file' || fnName === 'update_file' || fnName === 'edit_file' || fnName === 'patch') {
                         const fileRes = applyFileAction({ action: fnName as any, ...args }, filesRef.current, true); 
                         setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result;
+                        setLastUpdated(Date.now());
                     } else if (fnName === 'move_file') {
-                        handleMoveFile(args.source, args.destination);
-                        result = `Moved ${args.source} to ${args.destination}`;
-                    } else if (fnName === 'google_search') {
-                         result = await searchGoogle(args.query, args.search_type || 'text');
-                    } else if (fnName === 'fetch_url') {
+                        handleMoveFile(args.source, args.destination); result = `Moved ${args.source} to ${args.destination}`;
+                        setLastUpdated(Date.now());
+                    } else if (fnName === 'google_search') result = await searchGoogle(args.query, args.search_type || 'text');
+                    else if (fnName === 'fetch_url') {
                          const localFile = filesRef.current.find(f => f.name === args.url || f.name === args.url.replace(/^\.\//, ''));
-                         if (localFile) result = isDocument(localFile.name) ? await parseDocument(localFile) : localFile.content;
-                         else result = await fetchUrl(args.url);
+                         result = localFile ? (isDocument(localFile.name) ? await parseDocument(localFile) : localFile.content) : await fetchUrl(args.url);
                     } else if (fnName === 'start_browser_session') {
-                         // Streaming Browser Tool
-                         // We update the messages state with intermediate system messages
                          result = await runBrowserAgent(args.task, (data) => {
-                             if (data.type === 'step') {
-                                 const attachments: Attachment[] = [];
-                                 if (data.screenshot) {
-                                     attachments.push({
-                                         name: `step_screenshot_${Date.now()}.jpg`,
-                                         type: 'image',
-                                         mimeType: 'image/jpeg',
-                                         content: data.screenshot
-                                     });
-                                 }
-                                 if (!agentControlRef.current.stop) {
-                                    setMessages(prev => [...prev, { 
-                                        id: generateId(), 
-                                        role: 'system', 
-                                        content: `**Browser Step:**\n${data.text}`, 
-                                        timestamp: Date.now(),
-                                        attachments: attachments
-                                    }]);
-                                 }
+                             if (data.type === 'step' && !agentControlRef.current.stop) {
+                                 setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `**Browser Step:**\n${data.text}`, timestamp: Date.now(), attachments: data.screenshot ? [{ name: `step_screen.jpg`, type: 'image', mimeType: 'image/jpeg', content: data.screenshot }] : [] }]);
                              }
                          });
-                    } else if (fnName === 'list_files') {
-                        result = "Files:\n" + filesRef.current.map(f => f.name).join('\n');
-                    } else if (fnName === 'generate_image') {
-                         const imgUrl = await generateImage(args.prompt, "image", false, args.image_width || 512, args.image_height || 512); 
-                         if (imgUrl) {
-                            const fileRes = applyFileAction({ action: 'create_file', filename: args.output_filename || `images/${Date.now()}.png`, content: imgUrl }, filesRef.current);
-                            setFiles(fileRes.newFiles);
-                            filesRef.current = fileRes.newFiles;
-                            result = imgUrl; // Return URL/Data for chat preview
-                        } else result = "Failed to generate.";
+                    } else if (fnName === 'list_files') result = "Files:\n" + filesRef.current.map(f => f.name).join('\n');
+                    else if (fnName === 'generate_image') {
+                         const imgUrl = await generateImage(args.prompt, "image", false, args.image_width, args.image_height); 
+                         if (imgUrl) { const fileRes = applyFileAction({ action: 'create_file', filename: args.output_filename || `images/${Date.now()}.png`, content: imgUrl }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = imgUrl; setLastUpdated(Date.now()); } else result = "Failed to generate.";
                     } else if (fnName === 'download_image') {
                          const dlUrl = await downloadImage(args.url);
-                         if (dlUrl) {
-                             const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content: dlUrl }, filesRef.current);
-                             setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; 
-                             result = dlUrl; // Return image data for preview
-                         } else {
-                             result = "Failed to download image.";
-                         }
-                    } else if (fnName === 'analyze_media') {
-                         result = "Media analysis is not fully implemented in this demo shim.";
+                         if (dlUrl) { const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content: dlUrl }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = dlUrl; setLastUpdated(Date.now()); } else result = "Failed to download image.";
                     } else if (fnName === 'save_attachment') {
                          const att = chatAttachments.find(a => a.name === args.attachment_name) || messagesRef.current.flatMap(m => m.attachments || []).find(a => a.name === args.attachment_name);
-                         if (att) {
-                             const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content: att.content }, filesRef.current);
-                             setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result;
-                         } else {
-                             result = "Attachment not found.";
-                         }
+                         if (att) { const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content: att.content }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result; setLastUpdated(Date.now()); } else result = "Attachment not found.";
                     } else if (fnName === 'discord_message') {
-                        result = await sendDiscordMessage(args.message, args.attachments ? args.attachments.map((n: string) => {
-                            const f = filesRef.current.find(fi => fi.name === n);
-                            return f ? { name: f.name, content: f.content } : null;
-                        }).filter(Boolean) : undefined);
+                        result = await sendDiscordMessage(args.message, args.attachments ? args.attachments.map((n: string) => { const f = filesRef.current.find(fi => fi.name === n); return f ? { name: f.name, content: f.content } : null; }).filter(Boolean) : undefined);
                     } else if (fnName === 'manage_schedule') {
-                         if (args.schedule_action === 'create') {
-                            const newSched: ScheduledEvent = {
-                                id: generateId(),
-                                prompt: args.prompt,
-                                type: args.schedule_type,
-                                schedule: args.schedule_time,
-                                active: true,
-                                agentId: selectedAgent.id,
-                                createdAt: Date.now()
-                            };
-                            setSchedules(prev => {
-                                const n = [...prev, newSched];
-                                if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n });
-                                return n;
-                            });
-                            result = "Schedule created.";
-                         } else if (args.schedule_action === 'list') {
-                            result = JSON.stringify(schedulesRef.current);
-                         } else if (args.schedule_action === 'delete') {
-                            setSchedules(prev => {
-                                const n = prev.filter(s => s.id !== args.schedule_id);
-                                if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n });
-                                return n;
-                            });
-                            result = "Schedule deleted.";
-                         }
+                         if (args.schedule_action === 'create') { setSchedules(prev => { const n = [...prev, { id: generateId(), prompt: args.prompt, type: args.schedule_type, schedule: args.schedule_time, active: true, agentId: selectedAgent.id, createdAt: Date.now() }]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; }); result = "Schedule created."; }
+                         else if (args.schedule_action === 'list') result = JSON.stringify(schedulesRef.current);
+                         else if (args.schedule_action === 'delete') { setSchedules(prev => { const n = prev.filter(s => s.id !== args.schedule_id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; }); result = "Schedule deleted."; }
                     } else if (fnName === 'create_office_file') {
                         let content = null;
                         if (args.filename.endsWith('.docx')) content = await createWordDoc(args.content, filesRef.current);
                         else if (args.filename.endsWith('.xlsx')) content = await createExcelSheet(args.content);
                         else if (args.filename.endsWith('.pptx')) content = await createPresentation(args.content, filesRef.current);
-                        
-                        if (content) {
-                            const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content }, filesRef.current);
-                            setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result;
-                        } else {
-                            result = "Failed to generate office file (unsupported extension?)";
-                        }
-                    } else if (fnName === 'api_call') {
-                         result = await performApiCall(args.url, args.method, args.headers, args.body);
-                    } else if (fnName === 'grep') {
-                        try {
-                            const regex = new RegExp(args.pattern, args.case_insensitive ? 'i' : '');
-                            let output = "";
-                            let count = 0;
-                            const MAX_MATCHES = 500;
-                            for (const file of filesRef.current) {
-                                if (count >= MAX_MATCHES) break;
-                                // Skip binary roughly
-                                if (file.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i)) continue;
-                                
-                                const lines = file.content.split('\n');
-                                lines.forEach((line, idx) => {
-                                    if (regex.test(line)) {
-                                        output += `${file.name}:${idx + 1}: ${line.trim()}\n`;
-                                        count++;
-                                    }
-                                });
-                            }
-                            if (count === 0) result = "No matches found.";
-                            else if (count >= MAX_MATCHES) result = output + "\n... (Limit reached)";
-                            else result = output;
-                        } catch(e: any) { result = `Grep Error: ${e.message}`; }
-                    } else {
-                        result = "Executed."; 
-                    }
+                        if (content) { const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result; setLastUpdated(Date.now()); } else result = "Failed to generate.";
+                    } else if (fnName === 'api_call') result = await performApiCall(args.url, args.method, args.headers, args.body);
+                    else result = "Executed.";
                     
                     if (agentControlRef.current.stop) return;
                     setMessages(prev => [...prev, { id: generateId(), role: 'tool', name: fnName, content: result, timestamp: Date.now() }]);
@@ -1631,270 +422,52 @@ CRITICAL RULES:
             } else keepGoing = false;
         }
     } catch (error: any) { 
-        if (error.name !== 'AbortError' && !agentControlRef.current.stop) {
-            setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Error: ${error.message}`, timestamp: Date.now() }]); 
-        }
-    } 
-    finally { 
-        // Only set loading false if we aren't waiting for agents
-        if (!waitingForSubAgents) {
-            setIsLoading(false); 
-        }
-        abortControllerRef.current = null;
-    }
+        if (error.name !== 'AbortError' && !agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `Error: ${error.message}`, timestamp: Date.now() }]); 
+    } finally { if (!waitingForSubAgents) setIsLoading(false); abortControllerRef.current = null; }
   };
-  
-  useEffect(() => { handleSendMessageRef.current = handleSendMessage; });
 
-  const handleExecutePlanStep = async (stepText: string, planFileName: string) => { setActiveView('chat'); await handleSendMessage(`Execute step: "${stepText}". Update "${planFileName}".`); };
+  const handleSaveFileWrapper = async (file: FileData) => { if (await handleSaveFile(file)) { addToast(`Saved ${file.name}`); setLastUpdated(Date.now()); } };
+  const handleExecutePlanStep = async (step: string, name: string) => { setActiveView('chat'); await handleSendMessage(`Execute step: "${step}". Update "${name}".`); };
   const handleExecuteFullPlan = async (file: FileData) => { setActiveView('chat'); await handleSendMessage(`Auto-pilot plan: ${file.name}`); };
-
-  const closeSession = (e: React.MouseEvent, sessionId: string) => { e.stopPropagation(); setSessions(prev => prev.filter(s => s.id !== sessionId)); if (activeView === `session:${sessionId}`) setActiveView('chat'); };
-
-  const currentWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+  const closeSession = (e: any, id: string) => { e.stopPropagation(); setSessions(prev => prev.filter(s => s.id !== id)); if (activeView === `session:${id}`) setActiveView('chat'); };
 
   return (
-    <div className="flex h-full w-full bg-dark-bg text-gray-200 overflow-hidden font-sans relative">
+    <>
       <Settings 
-          isOpen={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)} 
-          currentTheme={theme} 
-          onSetTheme={setTheme} 
-          globalDisabledTools={globalDisabledTools} 
-          onToggleGlobalTool={handleToggleGlobalTool} 
-          agents={agents} 
-          disabledSubAgents={disabledSubAgents} 
-          onToggleSubAgent={handleToggleSubAgent} 
-          timezone={timezone} 
-          onSetTimezone={setTimezone} 
-          onOpenThemeBrowser={() => { setIsSettingsOpen(false); setIsThemeBrowserOpen(true); }}
-          customInstructions={workspaceInstructions}
-          onSetCustomInstructions={handleSetCustomInstructions}
-          showStreamDebug={showStreamDebug}
-          onToggleStreamDebug={handleToggleStreamDebug}
-          proxyMode={proxyMode}
-          onToggleProxyMode={handleToggleProxyMode}
-          defaultVlModel={defaultVlModel}
-          onSetDefaultVlModel={handleSetDefaultVlModel}
+          isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} currentTheme={theme} onSetTheme={setTheme} 
+          globalDisabledTools={globalDisabledTools} onToggleGlobalTool={(t) => setGlobalDisabledTools(p => { const n = p.includes(t) ? p.filter(x => x !== t) : [...p, t]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ disabledTools: n }); return n; })}
+          agents={agents} disabledSubAgents={disabledSubAgents} onToggleSubAgent={(a) => setDisabledSubAgents(p => { const n = p.includes(a) ? p.filter(x => x !== a) : [...p, a]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ disabledSubAgents: n }); return n; })}
+          timezone={timezone} onSetTimezone={setTimezone} onOpenThemeBrowser={() => { setIsSettingsOpen(false); setIsThemeBrowserOpen(true); }}
+          customInstructions={workspaceInstructions} onSetCustomInstructions={(i) => { setWorkspaceInstructions(i); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ instructions: i }); else localStorage.setItem('atom_custom_instructions', i); }}
+          showStreamDebug={showStreamDebug} onToggleStreamDebug={() => setShowStreamDebug(p => { localStorage.setItem('atom_show_stream_debug', String(!p)); return !p; })}
+          proxyMode={proxyMode} onToggleProxyMode={() => setProxyMode(p => { localStorage.setItem('atom_proxy_mode', String(!p)); return !p; })}
+          defaultVlModel={defaultVlModel} onSetDefaultVlModel={(m) => { setDefaultVlModel(m as AppModel); localStorage.setItem('atom_default_vl_model', m); }}
+          ttsVoice={ttsVoice} onSetTtsVoice={(v) => { setTtsVoice(v); localStorage.setItem('atom_tts_voice', v); }}
       />
-      
-      <ThemeBrowser 
-          isOpen={isThemeBrowserOpen}
-          onClose={() => setIsThemeBrowserOpen(false)}
-          currentTheme={theme}
-          onSetTheme={setTheme}
-      />
-
-      <ShareModal 
-          isOpen={isShareModalOpen}
-          onClose={() => setIsShareModalOpen(false)}
-          currentWorkspace={currentWorkspace}
-          onImportWorkspace={(ws) => {
-              handleImportWorkspace(ws);
-              addToast(`Imported shared workspace: ${ws.name}`);
-          }}
-      />
-
+      <ThemeBrowser isOpen={isThemeBrowserOpen} onClose={() => setIsThemeBrowserOpen(false)} currentTheme={theme} onSetTheme={setTheme} />
+      <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} currentWorkspace={workspaces.find(w => w.id === activeWorkspaceId)} onImportWorkspace={(ws) => { handleImportWorkspace(ws); addToast(`Imported ${ws.name}`); }} />
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50 pointer-events-none">{toasts.map((msg, i) => (<Toast key={i} message={msg} onClose={() => setToasts(prev => prev.filter(m => m !== msg))} />))}</div>
-      
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && leftSidebarOpen && (
-          <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setLeftSidebarOpen(false)} />
-      )}
-
-      {/* Context Menu for Chats */}
       {chatContextMenu && (
-          <div 
-            className="fixed z-[60] bg-dark-panel border border-dark-border rounded-lg shadow-xl py-1 w-32 animate-in fade-in zoom-in duration-100"
-            style={{ top: chatContextMenu.y, left: chatContextMenu.x }}
-            onClick={(e) => e.stopPropagation()} 
-          >
-            <button 
-                onClick={handleRenameChat}
-                className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/10 flex items-center gap-2 transition-colors"
-            >
-                <Pencil className="w-3.5 h-3.5" /> Rename
-            </button>
-            <button 
-                onClick={handleDeleteChat}
-                className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-white/10 flex items-center gap-2 transition-colors"
-            >
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
+          <div className="fixed z-[60] bg-dark-panel border border-dark-border rounded-lg shadow-xl py-1 w-32 animate-in fade-in zoom-in duration-100" style={{ top: chatContextMenu.y, left: chatContextMenu.x }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={(e) => { e.stopPropagation(); if (chatContextMenu) { const s = chatHistory.find(x => x.id === chatContextMenu.sessionId); if (s) handleRenameChat(s.id, prompt("Rename:", s.title) || s.title); setChatContextMenu(null); } }} className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/10 flex items-center gap-2"><Pencil className="w-3.5 h-3.5" /> Rename</button>
+            <button onClick={(e) => { handleDeleteChat(chatContextMenu!.sessionId); setChatContextMenu(null); }} className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-white/10 flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
           </div>
       )}
-
-      {/* Sidebar with Transitions */}
-      <div className={`${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-72 shadow-2xl' : (leftSidebarOpen ? 'w-64 relative' : 'w-0 overflow-hidden')} flex flex-col h-full border-r border-dark-border bg-dark-panel transition-all duration-300 ease-in-out`}>
-        {/* Content Area */}
-        <div className="flex-1 overflow-hidden relative flex flex-col">
-            {sidebarMode === 'files' ? (
-                <FileExplorer 
-                    files={files} 
-                    selectedFile={selectedFile} 
-                    fileSystemType={fileSystemType} 
-                    onSelectFile={(f) => { 
-                        setSelectedFile(f); 
-                        if (isMobile) setLeftSidebarOpen(false); // Close drawer on mobile selection
-                        if (f.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i) || f.name.endsWith('.md')) setActiveView('preview'); 
-                        else if (activeView !== 'edit' && activeView !== 'preview') setActiveView('edit'); 
-                    }} 
-                    onCreateFile={handleCreateFile} 
-                    onDeleteFile={handleDeleteFile} 
-                    onImportFiles={handleImportFiles} 
-                    onMoveFile={handleMoveFile} 
-                    onOpenFolder={handleOpenFolderWrapper} 
-                    onSwitchFolder={handleSwitchFolder}
-                    onResetFileSystem={resetFileSystem}
-                    workspaces={workspaces}
-                    activeWorkspaceId={activeWorkspaceId}
-                    onCreateWorkspace={handleCreateWorkspace}
-                    onSwitchWorkspace={handleSwitchWorkspace}
-                    onRenameWorkspace={handleRenameWorkspace}
-                    onDeleteWorkspace={handleDeleteWorkspace}
-                    onDuplicateWorkspace={handleDuplicateWorkspace}
-                />
-            ) : (
-                <div className="flex flex-col h-full w-full">
-                    <div className="p-4 border-b border-dark-border bg-dark-bg shrink-0">
-                        <h2 className="text-sm font-semibold text-dark-text uppercase tracking-wider flex items-center gap-2">
-                            <History className="w-4 h-4" /> History
-                        </h2>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                        {(!chatHistory || chatHistory.length === 0) ? (
-                            <div className="text-center p-4 text-xs text-gray-500 italic flex flex-col items-center gap-2">
-                                <span>No history yet.</span>
-                            </div>
-                        ) : (
-                            chatHistory.map((session) => (
-                                <button
-                                    key={session.id}
-                                    onClick={() => handleLoadChat(session)}
-                                    onContextMenu={(e) => handleChatContextMenu(e, session.id)}
-                                    className={`w-full text-left p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10 group ${currentChatId === session.id ? 'bg-cerebras-900/20 border-cerebras-500/20' : ''}`}
-                                >
-                                    <div className={`text-sm font-medium truncate ${currentChatId === session.id ? 'text-cerebras-400' : 'text-gray-300 group-hover:text-white'}`}>{session.title || 'Untitled Chat'}</div>
-                                    <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {new Date(session.timestamp).toLocaleDateString()} {new Date(session.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                    </div>
-                                </button>
-                            ))
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-
-        {/* Bottom Toggle */}
-        <div className="p-2 border-t border-dark-border bg-dark-panel flex gap-1 shrink-0">
-            <button 
-                onClick={() => setSidebarMode('files')}
-                className={`flex-1 py-2 rounded-md text-xs font-medium flex items-center justify-center gap-2 transition-colors ${sidebarMode === 'files' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
-            >
-                <FolderTree className="w-4 h-4" /> <span className={isMobile ? 'hidden' : 'block'}>Explorer</span>
-            </button>
-            <button 
-                onClick={() => setSidebarMode('history')}
-                className={`flex-1 py-2 rounded-md text-xs font-medium flex items-center justify-center gap-2 transition-colors ${sidebarMode === 'history' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
-            >
-                <History className="w-4 h-4" /> <span className={isMobile ? 'hidden' : 'block'}>History</span>
-            </button>
-        </div>
-      </div>
       
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="h-12 bg-dark-panel border-b border-dark-border flex items-center justify-between px-4 shrink-0 overflow-hidden">
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar mask-gradient-r w-full">
-             <button onClick={() => setLeftSidebarOpen(!leftSidebarOpen)} className="text-gray-400 hover:text-white transition-colors flex-shrink-0">
-                {isMobile ? <Menu className="w-5 h-5" /> : (leftSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />)}
-             </button>
-             
-             {/* Desktop Navigation */}
-             <div className="flex bg-dark-bg p-1 rounded-lg border border-dark-border flex-shrink-0">
-                <button onClick={() => setActiveView('chat')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'chat' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><MessageSquare className="w-3 h-3" /> Chat</button>
-                <button onClick={() => setActiveView('terminal')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'terminal' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><TerminalSquare className="w-3 h-3" /> Term</button>
-                <button onClick={() => setActiveView('edit')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'edit' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Code2 className="w-3 h-3" /> Code</button>
-                <button onClick={() => setActiveView('preview')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'preview' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Eye className="w-3 h-3" /> View</button>
-                <button onClick={() => setActiveView('schedules')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'schedules' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Clock className="w-3 h-3" /> Time</button>
-                <button onClick={() => setActiveView('skills')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${activeView === 'skills' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><BrainCircuit className="w-3 h-3" /> Skills</button>
-             </div>
-             
-             {/* Share Button */}
-             <button 
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded text-xs bg-indigo-900/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-900/50 transition-colors flex-shrink-0"
-             >
-                <Share2 className="w-3 h-3" /> Share
-             </button>
-
-             <div className="w-[1px] h-6 bg-dark-border flex-shrink-0 mx-1"></div>
-             
-             <div className="flex gap-1 overflow-x-auto no-scrollbar">
-                 {sessions.map(s => (
-                     <div key={s.id} onClick={() => setActiveView(`session:${s.id}`)} className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-all flex-shrink-0 max-w-[150px] ${activeView === `session:${s.id}` ? 'bg-indigo-900/30 border-indigo-500/50 text-indigo-300' : 'bg-dark-bg border-dark-border text-gray-500 hover:bg-white/5'}`}>
-                        {s.status === 'running' ? <Loader2 className="w-3 h-3 animate-spin text-blue-400" /> : s.status === 'completed' ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : <Bot className="w-3 h-3 text-red-400" />}
-                        <span className="truncate hidden sm:inline">{s.agentName}</span>
-                        <button onClick={(e) => closeSession(e, s.id)} className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity ml-auto"><X className="w-3 h-3" /></button>
-                     </div>
-                 ))}
-             </div>
-          </div>
-        </div>
-        <div className="flex-1 overflow-hidden relative flex flex-col">
-          {activeView === 'chat' ? (
-              <ChatInterface 
-                  messages={messages} 
-                  isLoading={isLoading} 
-                  selectedModel={selectedModel} 
-                  selectedAgent={selectedAgent} 
-                  availableAgents={agents} 
-                  enableSubAgents={enableSubAgents} 
-                  onModelChange={setSelectedModel} 
-                  onAgentChange={(id) => { const agent = agents.find(a => a.id === id); if (agent) { setSelectedAgent(agent); setSelectedModel(agent.preferredModel); } }} 
-                  onSendMessage={(c, a) => handleSendMessage(c, a)} 
-                  onClearChat={handleNewChat} 
-                  onAddAgent={handleAddAgent} 
-                  onToggleSubAgents={() => setEnableSubAgents(prev => !prev)} 
-                  onOpenSettings={() => setIsSettingsOpen(true)} 
-                  onStop={handleStopAgent} 
-                  onPause={handlePauseAgent} 
-                  isPaused={isPaused} 
-                  input={chatInput} 
-                  setInput={setChatInput} 
-                  attachments={chatAttachments} 
-                  setAttachments={setChatAttachments} 
-                  streamMetrics={streamMetrics} 
-                  showStreamDebug={showStreamDebug} 
-                  onSpawnAgent={handleSpawnAgentManual}
-              />
-          ) : activeView === 'edit' ? (
-            <CodeEditor file={selectedFile} onUpdate={handleUpdateFileContent} onSmartEdit={handleSmartEdit} onSave={() => selectedFile && handleSaveFileWrapper(selectedFile)} />
-          ) : activeView === 'preview' ? (
-            <Preview file={selectedFile} allFiles={files} onSelectFile={setSelectedFile} onExecutePlanStep={(step) => selectedFile && handleExecutePlanStep(step, selectedFile.name)} onExecuteFullPlan={() => selectedFile && handleExecuteFullPlan(selectedFile)} />
-          ) : activeView === 'schedules' ? (
-             <ScheduleManager schedules={schedules} onToggleActive={(id) => setSchedules(prev => { const n = prev.map(s => s.id === id ? { ...s, active: !s.active } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} onDelete={(id) => setSchedules(prev => { const n = prev.filter(s => s.id !== id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} timezone={timezone} agents={agents} onUpdateAgent={(id, agentId) => setSchedules(prev => { const n = prev.map(s => s.id === id ? { ...s, agentId } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} />
-          ) : activeView === 'skills' ? (
-             <SkillBrowser 
-                skills={skills} 
-                enabledSkillIds={enabledSkillIds} 
-                onToggleSkill={handleToggleSkill}
-                onImportSkill={handleImportSkill}
-                onExportSkills={handleExportSkills}
-                onDeleteSkill={handleDeleteSkill}
-             />
-          ) : activeView.startsWith('session:') ? (
-              (() => { const sessionId = activeView.split(':')[1]; const session = sessions.find(s => s.id === sessionId); return session ? <SubAgentView key={session.id} session={session} /> : <div>Session not found</div>; })()
-          ) : null}
-          
-          {/* Persistent Terminal Component */}
-          <div style={{ display: activeView === 'terminal' ? 'block' : 'none', height: '100%' }}>
-            <Terminal cwd={localPath} visible={activeView === 'terminal'} />
-          </div>
-        </div>
-      </div>
-    </div>
+      <MainLayout 
+        isMobile={isMobile} leftSidebarOpen={leftSidebarOpen} setLeftSidebarOpen={setLeftSidebarOpen} sidebarMode={sidebarMode} setSidebarMode={setSidebarMode}
+        files={files} selectedFile={selectedFile} fileSystemType={fileSystemType} setSelectedFile={setSelectedFile} setActiveView={setActiveView} activeView={activeView}
+        handleCreateFile={handleCreateFile} handleDeleteFile={handleDeleteFile} handleImportFiles={handleImportFiles} handleMoveFile={handleMoveFile} handleOpenFolderWrapper={handleOpenFolder} handleSwitchFolder={() => { agentControlRef.current.stop = true; setIsLoading(false); if (!isRenderHosted) fetch('http://localhost:3001/cleanup', {method:'POST'}).catch(console.error); setMessages([]); setSessions([]); setBrowserSessions([]); resetFileSystem(); handleOpenFolder(); }} resetFileSystem={resetFileSystem}
+        workspaces={workspaces} activeWorkspaceId={activeWorkspaceId} handleCreateWorkspace={handleCreateWorkspace} handleSwitchWorkspace={handleSwitchWorkspace} handleRenameWorkspace={handleRenameWorkspace} handleDeleteWorkspace={handleDeleteWorkspace} handleDuplicateWorkspace={handleDuplicateWorkspace}
+        chatHistory={chatHistory} currentChatId={currentChatId} handleLoadChat={handleLoadChat} handleChatContextMenu={(e, id) => { e.preventDefault(); e.stopPropagation(); setChatContextMenu({ x: e.clientX, y: e.clientY, sessionId: id }); }}
+        messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => [...p, a]); setSelectedAgent(a); } }} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatInput={chatInput} setChatInput={setChatInput} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} streamMetrics={streamMetrics} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}
+        handleUpdateFileContent={handleUpdateFileContent} handleSmartEdit={handleSmartEdit} handleSaveFileWrapper={handleSaveFileWrapper} handleExecutePlanStep={handleExecutePlanStep} handleExecuteFullPlan={handleExecuteFullPlan}
+        schedules={schedules} toggleScheduleActive={(id) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, active: !s.active } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} deleteSchedule={(id) => setSchedules(p => { const n = p.filter(s => s.id !== id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} updateScheduleAgent={(id, aid) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, agentId: aid } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} timezone={timezone}
+        skills={skills} enabledSkillIds={enabledSkillIds} handleToggleSkill={(id) => setEnabledSkillIds(p => { const n = p.includes(id) ? p.filter(x => x !== id) : [...p, id]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ enabledSkillIds: n }); else localStorage.setItem('atom_enabled_skills', JSON.stringify(n)); return n; })} handleImportSkill={(f) => { f.forEach(x => { if (x.name.endsWith('.json')) { try { const d = JSON.parse(x.content); (Array.isArray(d) ? d : [d]).forEach(saveSkillToStorage); } catch {} } else { const s = parseSkill(x); if (s) saveSkillToStorage(s); } }); setSkillRefresh(p => p + 1); addToast("Skills imported"); }} handleExportSkills={() => { const s = getLocalStorageSkills(); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s, null, 2)); a.download = "skills.json"; a.click(); }} handleDeleteSkill={(id) => { deleteSkillFromStorage(id); setSkillRefresh(p => p + 1); addToast("Skill deleted"); }}
+        sessions={sessions} closeSession={closeSession} localPath={localPath} setIsShareModalOpen={setIsShareModalOpen} ttsVoice={ttsVoice}
+        lastUpdated={lastUpdated}
+      />
+    </>
   );
 };
 
