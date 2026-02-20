@@ -99,6 +99,7 @@ interface MainLayoutProps {
     // Share
     setIsShareModalOpen: (val: boolean) => void;
     lastUpdated: number;
+    useWebContainer?: boolean;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -348,6 +349,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                                 onExecutePlanStep={(step) => props.selectedFile && props.handleExecutePlanStep(step, props.selectedFile.name)} 
                                 onExecuteFullPlan={() => props.selectedFile && props.handleExecuteFullPlan(props.selectedFile)} 
                                 lastUpdated={props.lastUpdated}
+                                useWebContainer={props.useWebContainer}
                             />
                         )
                     ) : props.activeView === 'schedules' ? (
@@ -383,6 +385,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         onExecuteFullPlan={() => props.selectedFile && props.handleExecuteFullPlan(props.selectedFile)}
                         hostWindow={externalWindow}
                         lastUpdated={props.lastUpdated}
+                        useWebContainer={props.useWebContainer}
                     />
                 </div>,
                 externalWindow.document.body

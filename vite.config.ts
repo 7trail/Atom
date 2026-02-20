@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       server: {
+        headers: {
+          'Cross-Origin-Embedder-Policy': 'require-corp',
+          'Cross-Origin-Opener-Policy': 'same-origin',
+        },
         port: 3000,
         host: '0.0.0.0',
         allowedHosts: ['atom-pnkz.onrender.com']

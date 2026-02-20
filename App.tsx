@@ -74,6 +74,7 @@ const App: React.FC = () => {
   const [defaultVlModel, setDefaultVlModel] = useState<AppModel>(() => (localStorage.getItem('atom_default_vl_model') as AppModel) || 'nvidia/nemotron-nano-12b-v2-vl');
   const [proxyMode, setProxyMode] = useState<boolean>(() => localStorage.getItem('atom_proxy_mode') === 'true');
   const [ttsVoice, setTtsVoice] = useState<string>(() => localStorage.getItem('atom_tts_voice') || 'delia');
+  const [useWebContainer, setUseWebContainer] = useState<boolean>(() => localStorage.getItem('atom_use_webcontainer') === 'true');
   
   const [isMobile, setIsMobile] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -443,6 +444,7 @@ const App: React.FC = () => {
           proxyMode={proxyMode} onToggleProxyMode={() => setProxyMode(p => { localStorage.setItem('atom_proxy_mode', String(!p)); return !p; })}
           defaultVlModel={defaultVlModel} onSetDefaultVlModel={(m) => { setDefaultVlModel(m as AppModel); localStorage.setItem('atom_default_vl_model', m); }}
           ttsVoice={ttsVoice} onSetTtsVoice={(v) => { setTtsVoice(v); localStorage.setItem('atom_tts_voice', v); }}
+          useWebContainer={useWebContainer} onToggleWebContainer={() => setUseWebContainer(p => { localStorage.setItem('atom_use_webcontainer', String(!p)); return !p; })}
       />
       <ThemeBrowser isOpen={isThemeBrowserOpen} onClose={() => setIsThemeBrowserOpen(false)} currentTheme={theme} onSetTheme={setTheme} />
       <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} currentWorkspace={workspaces.find(w => w.id === activeWorkspaceId)} onImportWorkspace={(ws) => { handleImportWorkspace(ws); addToast(`Imported ${ws.name}`); }} />
@@ -465,7 +467,7 @@ const App: React.FC = () => {
         schedules={schedules} toggleScheduleActive={(id) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, active: !s.active } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} deleteSchedule={(id) => setSchedules(p => { const n = p.filter(s => s.id !== id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} updateScheduleAgent={(id, aid) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, agentId: aid } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} timezone={timezone}
         skills={skills} enabledSkillIds={enabledSkillIds} handleToggleSkill={(id) => setEnabledSkillIds(p => { const n = p.includes(id) ? p.filter(x => x !== id) : [...p, id]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ enabledSkillIds: n }); else localStorage.setItem('atom_enabled_skills', JSON.stringify(n)); return n; })} handleImportSkill={(f) => { f.forEach(x => { if (x.name.endsWith('.json')) { try { const d = JSON.parse(x.content); (Array.isArray(d) ? d : [d]).forEach(saveSkillToStorage); } catch {} } else { const s = parseSkill(x); if (s) saveSkillToStorage(s); } }); setSkillRefresh(p => p + 1); addToast("Skills imported"); }} handleExportSkills={() => { const s = getLocalStorageSkills(); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s, null, 2)); a.download = "skills.json"; a.click(); }} handleDeleteSkill={(id) => { deleteSkillFromStorage(id); setSkillRefresh(p => p + 1); addToast("Skill deleted"); }}
         sessions={sessions} closeSession={closeSession} localPath={localPath} setIsShareModalOpen={setIsShareModalOpen} ttsVoice={ttsVoice}
-        lastUpdated={lastUpdated}
+        lastUpdated={lastUpdated} useWebContainer={useWebContainer}
       />
     </>
   );

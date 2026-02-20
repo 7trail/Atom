@@ -2,7 +2,11 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { FileData } from '../types';
 import { parse } from 'marked';
-import { Play, ClipboardList, Info, Target, CheckCircle2, Rocket, RotateCcw, Lock, ChevronLeft, ChevronRight, RotateCw, Terminal, Eraser, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react';
+import { Play, ClipboardList, Info, Target, CheckCircle2, Rocket, RotateCcw, Lock, ChevronLeft, ChevronRight, RotateCw, Terminal, Eraser, ZoomIn, ZoomOut, Maximize2, Minimize2, Loader2 } from 'lucide-react';
+import { WebContainer } from '@webcontainer/api';
+import { Terminal as XTerm } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import 'xterm/css/xterm.css';
 
 interface PreviewProps {
   file: FileData | null;
@@ -12,6 +16,7 @@ interface PreviewProps {
   onExecuteFullPlan?: () => void;
   hostWindow?: Window;
   lastUpdated?: number;
+  useWebContainer?: boolean;
 }
 
 const getMimeType = (filename: string) => {
@@ -104,11 +109,133 @@ const ImagePreview: React.FC<{ file: FileData }> = ({ file }) => {
     );
 };
 
-const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan, hostWindow = window, lastUpdated }) => {
+const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan, hostWindow = window, lastUpdated, useWebContainer = false }) => {
   const [iframeSrc, setIframeSrc] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const blobUrlsRef = useRef<string[]>([]);
   
+  // WebContainer State
+  const [webContainerInstance, setWebContainerInstance] = useState<WebContainer | null>(null);
+  const [wcUrl, setWcUrl] = useState<string>('');
+  const [isWcBooting, setIsWcBooting] = useState(false);
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const xtermRef = useRef<XTerm | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+
+  // --- WebContainer Initialization ---
+  useEffect(() => {
+      if (!useWebContainer) return;
+      
+      let instance: WebContainer;
+
+      const boot = async () => {
+          setIsWcBooting(true);
+          try {
+              instance = await WebContainer.boot();
+              setWebContainerInstance(instance);
+              
+              // Mount files
+              const fileTree: any = {};
+              allFiles.forEach(f => {
+                  // Simple flat mapping for now, assuming no nested folders in FileData name (or handle it)
+                  // FileData name usually includes path like "src/App.tsx"
+                  const parts = f.name.split('/');
+                  let current = fileTree;
+                  for (let i = 0; i < parts.length - 1; i++) {
+                      const part = parts[i];
+                      if (!current[part]) current[part] = { directory: {} };
+                      current = current[part].directory;
+                  }
+                  current[parts[parts.length - 1]] = { file: { contents: f.content } };
+              });
+              await instance.mount(fileTree);
+
+              // Start dev server if package.json exists
+              const packageJson = allFiles.find(f => f.name === 'package.json');
+              if (packageJson) {
+                  const installProcess = await instance.spawn('npm', ['install']);
+                  installProcess.output.pipeTo(new WritableStream({
+                      write(data) {
+                          xtermRef.current?.write(data);
+                      }
+                  }));
+                  await installProcess.exit;
+
+                  const startProcess = await instance.spawn('npm', ['run', 'start']); // or dev
+                  startProcess.output.pipeTo(new WritableStream({
+                      write(data) {
+                          xtermRef.current?.write(data);
+                      }
+                  }));
+                  
+                  instance.on('server-ready', (port, url) => {
+                      setWcUrl(url);
+                  });
+              } else {
+                  // Fallback for static HTML if no package.json? 
+                  // Or just serve static? WebContainer needs a server to expose a URL usually.
+                  // For now, let's assume if they enable WC, they want a Node env.
+                  // If just index.html, we might need a simple serve.
+                  // Let's try to run a simple http-server if index.html exists and no package.json
+                  if (allFiles.find(f => f.name === 'index.html')) {
+                      await instance.spawn('npx', ['-y', 'http-server', '-p', '3000']);
+                      instance.on('server-ready', (port, url) => {
+                          setWcUrl(url);
+                      });
+                  }
+              }
+
+          } catch (e) {
+              console.error("WebContainer Boot Failed", e);
+          } finally {
+              setIsWcBooting(false);
+          }
+      };
+
+      boot();
+
+      return () => {
+          // WebContainer teardown if possible? API doesn't expose easy teardown of singleton.
+          // Usually we just reuse it or it stays alive.
+      };
+  }, [useWebContainer]); // Run once when enabled
+
+  // Sync files to WebContainer when they change
+  useEffect(() => {
+      if (!webContainerInstance || !useWebContainer) return;
+      
+      const sync = async () => {
+          const fileTree: any = {};
+          allFiles.forEach(f => {
+              const parts = f.name.split('/');
+              let current = fileTree;
+              for (let i = 0; i < parts.length - 1; i++) {
+                  const part = parts[i];
+                  if (!current[part]) current[part] = { directory: {} };
+                  current = current[part].directory;
+              }
+              current[parts[parts.length - 1]] = { file: { contents: f.content } };
+          });
+          await webContainerInstance.mount(fileTree);
+      };
+      sync();
+  }, [allFiles, lastUpdated, webContainerInstance, useWebContainer]);
+
+  // Init Terminal
+  useEffect(() => {
+      if (useWebContainer && terminalRef.current && !xtermRef.current) {
+          const term = new XTerm({ convertEol: true });
+          const fitAddon = new FitAddon();
+          term.loadAddon(fitAddon);
+          term.open(terminalRef.current);
+          fitAddon.fit();
+          xtermRef.current = term;
+          fitAddonRef.current = fitAddon;
+          
+          window.addEventListener('resize', () => fitAddon.fit());
+      }
+  }, [useWebContainer]);
+
   // --- Message Listener for Navigation ---
   useEffect(() => {
       const handleMessage = (e: MessageEvent) => {
@@ -128,8 +255,10 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       return () => hostWindow.removeEventListener('message', handleMessage);
   }, [file, allFiles, onSelectFile, hostWindow]);
 
-  // --- Blob Engine for HTML Previews ---
+  // --- Blob Engine for HTML Previews (Standard Mode) ---
   useEffect(() => {
+    if (useWebContainer) return; // Skip if using WebContainer
+
     // Cleanup previous blobs
     blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
     blobUrlsRef.current = [];
@@ -323,7 +452,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
     const timer = setTimeout(processFiles, 50);
     return () => clearTimeout(timer);
 
-  }, [file, allFiles, lastUpdated]);
+  }, [file, allFiles, lastUpdated, useWebContainer]);
 
 
   // --- Content Resolution for Non-HTML ---
@@ -405,6 +534,39 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
         <p>No file selected for preview.</p>
       </div>
     );
+  }
+
+  // --- WebContainer Preview ---
+  if (useWebContainer) {
+      return (
+          <div className="flex flex-col h-full bg-gray-900">
+              <div className="flex-1 relative bg-white">
+                  {isWcBooting && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                          <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="animate-spin h-8 w-8 text-cerebras-600" />
+                              <span className="text-sm text-gray-600">Booting WebContainer...</span>
+                          </div>
+                      </div>
+                  )}
+                  {wcUrl ? (
+                      <iframe 
+                          title="WebContainer Preview"
+                          src={wcUrl}
+                          className="w-full h-full border-none"
+                          sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"
+                      />
+                  ) : (
+                      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                          {!isWcBooting && "Waiting for server to start..."}
+                      </div>
+                  )}
+              </div>
+              <div className="h-48 bg-black border-t border-gray-800 p-2 overflow-hidden">
+                  <div ref={terminalRef} className="w-full h-full" />
+              </div>
+          </div>
+      );
   }
 
   // --- HTML Preview ---

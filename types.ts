@@ -259,4 +259,6 @@ export interface SettingsProps {
   onSetDefaultVlModel: (model: string) => void;
   ttsVoice: string;
   onSetTtsVoice: (voice: string) => void;
+  webContainerMode: boolean;
+  onToggleWebContainerMode: () => void;
 }

@@ -4,7 +4,7 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye, Cloud, Volume2 } from 'lucide-react';
+import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye, Cloud, Volume2, Terminal } from 'lucide-react';
 import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey } from '../services/cerebras';
 import { connectDiscord } from '../services/tools';
 import { SettingsProps, Agent } from '../types';
@@ -38,7 +38,8 @@ const Settings: React.FC<SettingsProps> = ({
     showStreamDebug, onToggleStreamDebug,
     proxyMode, onToggleProxyMode,
     defaultVlModel, onSetDefaultVlModel,
-    ttsVoice, onSetTtsVoice
+    ttsVoice, onSetTtsVoice,
+    useWebContainer, onToggleWebContainer
 }) => {
   const [cerebrasKeys, setCerebrasKeys] = useState<string[]>([]);
   const [nvidiaKeys, setNvidiaKeys] = useState<string[]>([]);
@@ -309,6 +310,28 @@ const Settings: React.FC<SettingsProps> = ({
                         </div>
                         <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
                             Route requests through corsproxy.io to bypass CORS issues on external URLs.
+                        </div>
+                    </div>
+                </button>
+
+                <button 
+                    onClick={onToggleWebContainer}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                        useWebContainer 
+                            ? 'bg-blue-900/10 border-blue-500/30' 
+                            : 'bg-dark-bg border-dark-border opacity-60'
+                    }`}
+                >
+                    <div className={`mt-0.5 ${useWebContainer ? 'text-blue-500' : 'text-gray-600'}`}>
+                        {useWebContainer ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1">
+                        <div className={`text-xs font-medium flex items-center gap-2 ${useWebContainer ? 'text-dark-text' : 'text-gray-500'}`}>
+                            <span>WebContainer Mode</span>
+                            <Terminal className="w-3 h-3 text-gray-500" />
+                        </div>
+                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                            Use StackBlitz WebContainers for full Node.js environment in preview.
                         </div>
                     </div>
                 </button>
