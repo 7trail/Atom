@@ -1,38 +1,49 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { FileData } from '../types';
-import { History, Code, GitCommit, Wand2, X, Loader2, Save, Undo2, Redo2 } from 'lucide-react';
+import { FileData, AppModel, SUPPORTED_MODELS } from '../types';
+import { History, Code, GitCommit, Wand2, X, Loader2, Save, Undo2, Redo2, Check, ArrowLeft } from 'lucide-react';
 import Editor, { DiffEditor, useMonaco } from '@monaco-editor/react';
 
 interface CodeEditorProps {
   file: FileData | null;
   onUpdate: (content: string) => void;
-  onSmartEdit: (file: FileData, selection: string, instruction: string) => Promise<string>;
+  onSmartEdit: (file: FileData, selection: string, instruction: string, model: AppModel) => Promise<string>;
   onSave: () => void;
 }
 
 const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, onSave }) => {
   const [view, setView] = useState<'code' | 'history'>('code');
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState<number | null>(null);
+  
+  // Smart Edit State
   const [smartInstruction, setSmartInstruction] = useState('');
   const [isSmartEditOpen, setIsSmartEditOpen] = useState(false);
   const [isSmartEditing, setIsSmartEditing] = useState(false);
+  const [smartEditModel, setSmartEditModel] = useState<AppModel>('gpt-oss-120b');
   
+  // Diff Review State
+  const [pendingDiff, setPendingDiff] = useState<{ original: string, modified: string, selectionRange: any } | null>(null);
+
   const editorRef = useRef<any>(null);
   const monaco = useMonaco();
 
-  const handleEditorDidMount = (editor: any) => {
+  const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
+    
+    // Override Ctrl+S / Cmd+S
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        onSave();
+    });
   };
 
   useEffect(() => {
-    if (editorRef.current && file) {
+    if (editorRef.current && file && !pendingDiff) {
         // Force update value if file content changed externally
         const model = editorRef.current.getModel();
         if (model && model.getValue() !== file.content) {
             editorRef.current.setValue(file.content);
         }
     }
-  }, [file?.content]);
+  }, [file?.content, pendingDiff]);
 
   // Configure Monaco Theme to match app
   useEffect(() => {
@@ -65,15 +76,24 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
 
     setIsSmartEditing(true);
     try {
-      const newCode = await onSmartEdit(file, selectedText, smartInstruction);
+      const newCodeFragment = await onSmartEdit(file, selectedText, smartInstruction, smartEditModel);
       
-      editorRef.current.executeEdits('smart-edit', [{
-          range: selection,
-          text: newCode,
-          forceMoveMarkers: true
-      }]);
+      // Calculate the full new content for diffing
+      const fullContent = model.getValue();
+      // We need to replace the range with newCodeFragment manually to get the full string
+      // But Monaco doesn't expose a simple string replace by range on the model content string easily without applying edits.
+      // So we will apply the edit to a detached model or just use string manipulation.
       
-      onUpdate(editorRef.current.getValue());
+      const startOffset = model.getOffsetAt(selection.getStartPosition());
+      const endOffset = model.getOffsetAt(selection.getEndPosition());
+      const newFullContent = fullContent.substring(0, startOffset) + newCodeFragment + fullContent.substring(endOffset);
+
+      setPendingDiff({
+          original: fullContent,
+          modified: newFullContent,
+          selectionRange: selection
+      });
+      
       setIsSmartEditOpen(false);
       setSmartInstruction('');
     } catch (error) {
@@ -83,12 +103,73 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
     }
   };
 
+  const handleAcceptDiff = () => {
+      if (pendingDiff) {
+          onUpdate(pendingDiff.modified);
+          setPendingDiff(null);
+      }
+  };
+
+  const handleRejectDiff = () => {
+      setPendingDiff(null);
+  };
+
+  const handleRevertHistory = () => {
+      if (selectedHistoryIndex !== null && file?.history?.[selectedHistoryIndex]) {
+          if (confirm("Are you sure you want to revert to this version? Current changes will be lost.")) {
+              onUpdate(file.history[selectedHistoryIndex].content);
+              setView('code');
+              setSelectedHistoryIndex(null);
+          }
+      }
+  };
+
   if (!file) {
     return (
       <div className="flex-1 flex items-center justify-center bg-dark-bg text-gray-500">
         <p>Select a file to edit or ask the AI to create one.</p>
       </div>
     );
+  }
+
+  // If in Diff Review Mode
+  if (pendingDiff) {
+      return (
+          <div className="flex-1 flex flex-col h-full bg-dark-bg">
+              <div className="bg-cerebras-900/20 border-b border-cerebras-500/30 px-4 py-2 flex items-center justify-between shrink-0 h-14">
+                  <div className="flex items-center gap-2 text-cerebras-400 font-medium">
+                      <Wand2 className="w-4 h-4" /> Review Smart Edit
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <button 
+                          onClick={handleRejectDiff}
+                          className="px-3 py-1.5 rounded text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 flex items-center gap-2 transition-colors"
+                      >
+                          <X className="w-3.5 h-3.5" /> Reject
+                      </button>
+                      <button 
+                          onClick={handleAcceptDiff}
+                          className="px-3 py-1.5 rounded text-xs font-medium bg-cerebras-600 hover:bg-cerebras-500 text-white flex items-center gap-2 transition-colors shadow-lg shadow-cerebras-900/20"
+                      >
+                          <Check className="w-3.5 h-3.5" /> Accept Changes
+                      </button>
+                  </div>
+              </div>
+              <div className="flex-1 relative">
+                  <DiffEditor 
+                      original={pendingDiff.original}
+                      modified={pendingDiff.modified}
+                      language={file.language === 'js' ? 'javascript' : file.language === 'ts' ? 'typescript' : file.language}
+                      theme="atom-dark"
+                      options={{ 
+                          readOnly: true,
+                          renderSideBySide: true,
+                          minimap: { enabled: false }
+                      }}
+                  />
+              </div>
+          </div>
+      );
   }
 
   return (
@@ -125,7 +206,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
               </button>
               <button
                 onClick={() => setIsSmartEditOpen(true)}
-                className="flex items-center gap-1 text-xs bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded transition-colors animate-in fade-in"
+                className="flex items-center gap-1 text-xs bg-cerebras-600 hover:bg-cerebras-500 text-white px-2 py-1 rounded transition-colors animate-in fade-in shadow-lg shadow-cerebras-900/20"
               >
                 <Wand2 className="w-3 h-3" /> Smart Edit
               </button>
@@ -154,30 +235,44 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
             
             {isSmartEditOpen && (
               <div className="absolute top-4 right-4 w-80 bg-dark-panel border border-cerebras-500 rounded-lg shadow-2xl z-10 animate-in slide-in-from-top-2">
-                <div className="p-3 border-b border-dark-border flex justify-between items-center bg-gradient-to-r from-purple-900/20 to-transparent">
-                  <div className="flex items-center gap-2 text-purple-400 font-medium text-xs uppercase tracking-wider">
+                <div className="p-3 border-b border-dark-border flex justify-between items-center bg-gradient-to-r from-cerebras-900/20 to-transparent">
+                  <div className="flex items-center gap-2 text-cerebras-400 font-medium text-xs uppercase tracking-wider">
                     <Wand2 className="w-3 h-3" /> Smart Edit
                   </div>
                   <button onClick={() => setIsSmartEditOpen(false)} className="text-gray-400 hover:text-white">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-                <div className="p-3">
+                <div className="p-3 space-y-3">
                   <textarea
                     value={smartInstruction}
                     onChange={(e) => setSmartInstruction(e.target.value)}
                     placeholder="Describe how to change the selected code..."
-                    className="w-full bg-dark-bg text-gray-200 text-sm p-2 rounded border border-dark-border focus:border-purple-500 focus:outline-none min-h-[80px] mb-2"
+                    className="w-full bg-dark-bg text-gray-200 text-sm p-2 rounded border border-dark-border focus:border-cerebras-500 focus:outline-none min-h-[80px]"
                     autoFocus
                   />
-                  <div className="flex justify-between items-center">
+                  
+                  <div>
+                      <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-1">Model</label>
+                      <select 
+                        value={smartEditModel}
+                        onChange={(e) => setSmartEditModel(e.target.value as AppModel)}
+                        className="w-full bg-dark-bg border border-dark-border rounded p-1.5 text-xs text-gray-300 focus:border-cerebras-500 focus:outline-none"
+                      >
+                          {SUPPORTED_MODELS.map(m => (
+                              <option key={m} value={m}>{m}</option>
+                          ))}
+                      </select>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-1">
                     <button
                         onClick={handleSmartEditSubmit}
                         disabled={isSmartEditing || !smartInstruction.trim()}
-                        className="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs px-3 py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full bg-cerebras-600 hover:bg-cerebras-500 text-white text-xs px-3 py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
                     >
                         {isSmartEditing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                        Generate & Apply
+                        Generate Preview
                     </button>
                   </div>
                 </div>
@@ -208,15 +303,27 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
                )}
             </div>
             
-            <div className="flex-1 bg-dark-bg h-full overflow-hidden">
+            <div className="flex-1 bg-dark-bg h-full overflow-hidden flex flex-col">
               {selectedHistoryIndex !== null && file.history ? (
-                 <DiffEditor 
-                    original={file.history[selectedHistoryIndex].content}
-                    modified={file.content}
-                    language={file.language}
-                    theme="atom-dark"
-                    options={{ readOnly: true }}
-                 />
+                 <>
+                     <div className="p-2 border-b border-dark-border flex justify-end bg-dark-panel">
+                         <button 
+                            onClick={handleRevertHistory}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-red-900/30 text-red-400 hover:bg-red-900/50 border border-red-900/50 rounded text-xs transition-colors"
+                         >
+                             <Undo2 className="w-3.5 h-3.5" /> Revert to this version
+                         </button>
+                     </div>
+                     <div className="flex-1">
+                        <DiffEditor 
+                            original={file.history[selectedHistoryIndex].content}
+                            modified={file.content}
+                            language={file.language}
+                            theme="atom-dark"
+                            options={{ readOnly: true }}
+                        />
+                     </div>
+                 </>
               ) : (
                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
                     <p className="text-sm">Select a version to compare with current.</p>

@@ -269,10 +269,34 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem('atom_theme', theme); document.documentElement.setAttribute('data-theme', theme); }, [theme]);
 
   // Smart Edit
-  const handleSmartEdit = async (file: FileData, selection: string, instruction: string): Promise<string> => {
-     const prompt = `Assistant: Coding Engine\nFile: ${file.name}\nContext:\n${file.content}\nInstruction: ${instruction}\nTarget:\n${selection}\nRewrite Target. Output ONLY code.`;
-     const result = await chatCompletion([{role:'user', content: prompt}], selectedModel); // Direct call for simplicity
-     return result?.choices?.[0]?.message?.content || selection; 
+  const handleSmartEdit = async (file: FileData, selection: string, instruction: string, model: AppModel): Promise<string> => {
+     const prompt = `Assistant: Coding Engine
+File: ${file.name}
+Full Content:
+\`\`\`${file.language}
+${file.content}
+\`\`\`
+
+Selected Code to Replace:
+\`\`\`${file.language}
+${selection}
+\`\`\`
+
+Instruction: ${instruction}
+
+Task: Rewrite the "Selected Code" based on the "Instruction".
+- Use the "Full Content" for context (variables, imports, types).
+- Output ONLY the replacement code for the selection.
+- Do not output markdown backticks if not necessary, just the raw code.
+- If the instruction implies deleting, output an empty string or comment.`;
+
+     const result = await chatCompletion([{role:'user', content: prompt}], model); 
+     let content = result?.choices?.[0]?.message?.content || selection;
+     
+     // Strip markdown code blocks if present
+     content = content.replace(/^```[a-z]*\n/, '').replace(/\n```$/, '');
+     
+     return content;
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[] = [], previousContext: any[] = [], customMessageState: Message[] | null = null) => {

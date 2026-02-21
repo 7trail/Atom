@@ -6,9 +6,34 @@ import { isRenderHosted } from '../constants';
 
 export const parseSkill = (file: FileData): Skill | null => {
     // pattern: --- \n yaml \n --- \n content
-    // We handle optional CRLF
-    const match = file.content.match(/^---\s*[\r\n]+([\s\S]*?)[\r\n]+---\s*[\r\n]+([\s\S]*)$/);
-    if (!match) return null;
+    // We handle optional CRLF and ensure we capture everything
+    // The regex needs to be robust against different line endings
+    
+    // Normalize line endings to \n for easier parsing
+    const content = file.content.replace(/\r\n/g, '\n');
+    
+    const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+    if (!match) {
+        // Try a more lenient match if the strict one fails (e.g. no newline after second ---)
+        const lenientMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*([\s\S]*)$/);
+        if (!lenientMatch) return null;
+        
+        try {
+            const frontmatter = yaml.load(lenientMatch[1]) as any;
+            return {
+                id: file.name, 
+                name: frontmatter.name || 'Unnamed Skill',
+                description: frontmatter.description || '',
+                emoji: frontmatter.metadata?.moltbot?.emoji,
+                content: lenientMatch[2].trim(),
+                metadata: frontmatter,
+                filePath: file.name
+            };
+        } catch (e) {
+            console.error("Failed to parse skill (lenient)", file.name, e);
+            return null;
+        }
+    }
     
     try {
         const frontmatter = yaml.load(match[1]) as any;

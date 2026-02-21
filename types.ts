@@ -183,6 +183,7 @@ export type AppModel =
   | 'minimaxai/minimax-m2'
   | 'z-ai/glm4.7'
   | 'qwen/qwen3-next-80b-a3b-thinking'
+  | 'qwen/qwen3-next-80b-a3b-instruct'
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'qwen/qwen3-235b-a22b'
   | 'moonshotai/kimi-k2-instruct-0905'
@@ -218,6 +219,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'minimaxai/minimax-m2',
   'z-ai/glm4.7',
   'qwen/qwen3-next-80b-a3b-thinking',
+  'qwen/qwen3-next-80b-a3b-instruct',
   'nvidia/nemotron-nano-12b-v2-vl',
   'qwen/qwen3-235b-a22b',
   'moonshotai/kimi-k2-instruct-0905',

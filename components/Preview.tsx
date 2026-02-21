@@ -228,11 +228,29 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
           const fitAddon = new FitAddon();
           term.loadAddon(fitAddon);
           term.open(terminalRef.current);
-          fitAddon.fit();
+          
+          // Delay fit to ensure DOM is ready and renderer is initialized
+          setTimeout(() => {
+              try {
+                  fitAddon.fit();
+              } catch (e) {
+                  console.warn("Terminal fit failed:", e);
+              }
+          }, 100);
+
           xtermRef.current = term;
           fitAddonRef.current = fitAddon;
           
-          window.addEventListener('resize', () => fitAddon.fit());
+          const handleResize = () => {
+              try {
+                  fitAddon.fit();
+              } catch (e) {
+                  // Ignore resize errors if terminal is hidden
+              }
+          };
+          
+          window.addEventListener('resize', handleResize);
+          return () => window.removeEventListener('resize', handleResize);
       }
   }, [useWebContainer]);
 
