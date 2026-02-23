@@ -459,7 +459,13 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                   files={sandpackFiles}
                   theme="dark"
                   options={{
-                      externalResources: ["https://cdn.tailwindcss.com"]
+                      // externalResources: ["https://cdn.tailwindcss.com"] // Removed to fix runtime injection error
+                      classes: {
+                          "sp-layout": "h-full",
+                          "sp-wrapper": "h-full",
+                          "sp-preview-container": "h-full",
+                          "sp-preview-iframe": "h-full",
+                      }
                   }}
               >
                   <SandpackLayout style={{ height: '100%', border: 'none', borderRadius: 0 }}>
@@ -467,7 +473,9 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                           style={{ height: '100%' }} 
                           showOpenInCodeSandbox={false} 
                           showRefreshButton={true}
+                          showNavigator={true}
                       />
+                      <SandpackCodeEditor style={{ height: '100%', display: 'none' }} /> 
                   </SandpackLayout>
               </SandpackProvider>
           </div>
