@@ -20,12 +20,21 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
           const loadedFiles: FileData[] = [];
           const files = Array.from(e.target.files) as File[];
           for (const file of files) {
-               const text = await file.text();
-               loadedFiles.push({
-                   name: file.name,
-                   content: text,
-                   language: file.name.endsWith('.json') ? 'json' : 'markdown'
-               });
+               if (file.name.endsWith('.zip')) {
+                   const arrayBuffer = await file.arrayBuffer();
+                   loadedFiles.push({
+                       name: file.name,
+                       content: arrayBuffer as any, // Cast to any to bypass string type temporarily for internal passing
+                       language: 'zip'
+                   });
+               } else {
+                   const text = await file.text();
+                   loadedFiles.push({
+                       name: file.name,
+                       content: text,
+                       language: file.name.endsWith('.json') ? 'json' : 'markdown'
+                   });
+               }
           }
           onImportSkill(loadedFiles);
       }
@@ -63,7 +72,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
                     >
                         <Upload className="w-3.5 h-3.5" /> Import
                     </button>
-                    <input type="file" ref={fileInputRef} className="hidden" accept=".json,.md" multiple onChange={handleFileUpload} />
+                    <input type="file" ref={fileInputRef} className="hidden" accept=".json,.md,.zip" multiple onChange={handleFileUpload} />
                 </>
             )}
             {onExportSkills && (

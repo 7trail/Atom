@@ -56,8 +56,34 @@ export const parseSkill = (file: FileData): Skill | null => {
 export const parseSkillZip = async (file: FileData): Promise<Skill | null> => {
     try {
         const zip = new JSZip();
-        // file.content for zip is expected to be base64 string
-        const zipContent = await zip.loadAsync(file.content, { base64: true });
+        
+        // Check if content is base64 or raw string. JSZip loadAsync expects specific formats.
+        // If file.content comes from FileReader.readAsText, it might be corrupted for binary zips.
+        // Ideally, we should receive ArrayBuffer or base64.
+        // However, the current file upload logic in SkillBrowser uses readAsText.
+        // We need to handle this.
+        
+        let zipData: any = file.content;
+        let options: any = { base64: false };
+
+        // If it looks like base64 (no special chars, length multiple of 4), try base64
+        // But file.content from readAsText is usually raw string.
+        // If the user uploaded via the new logic (which we will fix next), it should be okay.
+        
+        // For now, let's assume the caller will fix the input to be compatible.
+        // But to be safe against the specific error "Can't find end of central directory",
+        // we should ensure we are passing valid data.
+        
+        // If the content starts with "PK", it's likely a raw binary string treated as text.
+        // JSZip might handle it if we pass {base64: false, binary: true} but JSZip 3.x loadAsync 
+        // prefers ArrayBuffer, Uint8Array, or Node Buffer for binary.
+        
+        // Since we can't easily convert corrupted text back to binary, we must ensure 
+        // the input to this function is correct (ArrayBuffer or Base64).
+        // We will update SkillBrowser to read as ArrayBuffer.
+        
+        // Here we just handle the loading.
+        const zipContent = await zip.loadAsync(zipData, options);
         
         // Find skill.md (or any .md file if skill.md is missing)
         let skillFile = zipContent.file('skill.md');
@@ -71,7 +97,12 @@ export const parseSkillZip = async (file: FileData): Promise<Skill | null> => {
         if (!skillFile) return null;
         
         const skillContent = await skillFile.async('string');
-        const dummyFile: FileData = { ...file, content: skillContent };
+        // Create a dummy file object for the parser
+        const dummyFile: FileData = { 
+            name: file.name, 
+            content: skillContent, 
+            language: 'markdown' 
+        };
         const skill = parseSkill(dummyFile);
         
         if (!skill) return null;
@@ -83,11 +114,7 @@ export const parseSkillZip = async (file: FileData): Promise<Skill | null> => {
             // Skip hidden files
             if (path.startsWith('__MACOSX') || path.includes('/.')) continue;
             
-            // Determine if text or binary? For now assume text for code/templates
-            // If we need binary, we might need a different storage approach or base64
-            // Let's try to detect if it's likely binary based on extension?
-            // For now, load everything as string. If it's an image, it might be corrupt.
-            // But user asked for "references/ templates/", likely text.
+            // Load as string for now.
             resources[path] = await zipObj.async('string');
         }
         
