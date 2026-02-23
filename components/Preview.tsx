@@ -113,7 +113,15 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   
   // Sandpack State
   const [sandpackFiles, setSandpackFiles] = useState<any>({});
-  const [sandpackTemplate, setSandpackTemplate] = useState<'react' | 'node' | 'static'>('static');
+  const [sandpackTemplate, setSandpackTemplate] = useState<any>('static');
+  const [isManualTemplate, setIsManualTemplate] = useState(false);
+
+  const SANDPACK_TEMPLATES = [
+    'static', 'angular', 'react', 'react-ts', 'vue', 'vue-ts', 
+    'vanilla', 'vanilla-ts', 'node', 'nextjs', 'vite', 
+    'vite-react', 'vite-react-ts', 'vite-vue', 'vite-vue-ts', 
+    'vite-svelte', 'vite-svelte-ts', 'astro'
+  ];
 
   // --- Sandpack Initialization ---
   useEffect(() => {
@@ -122,6 +130,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       const files: any = {};
       let hasReact = false;
       let hasPackageJson = false;
+      let hasVite = false;
 
       allFiles.forEach(f => {
           // Sandpack expects paths without leading slash usually, but handles them.
@@ -137,17 +146,21 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
           };
 
           if (f.name.includes('package.json')) hasPackageJson = true;
+          if (f.name.includes('vite.config')) hasVite = true;
           if (f.content.includes('react') || f.name.endsWith('.jsx') || f.name.endsWith('.tsx')) hasReact = true;
       });
 
-      // Determine template
-      if (hasReact) setSandpackTemplate('react');
-      else if (hasPackageJson) setSandpackTemplate('node'); // Sandpack 'node' is also web-based but might be limited
-      else setSandpackTemplate('static');
-
       setSandpackFiles(files);
 
-  }, [allFiles, useWebContainer, file]);
+      // Determine template only if not manually set
+      if (!isManualTemplate) {
+          if (hasVite && hasReact) setSandpackTemplate('vite-react');
+          else if (hasReact) setSandpackTemplate('react');
+          else if (hasPackageJson) setSandpackTemplate('node'); 
+          else setSandpackTemplate('static');
+      }
+
+  }, [allFiles, useWebContainer, file, isManualTemplate]);
 
 
   // --- Message Listener for Navigation ---
@@ -454,8 +467,26 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   if (useWebContainer) {
       return (
           <div className="flex flex-col h-full bg-gray-900 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700 shrink-0">
+                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Preview Environment</span>
+                  <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-400">Template:</label>
+                      <select 
+                          value={sandpackTemplate} 
+                          onChange={(e) => {
+                              setSandpackTemplate(e.target.value);
+                              setIsManualTemplate(true);
+                          }}
+                          className="bg-gray-900 text-gray-300 text-xs border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-cerebras-500"
+                      >
+                          {SANDPACK_TEMPLATES.map(t => (
+                              <option key={t} value={t}>{t}</option>
+                          ))}
+                      </select>
+                  </div>
+              </div>
               <SandpackProvider 
-                  template={sandpackTemplate === 'react' ? 'vite-react' : sandpackTemplate} 
+                  template={sandpackTemplate} 
                   files={sandpackFiles}
                   theme="dark"
                   options={{
