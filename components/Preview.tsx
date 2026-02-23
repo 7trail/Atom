@@ -453,13 +453,12 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   // --- Sandpack Preview (Replaces WebContainer) ---
   if (useWebContainer) {
       return (
-          <div className="flex flex-col h-full bg-gray-900">
+          <div className="flex flex-col h-full bg-gray-900 overflow-hidden">
               <SandpackProvider 
-                  template={sandpackTemplate} 
+                  template={sandpackTemplate === 'react' ? 'vite-react' : sandpackTemplate} 
                   files={sandpackFiles}
                   theme="dark"
                   options={{
-                      // externalResources: ["https://cdn.tailwindcss.com"] // Removed to fix runtime injection error
                       classes: {
                           "sp-layout": "h-full",
                           "sp-wrapper": "h-full",
@@ -467,15 +466,16 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                           "sp-preview-iframe": "h-full",
                       }
                   }}
+                  style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
               >
-                  <SandpackLayout style={{ height: '100%', border: 'none', borderRadius: 0 }}>
+                  <SandpackLayout style={{ flex: 1, height: '100%', border: 'none', borderRadius: 0, display: 'flex', flexDirection: 'column' }}>
                       <SandpackPreview 
-                          style={{ height: '100%' }} 
+                          style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column' }} 
                           showOpenInCodeSandbox={false} 
                           showRefreshButton={true}
                           showNavigator={true}
                       />
-                      <SandpackCodeEditor style={{ height: '100%', display: 'none' }} /> 
+                      <SandpackCodeEditor style={{ display: 'none' }} /> 
                   </SandpackLayout>
               </SandpackProvider>
           </div>
