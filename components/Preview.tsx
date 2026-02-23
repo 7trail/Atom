@@ -115,6 +115,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   const [sandpackFiles, setSandpackFiles] = useState<any>({});
   const [sandpackTemplate, setSandpackTemplate] = useState<any>('static');
   const [isManualTemplate, setIsManualTemplate] = useState(false);
+  const [isSandpackInitialized, setIsSandpackInitialized] = useState(false);
 
   const SANDPACK_TEMPLATES = [
     'static', 'angular', 'react', 'react-ts', 'vue', 'vue-ts', 
@@ -160,6 +161,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
           else setSandpackTemplate('static');
       }
 
+      setIsSandpackInitialized(true);
   }, [allFiles, useWebContainer, file, isManualTemplate]);
 
 
@@ -465,6 +467,15 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
 
   // --- Sandpack Preview (Replaces WebContainer) ---
   if (useWebContainer) {
+      if (!isSandpackInitialized) {
+          return (
+              <div className="flex-1 flex items-center justify-center bg-gray-900 text-gray-400">
+                  <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                  Initializing Sandbox...
+              </div>
+          );
+      }
+
       return (
           <div className="flex flex-col h-full bg-gray-900 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700 shrink-0">
