@@ -2,17 +2,14 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { FileData } from '../types';
 import { parse } from 'marked';
-import { Play, ClipboardList, Info, Target, CheckCircle2, Rocket, RotateCcw, Lock, ChevronLeft, ChevronRight, RotateCw, Terminal, Eraser, ZoomIn, ZoomOut, Maximize2, Minimize2, Loader2 } from 'lucide-react';
-import { WebContainer } from '@webcontainer/api';
-import { Terminal as XTerm } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import 'xterm/css/xterm.css';
+import { Play, ClipboardList, Info, Target, CheckCircle2, Rocket, Maximize2, Minimize2, Loader2, RefreshCw } from 'lucide-react';
+import { Sandpack, SandpackLayout, SandpackPreview, SandpackProvider, SandpackCodeEditor } from '@codesandbox/sandpack-react';
 
 interface PreviewProps {
   file: FileData | null;
   allFiles: FileData[];
   onSelectFile: (file: FileData) => void;
-  onExecutePlanStep?: (step: string) => void;
+  onExecutePlanStep?: (step: string, name: string) => void;
   onExecuteFullPlan?: () => void;
   hostWindow?: Window;
   lastUpdated?: number;
@@ -114,145 +111,44 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   const [isLoading, setIsLoading] = useState(false);
   const blobUrlsRef = useRef<string[]>([]);
   
-  // WebContainer State
-  const [webContainerInstance, setWebContainerInstance] = useState<WebContainer | null>(null);
-  const [wcUrl, setWcUrl] = useState<string>('');
-  const [isWcBooting, setIsWcBooting] = useState(false);
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<XTerm | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
+  // Sandpack State
+  const [sandpackFiles, setSandpackFiles] = useState<any>({});
+  const [sandpackTemplate, setSandpackTemplate] = useState<'react' | 'node' | 'static'>('static');
 
-  // --- WebContainer Initialization ---
+  // --- Sandpack Initialization ---
   useEffect(() => {
       if (!useWebContainer) return;
       
-      let instance: WebContainer;
+      const files: any = {};
+      let hasReact = false;
+      let hasPackageJson = false;
 
-      const boot = async () => {
-          setIsWcBooting(true);
-          try {
-              instance = await WebContainer.boot();
-              setWebContainerInstance(instance);
-              
-              // Mount files
-              const fileTree: any = {};
-              allFiles.forEach(f => {
-                  // Simple flat mapping for now, assuming no nested folders in FileData name (or handle it)
-                  // FileData name usually includes path like "src/App.tsx"
-                  const parts = f.name.split('/');
-                  let current = fileTree;
-                  for (let i = 0; i < parts.length - 1; i++) {
-                      const part = parts[i];
-                      if (!current[part]) current[part] = { directory: {} };
-                      current = current[part].directory;
-                  }
-                  current[parts[parts.length - 1]] = { file: { contents: f.content } };
-              });
-              await instance.mount(fileTree);
-
-              // Start dev server if package.json exists
-              const packageJson = allFiles.find(f => f.name === 'package.json');
-              if (packageJson) {
-                  const installProcess = await instance.spawn('npm', ['install']);
-                  installProcess.output.pipeTo(new WritableStream({
-                      write(data) {
-                          xtermRef.current?.write(data);
-                      }
-                  }));
-                  await installProcess.exit;
-
-                  const startProcess = await instance.spawn('npm', ['run', 'start']); // or dev
-                  startProcess.output.pipeTo(new WritableStream({
-                      write(data) {
-                          xtermRef.current?.write(data);
-                      }
-                  }));
-                  
-                  instance.on('server-ready', (port, url) => {
-                      setWcUrl(url);
-                  });
-              } else {
-                  // Fallback for static HTML if no package.json? 
-                  // Or just serve static? WebContainer needs a server to expose a URL usually.
-                  // For now, let's assume if they enable WC, they want a Node env.
-                  // If just index.html, we might need a simple serve.
-                  // Let's try to run a simple http-server if index.html exists and no package.json
-                  if (allFiles.find(f => f.name === 'index.html')) {
-                      await instance.spawn('npx', ['-y', 'http-server', '-p', '3000']);
-                      instance.on('server-ready', (port, url) => {
-                          setWcUrl(url);
-                      });
-                  }
-              }
-
-          } catch (e) {
-              console.error("WebContainer Boot Failed", e);
-          } finally {
-              setIsWcBooting(false);
-          }
-      };
-
-      boot();
-
-      return () => {
-          // WebContainer teardown if possible? API doesn't expose easy teardown of singleton.
-          // Usually we just reuse it or it stays alive.
-      };
-  }, [useWebContainer]); // Run once when enabled
-
-  // Sync files to WebContainer when they change
-  useEffect(() => {
-      if (!webContainerInstance || !useWebContainer) return;
-      
-      const sync = async () => {
-          const fileTree: any = {};
-          allFiles.forEach(f => {
-              const parts = f.name.split('/');
-              let current = fileTree;
-              for (let i = 0; i < parts.length - 1; i++) {
-                  const part = parts[i];
-                  if (!current[part]) current[part] = { directory: {} };
-                  current = current[part].directory;
-              }
-              current[parts[parts.length - 1]] = { file: { contents: f.content } };
-          });
-          await webContainerInstance.mount(fileTree);
-      };
-      sync();
-  }, [allFiles, lastUpdated, webContainerInstance, useWebContainer]);
-
-  // Init Terminal
-  useEffect(() => {
-      if (useWebContainer && terminalRef.current && !xtermRef.current) {
-          const term = new XTerm({ convertEol: true });
-          const fitAddon = new FitAddon();
-          term.loadAddon(fitAddon);
-          term.open(terminalRef.current);
+      allFiles.forEach(f => {
+          // Sandpack expects paths without leading slash usually, but handles them.
+          // We map our flat file list to Sandpack format.
+          // Sandpack files: { "/App.js": code }
           
-          // Delay fit to ensure DOM is ready and renderer is initialized
-          setTimeout(() => {
-              try {
-                  fitAddon.fit();
-              } catch (e) {
-                  console.warn("Terminal fit failed:", e);
-              }
-          }, 100);
-
-          xtermRef.current = term;
-          fitAddonRef.current = fitAddon;
+          let path = f.name;
+          if (!path.startsWith('/')) path = '/' + path;
           
-          const handleResize = () => {
-              try {
-                  fitAddon.fit();
-              } catch (e) {
-                  // Ignore resize errors if terminal is hidden
-              }
+          files[path] = {
+              code: f.content,
+              active: f.name === file?.name
           };
-          
-          window.addEventListener('resize', handleResize);
-          return () => window.removeEventListener('resize', handleResize);
-      }
-  }, [useWebContainer]);
+
+          if (f.name.includes('package.json')) hasPackageJson = true;
+          if (f.content.includes('react') || f.name.endsWith('.jsx') || f.name.endsWith('.tsx')) hasReact = true;
+      });
+
+      // Determine template
+      if (hasReact) setSandpackTemplate('react');
+      else if (hasPackageJson) setSandpackTemplate('node'); // Sandpack 'node' is also web-based but might be limited
+      else setSandpackTemplate('static');
+
+      setSandpackFiles(files);
+
+  }, [allFiles, useWebContainer, file]);
+
 
   // --- Message Listener for Navigation ---
   useEffect(() => {
@@ -275,7 +171,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
 
   // --- Blob Engine for HTML Previews (Standard Mode) ---
   useEffect(() => {
-    if (useWebContainer) return; // Skip if using WebContainer
+    if (useWebContainer) return; // Skip if using WebContainer (Sandpack)
 
     // Cleanup previous blobs
     blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
@@ -554,35 +450,26 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
     );
   }
 
-  // --- WebContainer Preview ---
+  // --- Sandpack Preview (Replaces WebContainer) ---
   if (useWebContainer) {
       return (
           <div className="flex flex-col h-full bg-gray-900">
-              <div className="flex-1 relative bg-white">
-                  {isWcBooting && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-                          <div className="flex flex-col items-center gap-2">
-                              <Loader2 className="animate-spin h-8 w-8 text-cerebras-600" />
-                              <span className="text-sm text-gray-600">Booting WebContainer...</span>
-                          </div>
-                      </div>
-                  )}
-                  {wcUrl ? (
-                      <iframe 
-                          title="WebContainer Preview"
-                          src={wcUrl}
-                          className="w-full h-full border-none"
-                          sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"
+              <SandpackProvider 
+                  template={sandpackTemplate} 
+                  files={sandpackFiles}
+                  theme="dark"
+                  options={{
+                      externalResources: ["https://cdn.tailwindcss.com"]
+                  }}
+              >
+                  <SandpackLayout style={{ height: '100%', border: 'none', borderRadius: 0 }}>
+                      <SandpackPreview 
+                          style={{ height: '100%' }} 
+                          showOpenInCodeSandbox={false} 
+                          showRefreshButton={true}
                       />
-                  ) : (
-                      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                          {!isWcBooting && "Waiting for server to start..."}
-                      </div>
-                  )}
-              </div>
-              <div className="h-48 bg-black border-t border-gray-800 p-2 overflow-hidden">
-                  <div ref={terminalRef} className="w-full h-full" />
-              </div>
+                  </SandpackLayout>
+              </SandpackProvider>
           </div>
       );
   }
@@ -670,7 +557,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                                 </div>
                                 {!step.completed && (
                                     <button 
-                                        onClick={() => onExecutePlanStep && onExecutePlanStep(step.text)}
+                                        onClick={() => onExecutePlanStep && onExecutePlanStep(step.text, file.name)}
                                         className="px-4 py-2 bg-gray-900 text-white text-xs sm:text-sm font-medium rounded-lg flex items-center gap-2 hover:bg-cerebras-600 active:transform active:scale-95 transition-all shadow-sm whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
                                     >
                                         <Play className="w-3 h-3 fill-current" /> Execute
