@@ -27,7 +27,8 @@ export interface Skill {
   content: string; // The markdown instructions
   metadata?: any; // The parsed yaml object
   filePath: string;
-  files?: string[]; // List of additional files available in the skill bundle
+  files?: string[]; // List of additional files available in the skill bundle (Legacy/Server)
+  resources?: Record<string, string>; // Map of path -> content for Zip-based skills
   source?: 'file' | 'server' | 'storage';
 }
 

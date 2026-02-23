@@ -15,7 +15,7 @@ import { runTerminalCommand } from './services/terminalService';
 import { isDocument, parseDocument } from './services/documentParser';
 import { createWordDoc, createExcelSheet, createPresentation } from './services/officeGen';
 import { shouldRunSchedule } from './services/scheduler';
-import { parseSkill, fetchServerSkills, saveSkillToStorage, getLocalStorageSkills, deleteSkillFromStorage } from './services/skillParser';
+import { parseSkill, parseSkillZip, fetchServerSkills, saveSkillToStorage, getLocalStorageSkills, deleteSkillFromStorage } from './services/skillParser';
 import { ragService } from './services/rag';
 import { useFileSystem } from './hooks/useFileSystem';
 import { useChatHistory } from './hooks/useChatHistory';
@@ -438,6 +438,24 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                         else if (args.filename.endsWith('.pptx')) content = await createPresentation(args.content, filesRef.current);
                         if (content) { const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result; setLastUpdated(Date.now()); } else result = "Failed to generate.";
                     } else if (fnName === 'api_call') result = await performApiCall(args.url, args.method, args.headers, args.body);
+                    else if (fnName === 'fetch_skill_resource') {
+                         const skillName = args.skill_name;
+                         const resourcePath = args.path;
+                         const skill = skills.find(s => s.name === skillName);
+                         if (!skill) {
+                             result = `Skill '${skillName}' not found. Available skills: ${skills.map(s => s.name).join(', ')}`;
+                         } else if (!skill.resources || !skill.resources[resourcePath]) {
+                             // Try fuzzy match or normalizing path (e.g. remove leading slash)
+                             const cleanPath = resourcePath.replace(/^\//, '');
+                             if (skill.resources && skill.resources[cleanPath]) {
+                                 result = skill.resources[cleanPath];
+                             } else {
+                                 result = `Resource '${resourcePath}' not found in skill '${skillName}'. Available resources: ${skill.resources ? Object.keys(skill.resources).join(', ') : 'None'}`;
+                             }
+                         } else {
+                             result = skill.resources[resourcePath];
+                         }
+                    }
                     else result = "Executed.";
                     
                     if (agentControlRef.current.stop) return;
@@ -489,7 +507,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
         messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => [...p, a]); setSelectedAgent(a); } }} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatInput={chatInput} setChatInput={setChatInput} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} streamMetrics={streamMetrics} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}
         handleUpdateFileContent={handleUpdateFileContent} handleSmartEdit={handleSmartEdit} handleSaveFileWrapper={handleSaveFileWrapper} handleExecutePlanStep={handleExecutePlanStep} handleExecuteFullPlan={handleExecuteFullPlan}
         schedules={schedules} toggleScheduleActive={(id) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, active: !s.active } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} deleteSchedule={(id) => setSchedules(p => { const n = p.filter(s => s.id !== id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} updateScheduleAgent={(id, aid) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, agentId: aid } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} timezone={timezone}
-        skills={skills} enabledSkillIds={enabledSkillIds} handleToggleSkill={(id) => setEnabledSkillIds(p => { const n = p.includes(id) ? p.filter(x => x !== id) : [...p, id]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ enabledSkillIds: n }); else localStorage.setItem('atom_enabled_skills', JSON.stringify(n)); return n; })} handleImportSkill={(f) => { f.forEach(x => { if (x.name.endsWith('.json')) { try { const d = JSON.parse(x.content); (Array.isArray(d) ? d : [d]).forEach(saveSkillToStorage); } catch {} } else { const s = parseSkill(x); if (s) saveSkillToStorage(s); } }); setSkillRefresh(p => p + 1); addToast("Skills imported"); }} handleExportSkills={() => { const s = getLocalStorageSkills(); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s, null, 2)); a.download = "skills.json"; a.click(); }} handleDeleteSkill={(id) => { deleteSkillFromStorage(id); setSkillRefresh(p => p + 1); addToast("Skill deleted"); }}
+        skills={skills} enabledSkillIds={enabledSkillIds} handleToggleSkill={(id) => setEnabledSkillIds(p => { const n = p.includes(id) ? p.filter(x => x !== id) : [...p, id]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ enabledSkillIds: n }); else localStorage.setItem('atom_enabled_skills', JSON.stringify(n)); return n; })} handleImportSkill={(f) => { f.forEach(async x => { if (x.name.endsWith('.json')) { try { const d = JSON.parse(x.content); (Array.isArray(d) ? d : [d]).forEach(saveSkillToStorage); } catch {} } else if (x.name.endsWith('.zip')) { const s = await parseSkillZip(x); if (s) saveSkillToStorage(s); } else { const s = parseSkill(x); if (s) saveSkillToStorage(s); } }); setSkillRefresh(p => p + 1); addToast("Skills imported"); }} handleExportSkills={() => { const s = getLocalStorageSkills(); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s, null, 2)); a.download = "skills.json"; a.click(); }} handleDeleteSkill={(id) => { deleteSkillFromStorage(id); setSkillRefresh(p => p + 1); addToast("Skill deleted"); }}
         sessions={sessions} closeSession={closeSession} localPath={localPath} setIsShareModalOpen={setIsShareModalOpen} ttsVoice={ttsVoice}
         lastUpdated={lastUpdated} useWebContainer={useWebContainer}
       />
