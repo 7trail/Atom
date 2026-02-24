@@ -114,6 +114,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   // Sandpack State
   const [sandpackFiles, setSandpackFiles] = useState<any>({});
   const [sandpackTemplate, setSandpackTemplate] = useState<any>('static');
+  const [sandpackDependencies, setSandpackDependencies] = useState<Record<string, string>>({});
   const [isManualTemplate, setIsManualTemplate] = useState(false);
   const [isSandpackInitialized, setIsSandpackInitialized] = useState(false);
 
@@ -132,6 +133,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       let hasReact = false;
       let hasPackageJson = false;
       let hasVite = false;
+      let parsedDependencies: Record<string, string> = {};
 
       allFiles.forEach(f => {
           // Sandpack expects paths without leading slash usually, but handles them.
@@ -146,12 +148,26 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
               active: f.name === file?.name
           };
 
-          if (f.name.includes('package.json')) hasPackageJson = true;
+          if (f.name.includes('package.json')) {
+              hasPackageJson = true;
+              try {
+                  const pkg = JSON.parse(f.content);
+                  if (pkg.dependencies) {
+                      parsedDependencies = { ...parsedDependencies, ...pkg.dependencies };
+                  }
+                  if (pkg.devDependencies) {
+                      parsedDependencies = { ...parsedDependencies, ...pkg.devDependencies };
+                  }
+              } catch (e) {
+                  console.error("Failed to parse package.json for dependencies", e);
+              }
+          }
           if (f.name.includes('vite.config')) hasVite = true;
           if (f.content.includes('react') || f.name.endsWith('.jsx') || f.name.endsWith('.tsx')) hasReact = true;
       });
 
       setSandpackFiles(files);
+      setSandpackDependencies(parsedDependencies);
 
       // Determine template only if not manually set
       if (!isManualTemplate) {
@@ -498,8 +514,12 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
               </div>
               <SandpackProvider 
                   template={sandpackTemplate} 
+                  
                   files={sandpackFiles}
                   theme="dark"
+                  customSetup={{
+                      dependencies: sandpackDependencies
+                  }}
                   options={{
                       classes: {
                           "sp-layout": "h-full",
