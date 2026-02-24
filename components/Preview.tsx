@@ -500,8 +500,8 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       }
 
       return (
-          <div className="flex flex-col h-full bg-dark-bg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-dark-panel border-b border-dark-border shrink-0">
+          <div className="flex flex-col h-full bg-gray-900 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700 shrink-0">
                   <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Preview Environment</span>
                   <div className="flex items-center gap-2">
                       <label className="text-xs text-gray-400">Template:</label>
@@ -511,7 +511,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                               setSandpackTemplate(e.target.value);
                               setIsManualTemplate(true);
                           }}
-                          className="bg-dark-bg text-gray-300 text-xs border border-dark-border rounded px-2 py-1 focus:outline-none focus:border-cerebras-500"
+                          className="bg-gray-900 text-gray-300 text-xs border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-cerebras-500"
                       >
                           {SANDPACK_TEMPLATES.map(t => (
                               <option key={t} value={t}>{t}</option>
