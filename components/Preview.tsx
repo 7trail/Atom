@@ -143,12 +143,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
           let path = f.name;
           if (!path.startsWith('/')) path = '/' + path;
           
-          files[path] = {
-              code: f.content,
-              active: f.name === file?.name
-          };
-
-          if (f.name.includes('package.json')) {
+          if (f.name === 'package.json' || f.name === '/package.json') {
               hasPackageJson = true;
               try {
                   const pkg = JSON.parse(f.content);
@@ -161,7 +156,19 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
               } catch (e) {
                   console.error("Failed to parse package.json for dependencies", e);
               }
+              // Skip adding package.json to files to avoid overwriting Sandpack template scripts
+              return;
           }
+
+          if (f.name === 'package-lock.json' || f.name === '/package-lock.json') {
+              return; // Skip lockfiles
+          }
+
+          files[path] = {
+              code: f.content,
+              active: f.name === file?.name
+          };
+
           if (f.name.includes('vite.config')) hasVite = true;
           if (f.content.includes('react') || f.name.endsWith('.jsx') || f.name.endsWith('.tsx')) hasReact = true;
       });
