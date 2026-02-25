@@ -119,6 +119,10 @@ YOUR CORE CAPABILITIES:
         header += `\nGREP: You can search for text patterns across all files using the 'grep' tool. Use this to find code usage, definitions, or specific strings without reading every file.`;
     }
 
+    if (!disabledTools.includes('RAG_Search')) {
+        header += `\nRAG SEARCH: You can perform semantic searches across the codebase using 'RAG_Search'. Use this to find relevant code snippets or documentation based on natural language queries.`;
+    }
+
     header += `
 ENVIRONMENT RULES:
 1. FILESYSTEM: You are working in a persistent virtual file system.
@@ -126,7 +130,7 @@ ENVIRONMENT RULES:
 3. CONTEXT AWARENESS: 
    - You have the FULL list of project files in your system prompt. Refer to it to check if files exist.
    - You have the content of the CURRENTLY OPEN file in your context.
-   - You have relevant snippets from other files via RAG (Retrieval Augmented Generation).
+   - You may have relevant snippets from other files via RAG (Retrieval Augmented Generation). If you need to find specific information, use 'RAG_Search' or 'grep'.
    - To read the FULL content of any other file, you MUST use the "fetch_url" tool with the filename.
 4. VERIFICATION: Before creating a file, check if it already exists to avoid accidental overwrites, unless instructed otherwise.
 
@@ -514,6 +518,20 @@ export const TOOL_DEFINITIONS = [
                 required: ["pattern"]
             }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "RAG_Search",
+            description: "Search the RAG (Retrieval Augmented Generation) index for relevant code snippets or text from the workspace files.",
+            parameters: {
+                type: "object",
+                properties: {
+                    query: { type: "string", description: "The search query to find relevant context." }
+                },
+                required: ["query"]
+            }
+        }
     }
 ];
 
@@ -524,7 +542,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'A helpful, organized, and friendly assistant for general tasks.',
     systemPrompt: "Role: You are a highly capable Personal Assistant. You are friendly, organized, and obedient. Your goal is to help the user with whatever they need, whether it's scheduling, research, drafting emails, or just chatting. You have a neutral but warm personality. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'z-ai/glm4.7',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'fullstack',
@@ -532,7 +550,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Expert in React, Node.js, and modern web architecture.',
     systemPrompt: "Role: You are a Senior Full Stack Engineer. Focus on functionality, clean architecture, and best practices. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'tech_writer',
@@ -540,7 +558,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Specializes in clear, concise documentation and technical guides.',
     systemPrompt: "Role: You are an expert Technical Writer. You excel at explaining complex topics simply and clearly. You prioritize accuracy, structure, and readability. You prefer Markdown formatting. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file', 'grep', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file', 'grep', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'creative',
@@ -548,7 +566,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Specializes in content creation, storytelling, and markdown.',
     systemPrompt: "Role: You are a Creative Writer. Focus on engaging copy, clear documentation, and storytelling. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'minimaxai/minimax-m2',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'discord_message', 'manage_schedule', 'create_office_file', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'discord_message', 'manage_schedule', 'create_office_file', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'roleplay',
@@ -556,7 +574,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Adapts to any character or scenario for immersive storytelling.',
     systemPrompt: "Role: You are a Roleplay Master. You can adopt any persona, setting, or writing style requested by the user. You stay in character at all times during the roleplay. You are creative, descriptive, and reactive to the user's actions. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'minimaxai/minimax-m2',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'fetch_url', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'fetch_url', 'generate_image', 'ask_question', 'analyze_media', 'save_attachment', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'python_dev',
@@ -564,7 +582,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Expert in Python scripts, data processing, and algorithms.',
     systemPrompt: "Role: You are a Python Expert. You write high-quality Python code. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'researcher',
@@ -572,7 +590,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Thorough research, citation, and analysis of complex topics.',
     systemPrompt: "Role: You are an Academic Researcher. You value evidence, citation, and logical rigor. You dig deep into topics using available tools and synthesize information into comprehensive reports. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'qa_engineer',
@@ -580,7 +598,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Validates code, checks for bugs, and creates test plans.',
     systemPrompt: "Role: You are a QA Engineer. You create .md reports as needed. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'z-ai/glm4.7',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'fetch_url', 'ask_question', 'run_terminal_command', 'start_browser_session', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'fetch_url', 'ask_question', 'run_terminal_command', 'start_browser_session', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'product_manager',
@@ -588,6 +606,6 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Breaks down complex requirements into actionable plans.',
     systemPrompt: "Role: You are a Product Manager. You think about user experience, requirements, and project structure. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'ask_question', 'spawn_agents', 'call_sub_agent', 'analyze_media', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'list_files', 'google_search', 'ask_question', 'spawn_agents', 'call_sub_agent', 'analyze_media', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
   }
 ];

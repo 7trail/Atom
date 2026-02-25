@@ -75,6 +75,7 @@ const App: React.FC = () => {
   const [proxyMode, setProxyMode] = useState<boolean>(() => localStorage.getItem('atom_proxy_mode') === 'true');
   const [ttsVoice, setTtsVoice] = useState<string>(() => localStorage.getItem('atom_tts_voice') || 'delia');
   const [useWebContainer, setUseWebContainer] = useState<boolean>(() => localStorage.getItem('atom_use_webcontainer') === 'true');
+  const [disableDefaultRAG, setDisableDefaultRAG] = useState<boolean>(() => localStorage.getItem('atom_disable_default_rag') === 'true');
   
   const [isMobile, setIsMobile] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -332,8 +333,13 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
     if (!isContinuing) {
         const historySource = customMessageState || messagesRef.current;
         apiLoopMessages.push(...historySource.slice(-10).map(m => ({ role: m.role === 'tool' ? 'user' : m.role, content: m.content || ' ' })).filter(m => m.content.trim()));
-        const ragContext = await ragService.retrieve(content);
-        let contextBlock = `Context (RAG):\n${ragContext}`;
+        
+        let contextBlock = "";
+        if (!disableDefaultRAG) {
+            const ragContext = await ragService.retrieve(content);
+            contextBlock = `Context (RAG):\n${ragContext}`;
+        }
+        
         if (selectedFile && activeView === 'edit') contextBlock += `\n\n[CURRENTLY OPEN: ${selectedFile.name}]\n\`\`\`${selectedFile.language}\n${selectedFile.content.slice(0,20000)}\n\`\`\``;
         apiLoopMessages.push({ role: "user", content: `${contextBlock}\n\nUser Message: ${content}` });
     }
@@ -455,6 +461,8 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                          } else {
                              result = skill.resources[resourcePath];
                          }
+                    } else if (fnName === 'RAG_Search') {
+                        result = await ragService.retrieve(args.query);
                     }
                     else result = "Executed.";
                     
@@ -487,6 +495,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
           defaultVlModel={defaultVlModel} onSetDefaultVlModel={(m) => { setDefaultVlModel(m as AppModel); localStorage.setItem('atom_default_vl_model', m); }}
           ttsVoice={ttsVoice} onSetTtsVoice={(v) => { setTtsVoice(v); localStorage.setItem('atom_tts_voice', v); }}
           useWebContainer={useWebContainer} onToggleWebContainer={() => setUseWebContainer(p => { localStorage.setItem('atom_use_webcontainer', String(!p)); return !p; })}
+          disableDefaultRAG={disableDefaultRAG} onToggleDefaultRAG={() => setDisableDefaultRAG(p => { localStorage.setItem('atom_disable_default_rag', String(!p)); return !p; })}
       />
       <ThemeBrowser isOpen={isThemeBrowserOpen} onClose={() => setIsThemeBrowserOpen(false)} currentTheme={theme} onSetTheme={setTheme} />
       <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} currentWorkspace={workspaces.find(w => w.id === activeWorkspaceId)} onImportWorkspace={(ws) => { handleImportWorkspace(ws); addToast(`Imported ${ws.name}`); }} />

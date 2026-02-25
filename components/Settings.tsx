@@ -27,6 +27,7 @@ const GLOBAL_TOOLS_LIST = [
     { id: 'manage_schedule', label: 'Scheduler', desc: 'Create recurring/scheduled tasks.' },
     { id: 'api_call', label: 'HTTP API Client', desc: 'Make GET/POST requests to external APIs.' },
     { id: 'grep', label: 'Grep Search', desc: 'Regex search across workspace files.' },
+    { id: 'RAG_Search', label: 'RAG Search', desc: 'Semantic search across workspace files.' },
 ];
 
 const Settings: React.FC<SettingsProps> = ({ 
@@ -39,7 +40,8 @@ const Settings: React.FC<SettingsProps> = ({
     proxyMode, onToggleProxyMode,
     defaultVlModel, onSetDefaultVlModel,
     ttsVoice, onSetTtsVoice,
-    useWebContainer, onToggleWebContainer
+    useWebContainer, onToggleWebContainer,
+    disableDefaultRAG, onToggleDefaultRAG
 }) => {
   const [cerebrasKeys, setCerebrasKeys] = useState<string[]>([]);
   const [nvidiaKeys, setNvidiaKeys] = useState<string[]>([]);
@@ -332,6 +334,28 @@ const Settings: React.FC<SettingsProps> = ({
                         </div>
                         <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
                             Use StackBlitz WebContainers for full Node.js environment in preview.
+                        </div>
+                    </div>
+                </button>
+
+                <button 
+                    onClick={onToggleDefaultRAG}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                        disableDefaultRAG 
+                            ? 'bg-red-900/10 border-red-500/30' 
+                            : 'bg-dark-bg border-dark-border opacity-60'
+                    }`}
+                >
+                    <div className={`mt-0.5 ${disableDefaultRAG ? 'text-red-500' : 'text-gray-600'}`}>
+                        {disableDefaultRAG ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1">
+                        <div className={`text-xs font-medium flex items-center gap-2 ${disableDefaultRAG ? 'text-dark-text' : 'text-gray-500'}`}>
+                            <span>Disable Default RAG</span>
+                            <ShieldCheck className="w-3 h-3 text-gray-500" />
+                        </div>
+                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                            Stop automatically searching RAG for every message. Use 'RAG_Search' tool instead.
                         </div>
                     </div>
                 </button>
