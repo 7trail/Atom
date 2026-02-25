@@ -95,7 +95,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
           </div>
         ) : (
           <div className="grid gap-4 max-w-4xl mx-auto">
-            {skills.map(skill => {
+            {[...skills].sort((a, b) => a.name.localeCompare(b.name)).map(skill => {
                const isEnabled = enabledSkillIds.includes(skill.id);
                const isExpanded = expandedId === skill.id;
                

@@ -91,7 +91,7 @@ YOUR CORE CAPABILITIES:
         header += `9. SCHEDULER: You can create one-time or recurring scheduled events using 'manage_schedule'. When the time comes, the system will wake you up with the prompt you specified.\n`;
     }
     
-    header += `10. OFFICE SUITE: You can create rich Word Documents (.docx), Excel Sheets (.xlsx), and PowerPoint Presentations (.pptx).
+    header += `10. OFFICE SUITE: You can create rich Word Documents (.docx), Excel Sheets (.xlsx), and PowerPoint Presentations (.pptx). Use the create_office_file tool EXCLUSIVELY when operating with these filetypes.
    - Word: Supports Markdown syntax including headers, bullets, bold text, tables.
      * Advanced Image Styling: Use alt text for props like width, height, rotation, links. Example: ![w=400;h=300;rotate=45;link=https://example.com](image.png)
    - Excel: Supports multiple sheets and complex data structures.

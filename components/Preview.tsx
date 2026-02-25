@@ -520,6 +520,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                   </div>
               </div>
               <SandpackProvider 
+                  key={sandpackTemplate}
                   template={sandpackTemplate} 
                   
                   files={sandpackFiles}

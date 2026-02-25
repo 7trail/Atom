@@ -126,6 +126,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             const newLink = newWindow.document.createElement('link');
                             newLink.rel = 'stylesheet';
                             newLink.href = styleSheet.href;
+                            if (styleSheet.ownerNode && (styleSheet.ownerNode as HTMLLinkElement).crossOrigin) {
+                                newLink.crossOrigin = (styleSheet.ownerNode as HTMLLinkElement).crossOrigin;
+                            }
                             newWindow.document.head.appendChild(newLink);
                         } else if (styleSheet.cssRules) {
                             const newStyle = newWindow.document.createElement('style');
@@ -144,6 +147,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 if (tailwindScript) {
                     const newScript = newWindow.document.createElement('script');
                     newScript.src = (tailwindScript as HTMLScriptElement).src;
+                    if ((tailwindScript as HTMLScriptElement).crossOrigin) {
+                        newScript.crossOrigin = (tailwindScript as HTMLScriptElement).crossOrigin;
+                    }
                     newWindow.document.head.appendChild(newScript);
                 }
                 if ((window as any).tailwind) {

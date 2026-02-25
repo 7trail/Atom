@@ -41,12 +41,16 @@ const Terminal: React.FC<TerminalProps> = ({ cwd, visible }) => {
         xtermRef.current = term;
 
         const handleResize = () => {
-            fitAddon.fit();
-            const dims = fitAddon.proposeDimensions();
-            if (dims && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                // Send resize control message to server
-                wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
-                term.resize(dims.cols, dims.rows);
+            try {
+                fitAddon.fit();
+                const dims = fitAddon.proposeDimensions();
+                if (dims && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    // Send resize control message to server
+                    wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+                    term.resize(dims.cols, dims.rows);
+                }
+            } catch (e) {
+                // Ignore resize errors when terminal is not fully initialized or visible
             }
         };
         
@@ -63,14 +67,18 @@ const Terminal: React.FC<TerminalProps> = ({ cwd, visible }) => {
         if (visible && fitAddonRef.current) {
             // Small timeout to allow layout to stabilize
             setTimeout(() => {
-                fitAddonRef.current?.fit();
-                const dims = fitAddonRef.current?.proposeDimensions();
-                if (dims && xtermRef.current) {
-                    xtermRef.current.resize(dims.cols, dims.rows);
-                    // Also send to server if connected
-                     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+                try {
+                    fitAddonRef.current?.fit();
+                    const dims = fitAddonRef.current?.proposeDimensions();
+                    if (dims && xtermRef.current) {
+                        xtermRef.current.resize(dims.cols, dims.rows);
+                        // Also send to server if connected
+                         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                            wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+                        }
                     }
+                } catch (e) {
+                    // Ignore resize errors
                 }
             }, 100);
         }
@@ -117,10 +125,14 @@ const Terminal: React.FC<TerminalProps> = ({ cwd, visible }) => {
             term.write('\r\n');
             
             // Sync size immediately on connection
-            const dims = fitAddonRef.current?.proposeDimensions();
-            if (dims) {
-                ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
-                term.resize(dims.cols, dims.rows);
+            try {
+                const dims = fitAddonRef.current?.proposeDimensions();
+                if (dims) {
+                    ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+                    term.resize(dims.cols, dims.rows);
+                }
+            } catch (e) {
+                // Ignore resize errors
             }
         };
 
