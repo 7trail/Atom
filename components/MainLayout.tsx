@@ -142,22 +142,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                     }
                 });
                 
-                // Copy Tailwind script/config if present
-                const tailwindScript = document.querySelector('script[src*="tailwindcss"]');
-                if (tailwindScript) {
-                    const newScript = newWindow.document.createElement('script');
-                    newScript.src = (tailwindScript as HTMLScriptElement).src;
-                    if ((tailwindScript as HTMLScriptElement).crossOrigin) {
-                        newScript.crossOrigin = (tailwindScript as HTMLScriptElement).crossOrigin;
-                    }
-                    newWindow.document.head.appendChild(newScript);
-                }
-                if ((window as any).tailwind) {
-                    const configScript = newWindow.document.createElement('script');
-                    configScript.textContent = `tailwind.config = ${JSON.stringify((window as any).tailwind.config)}`;
-                    newWindow.document.head.appendChild(configScript);
-                }
-                
                 // Theme
                 if (document.documentElement.classList.contains('dark')) {
                     newWindow.document.documentElement.classList.add('dark');

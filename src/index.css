@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cerebras-50: var(--accent-50);
+  --color-cerebras-100: var(--accent-100);
+  --color-cerebras-500: var(--accent-primary);
+  --color-cerebras-600: var(--accent-hover);
+  --color-cerebras-900: var(--accent-deep);
+  --color-dark-bg: var(--bg-app);
+  --color-dark-panel: var(--bg-panel);
+  --color-dark-border: var(--border-color);
+  --color-dark-text: var(--text-main);
+  --color-dark-muted: var(--text-muted);
+}
