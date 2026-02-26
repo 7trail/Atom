@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Key, ShieldCheck, Cpu, Palette, Check, Wrench, ToggleRight, ToggleLeft, Bot, MessageCircle, Clock, Download, Upload, AlertCircle, Grid, FileText, Bug, Lock, Globe, Eye, Cloud, Volume2, Terminal } from 'lucide-react';
-import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey } from '../services/cerebras';
+import { getApiKeys, addApiKey, removeApiKey, getNvidiaApiKeys, addNvidiaApiKey, removeNvidiaApiKey, getOllamaApiKeys, addOllamaApiKey, removeOllamaApiKey } from '../services/cerebras';
 import { connectDiscord } from '../services/tools';
 import { SettingsProps, Agent } from '../types';
 import { isRenderHosted, TTS_VOICES } from '../constants';
@@ -45,9 +45,11 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
   const [cerebrasKeys, setCerebrasKeys] = useState<string[]>([]);
   const [nvidiaKeys, setNvidiaKeys] = useState<string[]>([]);
+  const [ollamaKeys, setOllamaKeys] = useState<string[]>([]);
   
   const [newCerebrasKey, setNewCerebrasKey] = useState('');
   const [newNvidiaKey, setNewNvidiaKey] = useState('');
+  const [newOllamaKey, setNewOllamaKey] = useState('');
 
   // Discord Config
   const [discordToken, setDiscordToken] = useState('');
@@ -66,6 +68,7 @@ const Settings: React.FC<SettingsProps> = ({
     if (isOpen) {
       setCerebrasKeys(getApiKeys());
       setNvidiaKeys(getNvidiaApiKeys());
+      setOllamaKeys(getOllamaApiKeys());
       
       const storedDiscord = localStorage.getItem('atom_discord_config');
       if (storedDiscord) {
@@ -104,6 +107,15 @@ const Settings: React.FC<SettingsProps> = ({
     }
   }
 
+  const handleAddOllama = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newOllamaKey.trim()) {
+        addOllamaApiKey(newOllamaKey.trim());
+        setOllamaKeys(getOllamaApiKeys());
+        setNewOllamaKey('');
+    }
+  }
+
   const handleRemoveCerebras = (key: string) => {
     removeApiKey(key);
     setCerebrasKeys(getApiKeys());
@@ -112,6 +124,11 @@ const Settings: React.FC<SettingsProps> = ({
   const handleRemoveNvidia = (key: string) => {
       removeNvidiaApiKey(key);
       setNvidiaKeys(getNvidiaApiKeys());
+  }
+
+  const handleRemoveOllama = (key: string) => {
+      removeOllamaApiKey(key);
+      setOllamaKeys(getOllamaApiKeys());
   }
 
   const handleConnectDiscord = async () => {
@@ -134,6 +151,7 @@ const Settings: React.FC<SettingsProps> = ({
           theme: currentTheme,
           cerebras_api_keys: getApiKeys(),
           nvidia_api_keys: getNvidiaApiKeys(),
+          ollama_api_keys: getOllamaApiKeys(),
           discord_config: {
               token: discordToken,
               userId: discordUserId
@@ -179,6 +197,7 @@ const Settings: React.FC<SettingsProps> = ({
               // Update LocalStorage
               if (config.cerebras_api_keys) localStorage.setItem('cerebras_api_keys', JSON.stringify(config.cerebras_api_keys));
               if (config.nvidia_api_keys) localStorage.setItem('nvidia_api_keys', JSON.stringify(config.nvidia_api_keys));
+              if (config.ollama_api_keys) localStorage.setItem('ollama_api_keys', JSON.stringify(config.ollama_api_keys));
               if (config.discord_config) localStorage.setItem('atom_discord_config', JSON.stringify(config.discord_config));
               if (config.disabled_tools) localStorage.setItem('atom_disabled_tools', JSON.stringify(config.disabled_tools));
               if (config.disabled_sub_agents) localStorage.setItem('atom_disabled_sub_agents', JSON.stringify(config.disabled_sub_agents));
@@ -191,6 +210,7 @@ const Settings: React.FC<SettingsProps> = ({
               // Refresh state in this modal
               setCerebrasKeys(getApiKeys());
               setNvidiaKeys(getNvidiaApiKeys());
+              setOllamaKeys(getOllamaApiKeys());
               if (config.discord_config) {
                   setDiscordToken(config.discord_config.token);
                   setDiscordUserId(config.discord_config.userId);
@@ -616,6 +636,52 @@ const Settings: React.FC<SettingsProps> = ({
                     type="submit"
                     disabled={!newNvidiaKey.trim()}
                     className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-500 disabled:opacity-50 transition-colors"
+                >
+                    <Plus className="w-4 h-4" />
+                </button>
+            </form>
+          </div>
+
+          <div className="border-t border-dark-border pt-4"></div>
+
+          {/* Ollama Keys */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+                <Cloud className="w-3.5 h-3.5 text-blue-500" />
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Ollama Cloud API Keys</label>
+            </div>
+            
+            <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                {ollamaKeys.length === 0 && (
+                    <div className="text-sm text-gray-500 italic text-center py-2 bg-white/5 rounded">No keys added.</div>
+                )}
+                {ollamaKeys.map((k, i) => (
+                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-gray-300">
+                        <span className="font-mono truncate w-64">
+                            {k.substring(0, 8)}...{k.substring(k.length - 4)}
+                        </span>
+                        <button 
+                            onClick={() => handleRemoveOllama(k)}
+                            className="text-gray-500 hover:text-red-400 transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            <form onSubmit={handleAddOllama} className="flex gap-2">
+                <input 
+                    type="password"
+                    value={newOllamaKey}
+                    onChange={(e) => setNewOllamaKey(e.target.value)}
+                    placeholder="ollama-..."
+                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
+                />
+                <button 
+                    type="submit"
+                    disabled={!newOllamaKey.trim()}
+                    className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-500 disabled:opacity-50 transition-colors"
                 >
                     <Plus className="w-4 h-4" />
                 </button>

@@ -75,6 +75,33 @@ export const removeNvidiaApiKey = (key: string) => {
     localStorage.setItem('nvidia_api_keys', JSON.stringify(newKeys));
 }
 
+// --- API Key Management (Ollama) ---
+
+export const getOllamaApiKeys = (): string[] => {
+    if (typeof localStorage === 'undefined') return [];
+    try {
+        const stored = localStorage.getItem('ollama_api_keys');
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.error("Failed to parse Ollama API keys", e);
+        return [];
+    }
+}
+
+export const addOllamaApiKey = (key: string) => {
+    const keys = getOllamaApiKeys();
+    if (!keys.includes(key)) {
+        keys.push(key);
+        localStorage.setItem('ollama_api_keys', JSON.stringify(keys));
+    }
+}
+
+export const removeOllamaApiKey = (key: string) => {
+    const keys = getOllamaApiKeys();
+    const newKeys = keys.filter(k => k !== key);
+    localStorage.setItem('ollama_api_keys', JSON.stringify(newKeys));
+}
+
 // --- Message Optimization ---
 // Removes massive file content strings from the history sent to the LLM to save tokens
 function optimizeMessages(messages: any[]): any[] {
@@ -98,6 +125,118 @@ export async function chatCompletion(
 ) {
   // Optimize history to reduce bloat
   const optimizedMessages = optimizeMessages(messages);
+
+  // --- Ollama Cloud Path ---
+  if (model.endsWith(':cloud')) {
+      const ollamaKeys = getOllamaApiKeys();
+      const apiKey = ollamaKeys.length > 0 ? ollamaKeys[0] : null;
+
+      if (!apiKey) {
+          const errorMsg = "Missing Ollama API Key. Please add it in Settings.";
+          console.error(errorMsg);
+          return { 
+              choices: [{ 
+                  message: { 
+                      content: `System Error: ${errorMsg}` 
+                  } 
+              }] 
+          };
+      }
+
+      const endpoint = "https://cloudflare-cors-anywhere.anothersaiemail.workers.dev/?https://ollama.com/api/chat";
+      
+      // Deep copy and process messages
+      let processedMessages = JSON.parse(JSON.stringify(optimizedMessages));
+      
+      // Handle attachments for the last user message
+      if (attachments && attachments.length > 0) {
+          const lastUserMsgIndex = processedMessages.findLastIndex((m: any) => m.role === 'user');
+          if (lastUserMsgIndex !== -1) {
+              const images = attachments
+                  .filter(a => a.type === 'image')
+                  .map(a => {
+                      // Extract base64 from data URI
+                      return a.content.split(',')[1];
+                  });
+              
+              if (images.length > 0) {
+                  processedMessages[lastUserMsgIndex].images = images;
+              }
+          }
+      }
+
+      try {
+          const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${apiKey}`,
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                  model: model,
+                  messages: processedMessages,
+                  stream: true
+              }),
+              signal
+          });
+
+          if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Ollama API Error: ${response.status} ${errorText}`);
+          }
+
+          if (!response.body) throw new Error("No response body");
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let fullContent = "";
+          let buffer = "";
+
+          while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || "";
+
+              for (const line of lines) {
+                  if (!line.trim()) continue;
+                  try {
+                      const json = JSON.parse(line);
+                      if (json.done) break;
+                      
+                      if (json.message?.content) {
+                          const content = json.message.content;
+                          fullContent += content;
+                          if (onStream) onStream(content);
+                      }
+                  } catch (e) {
+                      console.error("Error parsing Ollama stream line:", e);
+                  }
+              }
+          }
+
+          return {
+              choices: [{
+                  message: {
+                      content: fullContent,
+                      role: 'assistant'
+                  }
+              }]
+          };
+
+      } catch (error: any) {
+          console.error("Ollama API Request Failed:", error);
+          return {
+              choices: [{
+                  message: {
+                      content: `System Error: ${error.message || "Unknown error"}`
+                  }
+              }]
+          };
+      }
+  }
 
   // --- Nvidia OpenAI Path ---
   if (model.includes("/")) {

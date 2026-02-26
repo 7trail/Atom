@@ -165,19 +165,16 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     return (
         <div className="flex h-full w-full bg-dark-bg text-gray-200 overflow-hidden font-sans relative">
             {/* Mobile Close Tab (Right Side of Screen) */}
-            {props.isMobile && (
-                <button
-                    onClick={() => props.setLeftSidebarOpen(false)}
-                    className={`fixed top-1/2 right-0 w-10 h-16 bg-cerebras-600 rounded-l-xl flex items-center justify-center shadow-lg border border-r-0 border-cerebras-500/50 transition-all duration-300 ease-in-out z-50 ${props.leftSidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}
-                    style={{ transform: 'translateY(-50%)' }}
-                >
-                    <ChevronRight className="w-6 h-6 text-white" />
-                </button>
-            )}
+            <button
+                onClick={() => props.setLeftSidebarOpen(false)}
+                className={`fixed top-1/2 right-0 w-10 h-16 bg-cerebras-600 rounded-l-xl flex items-center justify-center shadow-lg border border-r-0 border-cerebras-500/50 transition-all duration-300 ease-in-out z-50 -translate-y-1/2 ${props.isMobile && props.leftSidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}`}
+            >
+                <ChevronRight className="w-6 h-6 text-white" />
+            </button>
 
             {/* Sidebar with Transitions */}
-            <div className={`${props.leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${props.isMobile ? 'fixed inset-y-0 left-0 z-50 w-72 shadow-2xl' : (props.leftSidebarOpen ? 'w-64 relative' : 'w-0 overflow-hidden')} flex flex-col h-full border-r border-dark-border bg-dark-panel transition-all duration-300 ease-in-out`}>
-                <div className="flex-1 overflow-hidden relative flex flex-col">
+            <div className={`${props.leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${props.isMobile ? 'fixed inset-y-0 left-0 z-50 w-72 shadow-2xl' : (props.leftSidebarOpen ? 'w-64 relative' : 'w-0 overflow-hidden border-r-0')} flex flex-col h-full border-r border-dark-border bg-dark-panel transition-all duration-300 ease-in-out`}>
+                <div className="flex-1 overflow-hidden relative flex flex-col min-w-[16rem]">
                     {props.sidebarMode === 'files' ? (
                         <FileExplorer 
                             files={props.files} 
@@ -351,6 +348,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                                 onExecuteFullPlan={() => props.selectedFile && props.handleExecuteFullPlan(props.selectedFile)} 
                                 lastUpdated={props.lastUpdated}
                                 useWebContainer={props.useWebContainer}
+                                activeWorkspaceId={props.activeWorkspaceId}
                             />
                         )
                     ) : props.activeView === 'schedules' ? (

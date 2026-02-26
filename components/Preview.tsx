@@ -14,6 +14,7 @@ interface PreviewProps {
   hostWindow?: Window;
   lastUpdated?: number;
   useWebContainer?: boolean;
+  activeWorkspaceId?: string;
 }
 
 const getMimeType = (filename: string) => {
@@ -106,7 +107,7 @@ const ImagePreview: React.FC<{ file: FileData }> = ({ file }) => {
     );
 };
 
-const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan, hostWindow = window, lastUpdated, useWebContainer = false }) => {
+const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan, hostWindow = window, lastUpdated, useWebContainer = false, activeWorkspaceId }) => {
   const [iframeSrc, setIframeSrc] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const blobUrlsRef = useRef<string[]>([]);
@@ -124,6 +125,19 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
     'vite-react', 'vite-react-ts', 'vite-vue', 'vite-vue-ts', 
     'vite-svelte', 'vite-svelte-ts', 'astro'
   ];
+
+  // --- Load Saved Template ---
+  useEffect(() => {
+      if (activeWorkspaceId) {
+          const savedTemplate = localStorage.getItem(`atom_preview_template_${activeWorkspaceId}`);
+          if (savedTemplate && SANDPACK_TEMPLATES.includes(savedTemplate)) {
+              setSandpackTemplate(savedTemplate);
+              setIsManualTemplate(true);
+          } else {
+              setIsManualTemplate(false);
+          }
+      }
+  }, [activeWorkspaceId]);
 
   // --- Sandpack Initialization ---
   useEffect(() => {
@@ -508,8 +522,12 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                       <select 
                           value={sandpackTemplate} 
                           onChange={(e) => {
-                              setSandpackTemplate(e.target.value);
+                              const newTemplate = e.target.value;
+                              setSandpackTemplate(newTemplate);
                               setIsManualTemplate(true);
+                              if (activeWorkspaceId) {
+                                  localStorage.setItem(`atom_preview_template_${activeWorkspaceId}`, newTemplate);
+                              }
                           }}
                           className="bg-dark-bg text-gray-300 text-xs border border-dark-border rounded px-2 py-1 focus:outline-none focus:border-cerebras-500"
                       >
