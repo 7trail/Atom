@@ -181,7 +181,6 @@ export interface BrowserSessionInfo {
 export type AppModel = 
   | 'gpt-oss-120b'
   | 'nvidia/nemotron-3-nano-30b-a3b'
-  | 'minimaxai/minimax-m2'
   | 'z-ai/glm4.7'
   | 'qwen/qwen3-next-80b-a3b-thinking'
   | 'qwen/qwen3-next-80b-a3b-instruct'
@@ -193,6 +192,7 @@ export type AppModel =
   | 'moonshotai/kimi-k2.5'
   | 'stepfun-ai/step-3.5-flash'
   | 'minimaxai/minimax-m2.1'
+  | 'minimaxai/minimax-m2.5'
   | 'z-ai/glm5'
   | 'qwen/qwen3.5-397b-a17b'
   | 'kimi-k2.5:cloud'
@@ -221,7 +221,6 @@ export interface SubAgentTask {
 export const SUPPORTED_MODELS: AppModel[] = [
   'gpt-oss-120b',
   'nvidia/nemotron-3-nano-30b-a3b',
-  'minimaxai/minimax-m2',
   'z-ai/glm4.7',
   'qwen/qwen3-next-80b-a3b-thinking',
   'qwen/qwen3-next-80b-a3b-instruct',
@@ -233,6 +232,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'moonshotai/kimi-k2.5',
   'stepfun-ai/step-3.5-flash',
   'minimaxai/minimax-m2.1',
+  'minimaxai/minimax-m2.5',
   'z-ai/glm5',
   'qwen/qwen3.5-397b-a17b',
   'kimi-k2.5:cloud',
