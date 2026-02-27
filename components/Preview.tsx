@@ -559,7 +559,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                   <SandpackLayout style={{ flex: 1, height: '100%', border: 'none', borderRadius: 0, display: 'flex', flexDirection: 'column' }}>
                       <SandpackPreview 
                           style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column' }} 
-                          showOpenInCodeSandbox={false} 
+                          showOpenInCodeSandbox={true} 
                           showRefreshButton={true}
                           showNavigator={true}
                       />

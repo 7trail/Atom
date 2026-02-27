@@ -385,6 +385,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         hostWindow={externalWindow}
                         lastUpdated={props.lastUpdated}
                         useWebContainer={props.useWebContainer}
+                        activeWorkspaceId={props.activeWorkspaceId}
                     />
                 </div>,
                 externalWindow.document.body
