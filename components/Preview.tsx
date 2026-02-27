@@ -116,7 +116,6 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   const [sandpackFiles, setSandpackFiles] = useState<any>({});
   const [sandpackTemplate, setSandpackTemplate] = useState<any>('static');
   const [sandpackDependencies, setSandpackDependencies] = useState<Record<string, string>>({});
-  const [isManualTemplate, setIsManualTemplate] = useState(false);
   const [isSandpackInitialized, setIsSandpackInitialized] = useState(false);
 
   const SANDPACK_TEMPLATES = [
@@ -125,19 +124,6 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
     'vite-react', 'vite-react-ts', 'vite-vue', 'vite-vue-ts', 
     'vite-svelte', 'vite-svelte-ts', 'astro'
   ];
-
-  // --- Load Saved Template ---
-  useEffect(() => {
-      if (activeWorkspaceId) {
-          const savedTemplate = localStorage.getItem(`atom_preview_template_${activeWorkspaceId}`);
-          if (savedTemplate && SANDPACK_TEMPLATES.includes(savedTemplate)) {
-              setSandpackTemplate(savedTemplate);
-              setIsManualTemplate(true);
-          } else {
-              setIsManualTemplate(false);
-          }
-      }
-  }, [activeWorkspaceId]);
 
   // --- Sandpack Initialization ---
   useEffect(() => {
@@ -190,8 +176,15 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       setSandpackFiles(files);
       setSandpackDependencies(parsedDependencies);
 
-      // Determine template only if not manually set
-      if (!isManualTemplate) {
+      // Determine template
+      let savedTemplate = null;
+      if (activeWorkspaceId) {
+          savedTemplate = localStorage.getItem(`atom_preview_template_${activeWorkspaceId}`);
+      }
+
+      if (savedTemplate && SANDPACK_TEMPLATES.includes(savedTemplate)) {
+          setSandpackTemplate(savedTemplate);
+      } else {
           if (hasVite && hasReact) setSandpackTemplate('vite-react');
           else if (hasReact) setSandpackTemplate('react');
           else if (hasPackageJson) setSandpackTemplate('node'); 
@@ -199,7 +192,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       }
 
       setIsSandpackInitialized(true);
-  }, [allFiles, useWebContainer, file, isManualTemplate]);
+  }, [allFiles, useWebContainer, file, activeWorkspaceId]);
 
 
   // --- Message Listener for Navigation ---
@@ -524,7 +517,6 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                           onChange={(e) => {
                               const newTemplate = e.target.value;
                               setSandpackTemplate(newTemplate);
-                              setIsManualTemplate(true);
                               if (activeWorkspaceId) {
                                   localStorage.setItem(`atom_preview_template_${activeWorkspaceId}`, newTemplate);
                               }
@@ -559,7 +551,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                   <SandpackLayout style={{ flex: 1, height: '100%', border: 'none', borderRadius: 0, display: 'flex', flexDirection: 'column' }}>
                       <SandpackPreview 
                           style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column' }} 
-                          showOpenInCodeSandbox={true} 
+                          showOpenInCodeSandbox={false} 
                           showRefreshButton={true}
                           showNavigator={true}
                       />
