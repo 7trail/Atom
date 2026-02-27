@@ -167,8 +167,8 @@ export const TOOL_DEFINITIONS = [
             parameters: {
                 type: "object",
                 properties: {
-                    filename: { type: "string", description: "The path/name of the file (e.g., 'index.html', 'js/app.js')" },
-                    content: { type: "string", description: "The full content of the file" }
+                    filename: { type: "string", description: "REQUIRED: The path/name of the file (e.g., 'index.html', 'js/app.js')" },
+                    content: { type: "string", description: "REQUIRED: The full content of the file" }
                 },
                 required: ["filename", "content"]
             }
