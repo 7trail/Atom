@@ -182,7 +182,7 @@ export const TOOL_DEFINITIONS = [
             parameters: {
                 type: "object",
                 properties: {
-                    filename: { type: "string" },
+                    filename: { type: "string", description: "REQUIRED: The name and path to the file." },
                     search_text: { type: "string", description: "Exact unique text to find" },
                     replacement_text: { type: "string", description: "New text to replace with" },
                     all: { type: "boolean", description: "If true, replace all occurrences of search_text. Default is false." }
@@ -199,7 +199,7 @@ export const TOOL_DEFINITIONS = [
             parameters: {
                 type: "object",
                 properties: {
-                    filename: { type: "string" },
+                    filename: { type: "string", description: "REQUIRED: The name and path to the file." },
                     changes: { 
                         type: "array", 
                         items: {
@@ -312,7 +312,7 @@ export const TOOL_DEFINITIONS = [
                 type: "object",
                 properties: {
                     url: { type: "string" },
-                    filename: { type: "string", description: "Local path to save (e.g. 'assets/cat.jpg')" }
+                    filename: { type: "string", description: "REQUIRED: Local path to save (e.g. 'assets/cat.jpg')" }
                 },
                 required: ["url", "filename"]
             }
