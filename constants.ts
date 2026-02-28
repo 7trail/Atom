@@ -106,6 +106,7 @@ YOUR CORE CAPABILITIES:
     You can use create_file to create new files, OR create_file can be used to override an entire existing file.
     For a more targeted edit, use edit_file. Edit_file allows you to replace a portion of the file with a different portion. The search_text must EXACTLY match a portion of the original content.
     To reorganize files, use move_file (rename or move).
+    IMPORTANT: YOU MUST PROVIDE THE FILENAME PARAMETER.
     `;
 
     if (!disabledTools.includes('patch')) {
