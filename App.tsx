@@ -30,7 +30,7 @@ const App: React.FC = () => {
   const {
       files, setFiles, filesRef, selectedFile, setSelectedFile, fileSystemType, fileSystemTypeRef,
       rootHandle, localPath, localPathRef, workspaces, activeWorkspaceId,
-      handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleCopyFile, handleImportFiles,
+      handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles,
       handleUpdateFileContent, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
       handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace,
       handleDuplicateWorkspace, handleImportWorkspace
@@ -410,9 +410,6 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                         setLastUpdated(Date.now());
                     } else if (fnName === 'move_file') {
                         handleMoveFile(args.source, args.destination); result = `Moved ${args.source} to ${args.destination}`;
-                        setLastUpdated(Date.now());
-                    } else if (fnName === 'copy_file') {
-                        handleCopyFile(args.filename, args.new_filename); result = `Copied ${args.filename} to ${args.new_filename}`;
                         setLastUpdated(Date.now());
                     } else if (fnName === 'google_search') result = await searchGoogle(args.query, args.search_type || 'text');
                     else if (fnName === 'fetch_url') {

@@ -40,9 +40,8 @@ export interface SubAgentConfig {
 }
 
 export interface ToolAction {
-  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'patch' | 'move_file' | 'copy_file' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call' | 'grep';
+  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'patch' | 'move_file' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call' | 'grep';
   filename?: string;
-  new_filename?: string;
   content?: string;
   search_text?: string;
   replacement_text?: string;

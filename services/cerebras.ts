@@ -325,7 +325,7 @@ export async function chatCompletion(
                 messages: processedMessages,
                 temperature: 1,
                 top_p: 0.95,
-                max_tokens: 32768,
+                max_tokens: 16384,
                 stream: true, // Enable Streaming
                 stream_options: { include_usage: true }
             };

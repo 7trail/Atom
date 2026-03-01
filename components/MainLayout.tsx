@@ -154,19 +154,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 newWindow.document.body.style.height = '100vh';
                 newWindow.document.body.style.overflow = 'hidden';
 
-                // Forward messages from the new window to the main window
-                // This is crucial for Sandpack, as its iframe posts messages to its parent (the new window),
-                // but the React components are listening on the main window.
-                newWindow.addEventListener('message', (event) => {
-                    const newEvent = new MessageEvent('message', {
-                        data: event.data,
-                        origin: event.origin,
-                        source: event.source,
-                        ports: [...event.ports]
-                    });
-                    window.dispatchEvent(newEvent);
-                });
-
                 newWindow.onbeforeunload = () => {
                     setExternalWindow(null);
                 };

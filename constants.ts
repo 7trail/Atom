@@ -105,8 +105,7 @@ YOUR CORE CAPABILITIES:
     RULES FOR FILE EDITS
     You can use create_file to create new files, OR create_file can be used to override an entire existing file.
     For a more targeted edit, use edit_file. Edit_file allows you to replace a portion of the file with a different portion. The search_text must EXACTLY match a portion of the original content.
-    To reorganize files, use move_file (rename or move) or copy_file (duplicate).
-    IMPORTANT: YOU MUST PROVIDE THE FILENAME PARAMETER.
+    To reorganize files, use move_file (rename or move).
     `;
 
     if (!disabledTools.includes('patch')) {
@@ -229,21 +228,6 @@ export const TOOL_DEFINITIONS = [
                     destination: { type: "string", description: "The new path for the file/folder." }
                 },
                 required: ["source", "destination"]
-            }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "copy_file",
-            description: "Copy a file to a new location.",
-            parameters: {
-                type: "object",
-                properties: {
-                    filename: { type: "string", description: "Original file path." },
-                    new_filename: { type: "string", description: "New file path." }
-                },
-                required: ["filename", "new_filename"]
             }
         }
     },
