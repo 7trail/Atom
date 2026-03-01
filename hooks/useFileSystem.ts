@@ -481,6 +481,20 @@ export const useFileSystem = () => {
           }
     };
 
+    const handleCopyFile = (filename: string, newFilename: string) => {
+        const fileToCopy = files.find(f => f.name === filename);
+        if (!fileToCopy) return;
+
+        const newFile = { ...fileToCopy, name: newFilename, history: [], unsaved: true };
+        setFiles(prev => [...prev, newFile]);
+        
+        if (fileSystemType === 'local' && rootHandle) {
+            writeLocalFile(rootHandle, newFilename, newFile.content);
+        } else if (fileSystemType === 'gdrive' && driveFolderId) {
+            saveFileToDrive(driveFolderId, newFilename, newFile.content);
+        }
+    };
+
     // Helper to apply changes to content string
     const performTextEdit = (content: string, search: string, replace: string, replaceAll: boolean = false): { success: boolean, newContent: string } => {
         // 1. Try Exact Match (Fastest/Safest)
@@ -614,7 +628,7 @@ export const useFileSystem = () => {
         rootHandle,
         localPath, localPathRef,
         workspaces, activeWorkspaceId,
-        handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles, handleUpdateFileContent,
+        handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleCopyFile, handleImportFiles, handleUpdateFileContent,
         handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
         handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace, handleDuplicateWorkspace,
         handleImportWorkspace
