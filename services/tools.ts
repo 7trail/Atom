@@ -362,3 +362,50 @@ export async function performApiCall(url: string, method: string = 'GET', header
         return `API Call Failed: ${error.message}`;
     }
 }
+
+export async function deployCloudflareWorker(scriptName: string, scriptContent: string): Promise<string> {
+    const accountId = localStorage.getItem('atom_cf_account_id');
+    const apiToken = localStorage.getItem('atom_cf_api_token');
+
+    if (!accountId || !apiToken) {
+        return "Error: Cloudflare Account ID and API Token must be configured in Settings.";
+    }
+
+    try {
+        const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`;
+        const proxyUrl = applyProxy(url);
+
+        const response = await fetch(proxyUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${apiToken}`,
+                'Content-Type': 'application/javascript'
+            },
+            body: scriptContent
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            return `Cloudflare Deployment Failed: ${JSON.stringify(data.errors || data)}`;
+        }
+
+        // To make it accessible, we also need to enable the workers.dev subdomain route if it's not already
+        const enableSubdomainUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/subdomain`;
+        const enableProxyUrl = applyProxy(enableSubdomainUrl);
+        
+        await fetch(enableProxyUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ enabled: true })
+        });
+
+        return `Successfully deployed Cloudflare Worker: ${scriptName}\nIt should be available at https://${scriptName}.<your-subdomain>.workers.dev`;
+    } catch (error: any) {
+        console.error("Cloudflare Deployment Error:", error);
+        return `Cloudflare Deployment Failed: ${error.message}`;
+    }
+}

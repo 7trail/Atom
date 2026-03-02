@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FileData, Workspace } from '../types';
-import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw, Cloud, Box, MoreVertical, Layout, Copy, Check } from 'lucide-react';
+import { FileJson, FileCode, FileType, Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, Download, Upload, Image as ImageIcon, ClipboardList, FolderPlus, HardDrive, Laptop, FileText, Circle, RefreshCw, AlertTriangle, Pencil, RotateCcw, Cloud, Box, MoreVertical, Layout, Copy, Check, Play } from 'lucide-react';
 import JSZip from 'jszip';
 
 interface FileExplorerProps {
@@ -9,6 +9,7 @@ interface FileExplorerProps {
   selectedFile: FileData | null;
   fileSystemType: 'vfs' | 'local' | 'gdrive';
   onSelectFile: (file: FileData) => void;
+  onRunFile?: (file: FileData) => void;
   onCreateFile: (name: string) => void;
   onDeleteFile: (name: string) => void;
   onImportFiles?: (files: FileData[]) => void;
@@ -72,6 +73,7 @@ interface TreeItemProps {
   node: TreeNode;
   selectedFile: FileData | null;
   onSelectFile: (file: FileData) => void;
+  onRunFile?: (file: FileData) => void;
   onRequestDelete: (name: string) => void;
   onMoveFile: (oldPath: string, newPath: string) => void;
   level: number;
@@ -82,7 +84,7 @@ interface TreeItemProps {
 }
 
 const TreeItem: React.FC<TreeItemProps> = ({ 
-    node, selectedFile, onSelectFile, onRequestDelete, onMoveFile, level,
+    node, selectedFile, onSelectFile, onRunFile, onRequestDelete, onMoveFile, level,
     onContextMenu, renamingPath, onRenameSubmit, onRenameCancel
 }) => {
   const [isOpen, setIsOpen] = useState(true);
@@ -106,6 +108,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
     if (name.endsWith('.css')) return <FileCode className="w-4 h-4 text-blue-400" />;
     if (name.endsWith('.js') || name.endsWith('.ts') || name.endsWith('.tsx')) return <FileCode className="w-4 h-4 text-yellow-400" />;
     if (name.endsWith('.json')) return <FileJson className="w-4 h-4 text-green-400" />;
+    if (name.endsWith('.py')) return <FileCode className="w-4 h-4 text-blue-300" />;
     if (name.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) return <ImageIcon className="w-4 h-4 text-purple-400" />;
     if (name.match(/\.(docx|doc)$/i)) return <FileText className="w-4 h-4 text-blue-500" />;
     if (name.match(/\.(xlsx|xls)$/i)) return <FileText className="w-4 h-4 text-green-500" />;
@@ -251,6 +254,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
                   node={child} 
                   selectedFile={selectedFile} 
                   onSelectFile={onSelectFile} 
+                  onRunFile={onRunFile}
                   onRequestDelete={onRequestDelete}
                   onMoveFile={onMoveFile}
                   level={level + 1}
@@ -279,19 +283,33 @@ const TreeItem: React.FC<TreeItemProps> = ({
       style={{ paddingLeft: `${level * 12 + 8}px` }}
       onClick={() => node.fileData && onSelectFile(node.fileData)}
     >
-      <div className="flex items-center gap-2 truncate">
+      <div className="flex items-center gap-2 truncate flex-1">
         {getIcon(node.name)}
         <span className="truncate">{node.name}</span>
         {node.fileData?.unsaved && (
             <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.5)] flex-shrink-0" title="Unsaved changes" />
         )}
       </div>
-      <button 
-        onClick={handleDeleteRequest}
-        className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity"
-      >
-        <Trash2 className="w-3 h-3" />
-      </button>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {node.name.endsWith('.py') && onRunFile && (
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (node.fileData) onRunFile(node.fileData);
+                }}
+                className="p-1 hover:bg-green-500/20 text-green-500 rounded flex items-center gap-1 text-[10px] font-medium"
+                title="Run Script"
+            >
+                <Play size={10} /> View
+            </button>
+        )}
+        <button 
+            onClick={handleDeleteRequest}
+            className="p-1 hover:text-red-400"
+        >
+            <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
     </div>
   );
 };
@@ -543,6 +561,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   selectedFile, 
   fileSystemType,
   onSelectFile, 
+  onRunFile,
   onCreateFile, 
   onDeleteFile, 
   onImportFiles,
@@ -1030,6 +1049,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                         node={node} 
                         selectedFile={selectedFile} 
                         onSelectFile={onSelectFile} 
+                        onRunFile={onRunFile}
                         onRequestDelete={(path) => setDeleteConfirmation(path)}
                         onMoveFile={onMoveFile}
                         level={0}

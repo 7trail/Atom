@@ -325,7 +325,7 @@ export async function chatCompletion(
                 messages: processedMessages,
                 temperature: 1,
                 top_p: 0.95,
-                max_tokens: 16384,
+                max_tokens: 32768,
                 stream: true, // Enable Streaming
                 stream_options: { include_usage: true }
             };
@@ -435,7 +435,7 @@ export async function chatCompletion(
     messages: optimizedMessages,
     stream: true, // Enable Streaming
     temperature: 0.2, // Lower temperature for better tool use
-    max_tokens: 8000
+    max_tokens: 16000
   };
 
   if (tools && tools.length > 0) {

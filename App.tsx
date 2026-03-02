@@ -20,6 +20,7 @@ import { ragService } from './services/rag';
 import { useFileSystem } from './hooks/useFileSystem';
 import { useChatHistory } from './hooks/useChatHistory';
 import { useSubAgents } from './hooks/useSubAgents';
+import { usePyodide } from './hooks/usePyodide';
 import { getSystemHeader, TOOL_DEFINITIONS, DEFAULT_AGENTS, isRenderHosted } from './constants';
 import { Pencil, Trash2 } from 'lucide-react';
 
@@ -31,10 +32,12 @@ const App: React.FC = () => {
       files, setFiles, filesRef, selectedFile, setSelectedFile, fileSystemType, fileSystemTypeRef,
       rootHandle, localPath, localPathRef, workspaces, activeWorkspaceId,
       handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles,
-      handleUpdateFileContent, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
+      handleUpdateFileContent, handleUpdateFileByName, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
       handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace,
       handleDuplicateWorkspace, handleImportWorkspace
   } = useFileSystem();
+
+  const { pyodide, isLoading: pyodideLoading, output: pyodideOutput, clearOutput: clearPyodideOutput, setOutput: setPyodideOutput } = usePyodide();
 
   const [activeView, setActiveView] = useState<string>('chat'); 
   const [agents, setAgents] = useState<Agent[]>(DEFAULT_AGENTS);
@@ -130,7 +133,8 @@ const App: React.FC = () => {
       startEphemeralAgent, runAgentLoop, completeSession, updateSessionLog
   } = useSubAgents({
       agents, filesRef, applyFileAction, setFiles, browserSessions, workspaceInstructions,
-      addToast, fileSystemTypeRef, localPathRef, updateAtomConfig, setSchedules, schedulesRef, setActiveView
+      addToast, fileSystemTypeRef, localPathRef, updateAtomConfig, setSchedules, schedulesRef, setActiveView,
+      pyodide
   });
 
   const startEphemeralAgentRef = useRef(startEphemeralAgent);
@@ -404,7 +408,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                     if (fnName === 'run_terminal_command') {
                          if (fileSystemTypeRef.current !== 'local' || !localPathRef.current) result = "Error: Local Mode not configured.";
                          else { setActiveView('terminal'); result = await runTerminalCommand(args.command, localPathRef.current, args.input); setActiveView('chat'); }
-                    } else if (fnName === 'create_file' || fnName === 'update_file' || fnName === 'edit_file' || fnName === 'patch') {
+                    } else if (fnName === 'create_file' || fnName === 'update_file' || fnName === 'edit_file' || fnName === 'patch' || fnName === 'copy_file') {
                         const fileRes = applyFileAction({ action: fnName as any, ...args }, filesRef.current, true); 
                         setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result;
                         setLastUpdated(Date.now());
@@ -463,6 +467,56 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                          }
                     } else if (fnName === 'RAG_Search') {
                         result = await ragService.retrieve(args.query);
+                    } else if (fnName === 'execute_function') {
+                        if (!pyodide) {
+                            result = "Error: Python environment not ready.";
+                        } else {
+                            const { filename, function: funcName, args: funcArgs } = args;
+                            const file = filesRef.current.find(f => f.name === filename);
+                            if (!file) {
+                                result = `Error: File ${filename} not found.`;
+                            } else {
+                                try {
+                                    // Write file to Pyodide FS
+                                    pyodide.FS.writeFile(filename, file.content);
+                                    
+                                    // Construct Python code to import and call function
+                                    const moduleName = filename.replace('.py', '');
+                                    const pythonCode = `
+import sys
+import io
+import importlib
+import json
+
+# Capture stdout
+captured_output = io.StringIO()
+original_stdout = sys.stdout
+sys.stdout = captured_output
+
+try:
+    if '.' not in sys.path: sys.path.append('.')
+
+    if '${moduleName}' in sys.modules:
+        importlib.reload(sys.modules['${moduleName}'])
+    else:
+        import ${moduleName}
+
+    func = getattr(sys.modules['${moduleName}'], '${funcName}')
+    func_result = func(*${JSON.stringify(funcArgs)})
+finally:
+    sys.stdout = original_stdout
+
+output_str = captured_output.getvalue()
+json.dumps({"output": output_str, "result": str(func_result)})
+`;
+                                    const output = await pyodide.runPythonAsync(pythonCode);
+                                    const parsed = JSON.parse(output);
+                                    result = `Output:\n${parsed.output}\n\nResult:\n${parsed.result}`;
+                                } catch (e: any) {
+                                    result = `Error executing function: ${e.message}`;
+                                }
+                            }
+                        }
                     }
                     else result = "Executed.";
                     
@@ -510,7 +564,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
       <MainLayout 
         isMobile={isMobile} leftSidebarOpen={leftSidebarOpen} setLeftSidebarOpen={setLeftSidebarOpen} sidebarMode={sidebarMode} setSidebarMode={setSidebarMode}
         files={files} selectedFile={selectedFile} fileSystemType={fileSystemType} setSelectedFile={setSelectedFile} setActiveView={setActiveView} activeView={activeView}
-        handleCreateFile={handleCreateFile} handleDeleteFile={handleDeleteFile} handleImportFiles={handleImportFiles} handleMoveFile={handleMoveFile} handleOpenFolderWrapper={handleOpenFolder} handleSwitchFolder={() => { agentControlRef.current.stop = true; setIsLoading(false); if (!isRenderHosted) fetch('http://localhost:3001/cleanup', {method:'POST'}).catch(console.error); setMessages([]); setSessions([]); setBrowserSessions([]); resetFileSystem(); handleOpenFolder(); }} resetFileSystem={resetFileSystem}
+        handleCreateFile={handleCreateFile} handleDeleteFile={handleDeleteFile} handleImportFiles={handleImportFiles} handleMoveFile={handleMoveFile} handleUpdateFileByName={handleUpdateFileByName} handleOpenFolderWrapper={handleOpenFolder} handleSwitchFolder={() => { agentControlRef.current.stop = true; setIsLoading(false); if (!isRenderHosted) fetch('http://localhost:3001/cleanup', {method:'POST'}).catch(console.error); setMessages([]); setSessions([]); setBrowserSessions([]); resetFileSystem(); handleOpenFolder(); }} resetFileSystem={resetFileSystem}
         workspaces={workspaces} activeWorkspaceId={activeWorkspaceId} handleCreateWorkspace={handleCreateWorkspace} handleSwitchWorkspace={handleSwitchWorkspace} handleRenameWorkspace={handleRenameWorkspace} handleDeleteWorkspace={handleDeleteWorkspace} handleDuplicateWorkspace={handleDuplicateWorkspace}
         chatHistory={chatHistory} currentChatId={currentChatId} handleLoadChat={handleLoadChat} handleChatContextMenu={(e, id) => { e.preventDefault(); e.stopPropagation(); setChatContextMenu({ x: e.clientX, y: e.clientY, sessionId: id }); }}
         messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => [...p, a]); setSelectedAgent(a); } }} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatInput={chatInput} setChatInput={setChatInput} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} streamMetrics={streamMetrics} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}
@@ -519,6 +573,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
         skills={skills} enabledSkillIds={enabledSkillIds} handleToggleSkill={(id) => setEnabledSkillIds(p => { const n = p.includes(id) ? p.filter(x => x !== id) : [...p, id]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ enabledSkillIds: n }); else localStorage.setItem('atom_enabled_skills', JSON.stringify(n)); return n; })} handleImportSkill={(f) => { f.forEach(async x => { if (x.name.endsWith('.json')) { try { const d = JSON.parse(x.content); (Array.isArray(d) ? d : [d]).forEach(saveSkillToStorage); } catch {} } else if (x.name.endsWith('.zip')) { const s = await parseSkillZip(x); if (s) saveSkillToStorage(s); } else { const s = parseSkill(x); if (s) saveSkillToStorage(s); } }); setSkillRefresh(p => p + 1); addToast("Skills imported"); }} handleExportSkills={() => { const s = getLocalStorageSkills(); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s, null, 2)); a.download = "skills.json"; a.click(); }} handleDeleteSkill={(id) => { deleteSkillFromStorage(id); setSkillRefresh(p => p + 1); addToast("Skill deleted"); }}
         sessions={sessions} closeSession={closeSession} localPath={localPath} setIsShareModalOpen={setIsShareModalOpen} ttsVoice={ttsVoice}
         lastUpdated={lastUpdated} useWebContainer={useWebContainer}
+        pyodide={pyodide} pyodideLoading={pyodideLoading} pyodideOutput={pyodideOutput} clearPyodideOutput={clearPyodideOutput} setPyodideOutput={setPyodideOutput}
       />
     </>
   );

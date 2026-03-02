@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { FileData, AppModel, SUPPORTED_MODELS } from '../types';
-import { History, Code, GitCommit, Wand2, X, Loader2, Save, Undo2, Redo2, Check, ArrowLeft } from 'lucide-react';
+import { History, Code, GitCommit, Wand2, X, Loader2, Save, Undo2, Redo2, Check, ArrowLeft, Play } from 'lucide-react';
 import Editor, { DiffEditor, useMonaco } from '@monaco-editor/react';
 
 interface CodeEditorProps {
@@ -8,9 +8,11 @@ interface CodeEditorProps {
   onUpdate: (content: string) => void;
   onSmartEdit: (file: FileData, selection: string, instruction: string, model: AppModel) => Promise<string>;
   onSave: () => void;
+  onRunPython?: () => void;
+  isPyodideLoading?: boolean;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, onSave }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, onSave, onRunPython, isPyodideLoading }) => {
   const [view, setView] = useState<'code' | 'history'>('code');
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState<number | null>(null);
   
@@ -201,6 +203,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
 
         {view === 'code' && (
            <div className="flex items-center gap-2">
+              {file.name.endsWith('.py') && onRunPython && (
+                <button 
+                  onClick={onRunPython} 
+                  disabled={isPyodideLoading}
+                  className="flex items-center gap-1 text-xs bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded transition-colors shadow-lg disabled:opacity-50"
+                  title="Run Python Script"
+                >
+                  {isPyodideLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                  Run
+                </button>
+              )}
               <button onClick={onSave} className="p-1 hover:bg-white/10 rounded text-gray-400" title="Save (Ctrl+S)">
                 <Save className="w-4 h-4" />
               </button>

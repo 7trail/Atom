@@ -234,6 +234,34 @@ export const TOOL_DEFINITIONS = [
     {
         type: "function",
         function: {
+            name: "copy_file",
+            description: "Copy a file to a new location.",
+            parameters: {
+                type: "object",
+                properties: {
+                    source: { type: "string", description: "The path of the file to copy." },
+                    destination: { type: "string", description: "The new path for the copy." }
+                },
+                required: ["source", "destination"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "run_codesandbox",
+            description: "Run the current project files in a CodeSandbox Cloud VM. Useful for executing Python or Node.js backend code.",
+            parameters: {
+                type: "object",
+                properties: {
+                    command: { type: "string", description: "Optional command to run (e.g., 'python script.py' or 'node server.js'). If omitted, defaults to 'python main.py' or 'node index.js'." }
+                }
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
             name: "run_terminal_command",
             description: "Execute a shell command in the local environment terminal (Local Mode only). If the command asks for input, retry with the 'input' parameter. 'command' is required for new tasks.",
             parameters: {
@@ -522,6 +550,22 @@ export const TOOL_DEFINITIONS = [
     {
         type: "function",
         function: {
+            name: "execute_function",
+            description: "Execute a specific function from a Python script in the workspace.",
+            parameters: {
+                type: "object",
+                properties: {
+                    filename: { type: "string", description: "The Python script filename (e.g., 'utils.py')." },
+                    function: { type: "string", description: "The name of the function to call." },
+                    args: { type: "array", items: { type: "string" }, description: "List of arguments to pass to the function." }
+                },
+                required: ["filename", "function", "args"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
             name: "RAG_Search",
             description: "Search the RAG (Retrieval Augmented Generation) index for relevant code snippets or text from the workspace files.",
             parameters: {
@@ -542,7 +586,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'A helpful, organized, and friendly assistant for general tasks.',
     systemPrompt: "Role: You are a highly capable Personal Assistant. You are friendly, organized, and obedient. Your goal is to help the user with whatever they need, whether it's scheduling, research, drafting emails, or just chatting. You have a neutral but warm personality. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'z-ai/glm4.7',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'fetch_skill_resource', 'RAG_Search']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'fetch_skill_resource', 'RAG_Search', 'execute_function']
   },
   {
     id: 'fullstack',
@@ -550,7 +594,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Expert in React, Node.js, and modern web architecture.',
     systemPrompt: "Role: You are a Senior Full Stack Engineer. Focus on functionality, clean architecture, and best practices. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'spawn_agents', 'call_sub_agent', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'run_terminal_command', 'run_codesandbox', 'start_browser_session', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'tech_writer',
@@ -582,7 +626,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'Expert in Python scripts, data processing, and algorithms.',
     systemPrompt: "Role: You are a Python Expert. You write high-quality Python code. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'gpt-oss-120b',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'run_terminal_command', 'run_codesandbox', 'manage_schedule', 'discord_message', 'create_office_file', 'api_call', 'grep', 'fetch_skill_resource', 'RAG_Search']
   },
   {
     id: 'researcher',

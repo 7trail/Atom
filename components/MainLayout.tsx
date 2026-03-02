@@ -12,7 +12,9 @@ import SubAgentView from './SubAgentView';
 import ScheduleManager from './ScheduleManager';
 import SkillBrowser from './SkillBrowser';
 import Terminal from './Terminal';
-import { Menu, PanelLeftClose, PanelLeftOpen, MessageSquare, TerminalSquare, Code2, Eye, Clock, BrainCircuit, Share2, Bot, Loader2, CheckCircle2, X, History, FolderTree, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PyodideRunner } from './PyodideRunner';
+import { PyodideInterface } from '../hooks/usePyodide';
+import { Menu, PanelLeftClose, PanelLeftOpen, MessageSquare, TerminalSquare, Code2, Eye, Clock, BrainCircuit, Share2, Bot, Loader2, CheckCircle2, X, History, FolderTree, ExternalLink, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 
 interface MainLayoutProps {
     isMobile: boolean;
@@ -26,6 +28,12 @@ interface MainLayoutProps {
     setSelectedFile: (file: FileData) => void;
     setActiveView: (view: string) => void;
     activeView: string;
+    // Pyodide
+    pyodide: PyodideInterface | null;
+    pyodideLoading: boolean;
+    pyodideOutput: string[];
+    clearPyodideOutput: () => void;
+    setPyodideOutput: React.Dispatch<React.SetStateAction<string[]>>;
     // File Handlers
     handleCreateFile: (name: string) => void;
     handleDeleteFile: (name: string) => void;
@@ -34,6 +42,7 @@ interface MainLayoutProps {
     handleOpenFolderWrapper: () => void;
     handleSwitchFolder: () => void;
     resetFileSystem: () => void;
+    handleUpdateFileByName: (name: string, content: string) => void;
     // Workspace Handlers
     workspaces: Workspace[];
     activeWorkspaceId: string;
@@ -104,6 +113,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
     const [externalWindow, setExternalWindow] = useState<Window | null>(null);
+    const [autoRunFile, setAutoRunFile] = useState<string | null>(null);
 
     // Close external window on unmount
     useEffect(() => {
@@ -154,6 +164,19 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 newWindow.document.body.style.height = '100vh';
                 newWindow.document.body.style.overflow = 'hidden';
 
+                // Forward messages from the new window to the main window
+                // This is crucial for Sandpack, as its iframe posts messages to its parent (the new window),
+                // but the React components are listening on the main window.
+                newWindow.addEventListener('message', (event) => {
+                    const newEvent = new MessageEvent('message', {
+                        data: event.data,
+                        origin: event.origin,
+                        source: event.source,
+                        ports: [...event.ports]
+                    });
+                    window.dispatchEvent(newEvent);
+                });
+
                 newWindow.onbeforeunload = () => {
                     setExternalWindow(null);
                 };
@@ -187,9 +210,15 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                                 // Only switch main view if preview is NOT popped out
                                 if (!externalWindow) {
                                     if (f.name.match(/\.(png|jpg|jpeg|gif|webp|svg|docx|xlsx|pptx)$/i) || f.name.endsWith('.md')) props.setActiveView('preview'); 
-                                    else if (props.activeView !== 'edit' && props.activeView !== 'preview') props.setActiveView('edit'); 
+                                    else if (f.name.endsWith('.py')) props.setActiveView('pyodide');
+                                    else if (props.activeView !== 'edit' && props.activeView !== 'preview' && props.activeView !== 'pyodide') props.setActiveView('edit'); 
                                 }
-                            }} 
+                            }}
+                            onRunFile={(f) => {
+                                props.setSelectedFile(f);
+                                setAutoRunFile(f.name);
+                                props.setActiveView('pyodide');
+                            }}
                             onCreateFile={props.handleCreateFile} 
                             onDeleteFile={props.handleDeleteFile} 
                             onImportFiles={props.handleImportFiles} 
@@ -265,6 +294,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             <button onClick={() => props.setActiveView('chat')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'chat' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><MessageSquare className="w-3 h-3" /> Chat</button>
                             <button onClick={() => props.setActiveView('terminal')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'terminal' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><TerminalSquare className="w-3 h-3" /> Term</button>
                             <button onClick={() => props.setActiveView('edit')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'edit' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Code2 className="w-3 h-3" /> Code</button>
+                            <button onClick={() => props.setActiveView('pyodide')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'pyodide' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Play className="w-3 h-3" /> Run</button>
                             <button onClick={() => props.setActiveView('preview')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'preview' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Eye className="w-3 h-3" /> View</button>
                             <button onClick={() => props.setActiveView('schedules')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'schedules' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Clock className="w-3 h-3" /> Time</button>
                             <button onClick={() => props.setActiveView('skills')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'skills' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><BrainCircuit className="w-3 h-3" /> Skills</button>
@@ -330,6 +360,21 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         />
                     ) : props.activeView === 'edit' ? (
                         <CodeEditor file={props.selectedFile} onUpdate={props.handleUpdateFileContent} onSmartEdit={props.handleSmartEdit} onSave={() => props.selectedFile && props.handleSaveFileWrapper(props.selectedFile)} />
+                    ) : props.activeView === 'pyodide' ? (
+                        <PyodideRunner 
+                            files={props.files} 
+                            selectedFile={props.selectedFile} 
+                            onUpdateFile={props.handleUpdateFileContent} 
+                            onUpdateFileByName={props.handleUpdateFileByName}
+                            onSmartEdit={props.handleSmartEdit} 
+                            onSave={() => props.selectedFile && props.handleSaveFileWrapper(props.selectedFile)}
+                            initialRunFile={autoRunFile}
+                            pyodide={props.pyodide}
+                            isLoading={props.pyodideLoading}
+                            output={props.pyodideOutput}
+                            clearOutput={props.clearPyodideOutput}
+                            setOutput={props.setPyodideOutput}
+                        />
                     ) : props.activeView === 'preview' ? (
                         externalWindow ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-500 bg-dark-bg">

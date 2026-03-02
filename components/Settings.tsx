@@ -60,6 +60,9 @@ const Settings: React.FC<SettingsProps> = ({
   const [googleClientId, setGoogleClientId] = useState('');
   const [googleApiKey, setGoogleApiKey] = useState('');
 
+  // CodeSandbox Config
+  const [csbApiKey, setCsbApiKey] = useState('');
+
   // Timezone Config
   const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +82,8 @@ const Settings: React.FC<SettingsProps> = ({
       
       setGoogleClientId(localStorage.getItem('atom_google_client_id') || '');
       setGoogleApiKey(localStorage.getItem('atom_google_api_key') || '');
+      
+      setCsbApiKey(localStorage.getItem('csb_api_key') || '');
       
       try {
           // @ts-ignore
@@ -144,6 +149,11 @@ const Settings: React.FC<SettingsProps> = ({
       localStorage.setItem('atom_google_client_id', googleClientId.trim());
       localStorage.setItem('atom_google_api_key', googleApiKey.trim());
       alert("Google Drive configuration saved. You can now use the Drive button in the File Explorer.");
+  };
+
+  const handleSaveCsbConfig = () => {
+      localStorage.setItem('csb_api_key', csbApiKey.trim());
+      alert("CodeSandbox API Key saved.");
   };
 
   const handleExportConfig = () => {
@@ -686,6 +696,36 @@ const Settings: React.FC<SettingsProps> = ({
                     <Plus className="w-4 h-4" />
                 </button>
             </form>
+          </div>
+
+          <div className="border-t border-dark-border pt-4"></div>
+
+          {/* CodeSandbox Configuration */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+                <Terminal className="w-3.5 h-3.5 text-blue-500" />
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">CodeSandbox Integration</label>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Required to use the "run_codesandbox" tool for backend execution.</p>
+            
+            <div className="space-y-3">
+                <div>
+                    <label className="text-[10px] text-gray-400 mb-1 block">CodeSandbox API Key</label>
+                    <input 
+                        type="password"
+                        value={csbApiKey}
+                        onChange={(e) => setCsbApiKey(e.target.value)}
+                        placeholder="csb_..."
+                        className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-blue-500 focus:outline-none font-mono"
+                    />
+                </div>
+                <button 
+                    onClick={handleSaveCsbConfig}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded text-sm font-medium transition-colors"
+                >
+                    Save CodeSandbox Key
+                </button>
+            </div>
           </div>
 
           <div className="border-t border-dark-border pt-4"></div>

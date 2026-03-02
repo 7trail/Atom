@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { SubAgentSession, SubAgentConfig, Agent, AgentSessionLog, ToolAction, FileData, BrowserSessionInfo } from '../types';
+import { PyodideInterface } from './usePyodide';
 import { chatCompletion } from '../services/cerebras';
 import { TOOL_DEFINITIONS } from '../constants';
 import { searchGoogle, fetchUrl, runBrowserAgent, sendDiscordMessage, performApiCall, downloadImage } from '../services/tools';
@@ -28,6 +29,7 @@ interface UseSubAgentsProps {
     setSchedules: React.Dispatch<React.SetStateAction<any[]>>;
     schedulesRef: React.MutableRefObject<any[]>;
     setActiveView: (view: string) => void;
+    pyodide: PyodideInterface | null;
 }
 
 export const useSubAgents = ({
@@ -43,7 +45,8 @@ export const useSubAgents = ({
     updateAtomConfig,
     setSchedules,
     schedulesRef,
-    setActiveView
+    setActiveView,
+    pyodide
 }: UseSubAgentsProps) => {
     const [sessions, setSessions] = useState<SubAgentSession[]>([]);
     const [waitingForSubAgents, setWaitingForSubAgents] = useState(false);
@@ -224,6 +227,56 @@ CRITICAL RULES:
                             }
                         } else if (fnName === 'api_call') {
                              result = await performApiCall(args.url, args.method, args.headers, args.body);
+                        } else if (fnName === 'execute_function') {
+                            if (!pyodide) {
+                                result = "Error: Python environment not ready.";
+                            } else {
+                                const { filename, function: funcName, args: funcArgs } = args;
+                                const file = filesRef.current.find(f => f.name === filename);
+                                if (!file) {
+                                    result = `Error: File ${filename} not found.`;
+                                } else {
+                                    try {
+                                        // Write file to Pyodide FS
+                                        pyodide.FS.writeFile(filename, file.content);
+                                        
+                                        // Construct Python code to import and call function
+                                        const moduleName = filename.replace('.py', '');
+                                        const pythonCode = `
+import sys
+import io
+import importlib
+import json
+
+# Capture stdout
+captured_output = io.StringIO()
+original_stdout = sys.stdout
+sys.stdout = captured_output
+
+try:
+    if '.' not in sys.path: sys.path.append('.')
+
+    if '${moduleName}' in sys.modules:
+        importlib.reload(sys.modules['${moduleName}'])
+    else:
+        import ${moduleName}
+
+    func = getattr(sys.modules['${moduleName}'], '${funcName}')
+    func_result = func(*${JSON.stringify(funcArgs)})
+finally:
+    sys.stdout = original_stdout
+
+output_str = captured_output.getvalue()
+json.dumps({"output": output_str, "result": str(func_result)})
+`;
+                                        const output = await pyodide.runPythonAsync(pythonCode);
+                                        const parsed = JSON.parse(output);
+                                        result = `Output:\n${parsed.output}\n\nResult:\n${parsed.result}`;
+                                    } catch (e: any) {
+                                        result = `Error executing function: ${e.message}`;
+                                    }
+                                }
+                            }
                         } else result = `Unknown tool was called`;
                         
                         if (!result) result = "Done.";

@@ -4,6 +4,7 @@ import { FileData } from '../types';
 import { parse } from 'marked';
 import { Play, ClipboardList, Info, Target, CheckCircle2, Rocket, Maximize2, Minimize2, Loader2, RefreshCw } from 'lucide-react';
 import { Sandpack, SandpackLayout, SandpackPreview, SandpackProvider, SandpackCodeEditor } from '@codesandbox/sandpack-react';
+import { PyodideRunner } from './PyodideRunner';
 
 interface PreviewProps {
   file: FileData | null;
@@ -15,6 +16,7 @@ interface PreviewProps {
   lastUpdated?: number;
   useWebContainer?: boolean;
   activeWorkspaceId?: string;
+  onUpdateFiles?: (updatedFiles: {name: string, content: string}[]) => void;
 }
 
 const getMimeType = (filename: string) => {
@@ -116,7 +118,6 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   const [sandpackFiles, setSandpackFiles] = useState<any>({});
   const [sandpackTemplate, setSandpackTemplate] = useState<any>('static');
   const [sandpackDependencies, setSandpackDependencies] = useState<Record<string, string>>({});
-  const [isManualTemplate, setIsManualTemplate] = useState(false);
   const [isSandpackInitialized, setIsSandpackInitialized] = useState(false);
 
   const SANDPACK_TEMPLATES = [
@@ -125,19 +126,6 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
     'vite-react', 'vite-react-ts', 'vite-vue', 'vite-vue-ts', 
     'vite-svelte', 'vite-svelte-ts', 'astro'
   ];
-
-  // --- Load Saved Template ---
-  useEffect(() => {
-      if (activeWorkspaceId) {
-          const savedTemplate = localStorage.getItem(`atom_preview_template_${activeWorkspaceId}`);
-          if (savedTemplate && SANDPACK_TEMPLATES.includes(savedTemplate)) {
-              setSandpackTemplate(savedTemplate);
-              setIsManualTemplate(true);
-          } else {
-              setIsManualTemplate(false);
-          }
-      }
-  }, [activeWorkspaceId]);
 
   // --- Sandpack Initialization ---
   useEffect(() => {
@@ -190,8 +178,15 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       setSandpackFiles(files);
       setSandpackDependencies(parsedDependencies);
 
-      // Determine template only if not manually set
-      if (!isManualTemplate) {
+      // Determine template
+      let savedTemplate = null;
+      if (activeWorkspaceId) {
+          savedTemplate = localStorage.getItem(`atom_preview_template_${activeWorkspaceId}`);
+      }
+
+      if (savedTemplate && SANDPACK_TEMPLATES.includes(savedTemplate)) {
+          setSandpackTemplate(savedTemplate);
+      } else {
           if (hasVite && hasReact) setSandpackTemplate('vite-react');
           else if (hasReact) setSandpackTemplate('react');
           else if (hasPackageJson) setSandpackTemplate('node'); 
@@ -199,7 +194,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       }
 
       setIsSandpackInitialized(true);
-  }, [allFiles, useWebContainer, file, isManualTemplate]);
+  }, [allFiles, useWebContainer, file, activeWorkspaceId]);
 
 
   // --- Message Listener for Navigation ---
@@ -425,6 +420,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   const contentToRender = useMemo(() => {
     if (!file) return null;
     if (file.name.endsWith('.html')) return { type: 'html_blob' };
+    if (file.name.endsWith('.py')) return { type: 'python' };
 
     if (file.name.endsWith('.plan')) {
         const lines = file.content.split('\n').filter(l => l.trim().length > 0);
@@ -524,7 +520,6 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                           onChange={(e) => {
                               const newTemplate = e.target.value;
                               setSandpackTemplate(newTemplate);
-                              setIsManualTemplate(true);
                               if (activeWorkspaceId) {
                                   localStorage.setItem(`atom_preview_template_${activeWorkspaceId}`, newTemplate);
                               }
@@ -595,6 +590,17 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                 )}
             </div>
         </div>
+      );
+  }
+
+  // --- Python Preview ---
+  if (contentToRender?.type === 'python') {
+      return (
+          <PyodideRunner 
+              file={file} 
+              allFiles={allFiles} 
+              onUpdateFiles={onUpdateFiles || (() => {})} 
+          />
       );
   }
 
