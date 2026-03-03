@@ -616,6 +616,7 @@ export const useFileSystem = () => {
                     let patchedContent = f.content;
                     let successCount = 0;
                     let failCount = 0;
+                    let failedPatches: string[] = [];
                     
                     for (const change of action.changes) {
                         const editRes = performTextEdit(patchedContent, change.search, change.replace, false);
@@ -624,6 +625,7 @@ export const useFileSystem = () => {
                             successCount++;
                         } else {
                             failCount++;
+                            failedPatches.push(change.search);
                         }
                     }
 
@@ -631,10 +633,13 @@ export const useFileSystem = () => {
                         pushHistory(f);
                         modifiedFile = { ...f, content: patchedContent, history: f.history, unsaved: !isAutoSave };
                         result = `Patched ${action.filename}: ${successCount} applied, ${failCount} failed.`;
+                        if (failCount > 0) {
+                            result += `\nFailed patches (search strings):\n${failedPatches.map(p => `- ${p}`).join('\n')}`;
+                        }
                         if (isAutoSave) syncFileToDisk(action.filename, patchedContent);
                         return modifiedFile;
                     } else {
-                        result = `Error: No patch changes could be applied to ${action.filename}.`;
+                        result = `Error: No patch changes could be applied to ${action.filename}.\nFailed patches (search strings):\n${failedPatches.map(p => `- ${p}`).join('\n')}`;
                     }
                 }
                 return f;
