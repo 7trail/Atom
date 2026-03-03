@@ -467,6 +467,27 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                          }
                     } else if (fnName === 'RAG_Search') {
                         result = await ragService.retrieve(args.query);
+                    } else if (fnName === 'grep') {
+                        const pattern = args.pattern;
+                        const caseInsensitive = args.case_insensitive !== false; // Default to true if not specified
+                        const regexFlags = caseInsensitive ? 'i' : '';
+                        let matches = [];
+                        try {
+                            const regex = new RegExp(pattern, regexFlags);
+                            for (const file of filesRef.current) {
+                                if (file.content) {
+                                    const lines = file.content.split('\n');
+                                    lines.forEach((line, index) => {
+                                        if (regex.test(line)) {
+                                            matches.push(`${file.name}:${index + 1}: ${line.trim()}`);
+                                        }
+                                    });
+                                }
+                            }
+                            result = matches.length > 0 ? matches.join('\n') : "No matches found.";
+                        } catch (e: any) {
+                            result = `Invalid regex: ${e.message}`;
+                        }
                     } else if (fnName === 'execute_function') {
                         if (!pyodide) {
                             result = "Error: Python environment not ready.";

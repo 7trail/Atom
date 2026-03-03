@@ -129,6 +129,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         } else {
             const newWindow = window.open('', 'AtomPreview', 'width=1000,height=800,left=200,top=200');
             if (newWindow) {
+                newWindow.document.write('<!DOCTYPE html><html><head><title>Atom Preview</title></head><body style="margin: 0; height: 100vh; overflow: hidden;"><div id="popout-root" style="height: 100%;"></div></body></html>');
+                newWindow.document.close();
+
                 // Copy styles
                 Array.from(document.styleSheets).forEach(styleSheet => {
                     try {
@@ -159,11 +162,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 const theme = document.documentElement.getAttribute('data-theme');
                 if (theme) newWindow.document.documentElement.setAttribute('data-theme', theme);
                 
-                newWindow.document.title = "Atom Preview";
-                newWindow.document.body.style.margin = '0';
-                newWindow.document.body.style.height = '100vh';
-                newWindow.document.body.style.overflow = 'hidden';
-
                 // Forward messages from the new window to the main window
                 // This is crucial for Sandpack, as its iframe posts messages to its parent (the new window),
                 // but the React components are listening on the main window.
@@ -180,7 +178,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 newWindow.onbeforeunload = () => {
                     setExternalWindow(null);
                 };
-                setExternalWindow(newWindow);
+                
+                // Wait a tick for the document to be fully ready before rendering the portal
+                setTimeout(() => {
+                    setExternalWindow(newWindow);
+                }, 50);
             }
         }
     };
@@ -294,10 +296,10 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             <button onClick={() => props.setActiveView('chat')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'chat' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><MessageSquare className="w-3 h-3" /> Chat</button>
                             <button onClick={() => props.setActiveView('terminal')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'terminal' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><TerminalSquare className="w-3 h-3" /> Term</button>
                             <button onClick={() => props.setActiveView('edit')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'edit' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Code2 className="w-3 h-3" /> Code</button>
-                            <button onClick={() => props.setActiveView('pyodide')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'pyodide' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Play className="w-3 h-3" /> Run</button>
                             <button onClick={() => props.setActiveView('preview')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'preview' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Eye className="w-3 h-3" /> View</button>
                             <button onClick={() => props.setActiveView('schedules')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'schedules' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Clock className="w-3 h-3" /> Time</button>
                             <button onClick={() => props.setActiveView('skills')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'skills' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><BrainCircuit className="w-3 h-3" /> Skills</button>
+                            <button onClick={() => props.setActiveView('pyodide')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'pyodide' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Play className="w-3 h-3" /> Run</button>
                         </div>
                         
                         <button 
@@ -433,7 +435,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         activeWorkspaceId={props.activeWorkspaceId}
                     />
                 </div>,
-                externalWindow.document.body
+                externalWindow.document.getElementById('popout-root') || externalWindow.document.body
             )}
         </div>
     );
