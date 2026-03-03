@@ -403,6 +403,18 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                     const fnName = toolCall.function.name;
                     if (fnName === 'ask_question' || fnName === 'spawn_agents' || fnName === 'call_sub_agent') continue;
                     let args: any = {}; try { args = JSON.parse(toolCall.function.arguments); } catch {}
+                    
+                    // Sanitize filenames
+                    const filenameKeys = ['filename', 'source', 'destination', 'output_filename'];
+                    for (const key of filenameKeys) {
+                        if (typeof args[key] === 'string' && args[key].startsWith('/')) {
+                            args[key] = args[key].substring(1);
+                        }
+                    }
+                    if (fnName === 'fetch_url' && typeof args.url === 'string' && args.url.startsWith('/') && !args.url.startsWith('//')) {
+                        args.url = args.url.substring(1);
+                    }
+                    
                     let result = "";
 
                     if (fnName === 'run_terminal_command') {

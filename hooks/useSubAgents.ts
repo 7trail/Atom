@@ -129,6 +129,18 @@ CRITICAL RULES:
                         const fnName = toolCall.function.name;
                         let args: any = {};
                         try { args = JSON.parse(toolCall.function.arguments); } catch {}
+                        
+                        // Sanitize filenames
+                        const filenameKeys = ['filename', 'source', 'destination', 'output_filename'];
+                        for (const key of filenameKeys) {
+                            if (typeof args[key] === 'string' && args[key].startsWith('/')) {
+                                args[key] = args[key].substring(1);
+                            }
+                        }
+                        if (fnName === 'fetch_url' && typeof args.url === 'string' && args.url.startsWith('/') && !args.url.startsWith('//')) {
+                            args.url = args.url.substring(1);
+                        }
+                        
                         updateSessionLog(sessionId, { id: generateId(), type: 'tool_call', content: `${fnName}(${JSON.stringify(args)})`, timestamp: Date.now() });
                         let result = "";
 
