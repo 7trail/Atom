@@ -83,6 +83,16 @@ const THEMES_DATA: ThemeDefinition[] = [
     { id: 'electric-violet', name: 'Electric Violet', description: 'Vibrant purple and blue energy.', bg: 'linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)', panel: 'rgba(255, 255, 255, 0.1)', accent: '#FFCC70', text: '#ffffff' },
     { id: 'golden-sands', name: 'Golden Sands', description: 'Warm gold and beige.', bg: 'linear-gradient(to top, #e6b980 0%, #eacda3 100%)', panel: 'rgba(255, 253, 240, 0.8)', accent: '#d84315', text: '#5c4033' },
     { id: 'trans-pride', name: 'Trans Pride', description: 'Blue, Pink, and White.', bg: '#121212', panel: '#1e1e1e', accent: '#5BCEFA', text: '#FFFFFF' },
+    { id: 'hacker', name: 'Hacker', description: 'Pure black with neon green.', bg: '#000000', panel: '#051005', accent: '#00cc00', text: '#00ff00' },
+    { id: 'bubblegum', name: 'Bubblegum', description: 'Bright pink and cyan gradient.', bg: 'linear-gradient(135deg, #ff7eb3 0%, #ff758c 100%)', panel: 'rgba(255, 255, 255, 0.85)', accent: '#ec407a', text: '#5c1a3b' },
+    { id: 'abyss', name: 'Abyss', description: 'Deep dark blue and black.', bg: 'linear-gradient(to bottom, #000000 0%, #001122 100%)', panel: 'rgba(0, 10, 20, 0.8)', accent: '#0088ff', text: '#88ccff' },
+    { id: 'magma', name: 'Magma', description: 'Dark red and orange gradient.', bg: 'linear-gradient(to top, #1a0000 0%, #4d0000 100%)', panel: 'rgba(26, 0, 0, 0.85)', accent: '#ff3300', text: '#ffcc99' },
+    { id: 'holographic', name: 'Holographic', description: 'Iridescent purple and pink.', bg: 'linear-gradient(45deg, #a18cd1 0%, #fbc2eb 100%)', panel: 'rgba(255, 255, 255, 0.6)', accent: '#9b59b6', text: '#4a235a' },
+    { id: 'neon-dreams', name: 'Neon Dreams', description: 'Dark purple with bright cyan/pink.', bg: '#09090e', panel: '#12121c', accent: '#ff00ff', text: '#e0e0ff' },
+    { id: 'forest-glade', name: 'Forest Glade', description: 'Soft green gradient.', bg: 'linear-gradient(to bottom, #e8f5e9 0%, #c8e6c9 100%)', panel: 'rgba(255, 255, 255, 0.7)', accent: '#4caf50', text: '#1b5e20' },
+    { id: 'crimson-tide', name: 'Crimson Tide', description: 'Deep red and black.', bg: 'linear-gradient(to right, #2b0000, #1a0000)', panel: 'rgba(43, 0, 0, 0.8)', accent: '#cc0000', text: '#ffcccc' },
+    { id: 'silver-lining', name: 'Silver Lining', description: 'Sleek metallic grays.', bg: 'linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)', panel: 'rgba(255, 255, 255, 0.6)', accent: '#757575', text: '#212121' },
+    { id: 'sunset-vibes', name: 'Sunset Vibes', description: 'Orange, pink, and purple gradient.', bg: 'linear-gradient(to bottom, #ff9a44 0%, #fc6076 100%)', panel: 'rgba(255, 255, 255, 0.2)', accent: '#ff5252', text: '#ffffff' },
 ];
 
 interface ThemeBrowserProps {

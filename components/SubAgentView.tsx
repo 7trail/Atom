@@ -5,9 +5,10 @@ import { parse } from 'marked';
 
 interface SubAgentViewProps {
   session: SubAgentSession;
+  setActiveView: (view: string) => void;
 }
 
-const SubAgentView: React.FC<SubAgentViewProps> = ({ session }) => {
+const SubAgentView: React.FC<SubAgentViewProps> = ({ session, setActiveView }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,6 +22,13 @@ const SubAgentView: React.FC<SubAgentViewProps> = ({ session }) => {
       {/* Header */}
       <div className="p-6 border-b border-dark-border bg-dark-panel">
         <div className="flex items-center gap-3 mb-2">
+          <button 
+            onClick={() => setActiveView('agents')}
+            className="p-2 -ml-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+            title="Back to Agents"
+          >
+            <ArrowRight className="w-5 h-5 rotate-180" />
+          </button>
           <div className="w-10 h-10 rounded bg-indigo-900/30 flex items-center justify-center text-indigo-400">
              <Bot className="w-6 h-6" />
           </div>

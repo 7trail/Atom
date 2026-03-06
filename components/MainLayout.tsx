@@ -9,6 +9,7 @@ import CodeEditor from './CodeEditor';
 import Preview from './Preview';
 import ChatInterface from './ChatInterface';
 import SubAgentView from './SubAgentView';
+import AgentsView from './AgentsView';
 import ScheduleManager from './ScheduleManager';
 import SkillBrowser from './SkillBrowser';
 import Terminal from './Terminal';
@@ -300,6 +301,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             <button onClick={() => props.setActiveView('schedules')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'schedules' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Clock className="w-3 h-3" /> Time</button>
                             <button onClick={() => props.setActiveView('skills')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'skills' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><BrainCircuit className="w-3 h-3" /> Skills</button>
                             <button onClick={() => props.setActiveView('pyodide')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'pyodide' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Play className="w-3 h-3" /> Run</button>
+                            <button onClick={() => props.setActiveView('agents')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'agents' || props.activeView.startsWith('session:') ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Bot className="w-3 h-3" /> Agents</button>
                         </div>
                         
                         <button 
@@ -320,16 +322,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         )}
 
                         <div className="w-[1px] h-6 bg-dark-border flex-shrink-0 mx-1"></div>
-                        
-                        <div className="flex gap-1 overflow-x-auto no-scrollbar">
-                            {props.sessions.map(s => (
-                                <div key={s.id} onClick={() => props.setActiveView(`session:${s.id}`)} className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-all flex-shrink-0 max-w-[150px] ${props.activeView === `session:${s.id}` ? 'bg-indigo-900/30 border-indigo-500/50 text-indigo-300' : 'bg-dark-bg border-dark-border text-gray-500 hover:bg-white/5'}`}>
-                                    {s.status === 'running' ? <Loader2 className="w-3 h-3 animate-spin text-blue-400" /> : s.status === 'completed' ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : <Bot className="w-3 h-3 text-red-400" />}
-                                    <span className="truncate hidden sm:inline">{s.agentName}</span>
-                                    <button onClick={(e) => props.closeSession(e, s.id)} className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity ml-auto"><X className="w-3 h-3" /></button>
-                                </div>
-                            ))}
-                        </div>
                     </div>
                 </div>
                 <div className="flex-1 overflow-hidden relative flex flex-col">
@@ -409,8 +401,10 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             onExportSkills={props.handleExportSkills}
                             onDeleteSkill={props.handleDeleteSkill}
                         />
+                    ) : props.activeView === 'agents' ? (
+                        <AgentsView sessions={props.sessions} setActiveView={props.setActiveView} closeSession={props.closeSession} />
                     ) : props.activeView.startsWith('session:') ? (
-                        (() => { const sessionId = props.activeView.split(':')[1]; const session = props.sessions.find(s => s.id === sessionId); return session ? <SubAgentView key={session.id} session={session} /> : <div>Session not found</div>; })()
+                        (() => { const sessionId = props.activeView.split(':')[1]; const session = props.sessions.find(s => s.id === sessionId); return session ? <SubAgentView key={session.id} session={session} setActiveView={props.setActiveView} /> : <div>Session not found</div>; })()
                     ) : null}
                     
                     <div style={{ display: props.activeView === 'terminal' ? 'block' : 'none', height: '100%' }}>
