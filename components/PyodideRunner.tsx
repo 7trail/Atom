@@ -123,19 +123,19 @@ export const PyodideRunner: React.FC<PyodideRunnerProps> = ({
             </div>
             <div className="h-1/3 bg-dark-panel flex flex-col min-h-[150px]">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-dark-border bg-dark-bg/50">
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <div className="flex items-center gap-2 text-xs font-medium text-dark-muted uppercase tracking-wider">
                         <Terminal className="w-3 h-3" /> Python Console
                     </div>
-                    <button onClick={clearOutput} className="text-gray-500 hover:text-white transition-colors p-1">
+                    <button onClick={clearOutput} className="text-dark-muted hover:text-dark-text transition-colors p-1">
                         <Trash2 className="w-3 h-3" />
                     </button>
                 </div>
-                <div className="flex-1 overflow-auto p-4 font-mono text-xs text-gray-300 bg-black/50">
+                <div className="flex-1 overflow-auto p-4 font-mono text-xs text-dark-muted bg-black/50">
                     {isLoading && <div className="text-blue-400 italic">Initializing Pyodide environment...</div>}
                     {output.map((line, i) => (
                         <div key={i} className="whitespace-pre-wrap break-words border-b border-white/5 pb-0.5 mb-0.5 last:border-0">{line}</div>
                     ))}
-                    {!isLoading && output.length === 0 && <div className="text-gray-600 italic">Output will appear here...</div>}
+                    {!isLoading && output.length === 0 && <div className="text-dark-muted italic">Output will appear here...</div>}
                 </div>
             </div>
         </div>

@@ -13,7 +13,7 @@ const SubAgentPanel: React.FC<SubAgentPanelProps> = ({ tasks }) => {
     <div className="border-t border-dark-border bg-dark-panel flex flex-col max-h-48 overflow-y-auto">
       <div className="p-2 px-4 bg-dark-bg/50 border-b border-dark-border flex items-center gap-2 sticky top-0 backdrop-blur-sm">
         <Bot className="w-3 h-3 text-purple-400" />
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Sub-Agents Activity</span>
+        <span className="text-xs font-semibold text-dark-muted uppercase tracking-wider">Sub-Agents Activity</span>
       </div>
       <div className="p-2 space-y-2">
         {tasks.map((task) => (
@@ -21,18 +21,18 @@ const SubAgentPanel: React.FC<SubAgentPanelProps> = ({ tasks }) => {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                  <span className="font-bold text-purple-400">{task.agentName}</span>
-                 <span className="text-gray-500">|</span>
-                 <span className="text-gray-300 truncate max-w-[150px]">{task.task}</span>
+                 <span className="text-dark-muted">|</span>
+                 <span className="text-dark-muted truncate max-w-[150px]">{task.task}</span>
               </div>
               <div>
-                {task.status === 'pending' && <Clock className="w-3 h-3 text-gray-500" />}
+                {task.status === 'pending' && <Clock className="w-3 h-3 text-dark-muted" />}
                 {task.status === 'running' && <Loader2 className="w-3 h-3 text-cerebras-500 animate-spin" />}
                 {task.status === 'completed' && <CheckCircle2 className="w-3 h-3 text-green-500" />}
                 {task.status === 'failed' && <XCircle className="w-3 h-3 text-red-500" />}
               </div>
             </div>
             {task.result && (
-              <div className="mt-1 pl-2 border-l-2 border-dark-border text-gray-500 italic truncate">
+              <div className="mt-1 pl-2 border-l-2 border-dark-border text-dark-muted italic truncate">
                 {task.result}
               </div>
             )}

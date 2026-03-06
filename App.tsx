@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Settings from './components/Settings';
-import ThemeBrowser from './components/ThemeBrowser';
+import ThemeBrowser, { THEMES_DATA } from './components/ThemeBrowser';
 import ShareModal from './components/ShareModal';
 import { Toast } from './components/Toast';
 import MainLayout from './components/MainLayout';
@@ -26,6 +26,76 @@ import { Pencil, Trash2 } from 'lucide-react';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 const RESTRICTED_TOOLS = ['run_terminal_command', 'browser_action', 'start_browser_session', 'discord_message'];
+
+// --- Color Helpers ---
+const parseColor = (color: string) => {
+    const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (rgbMatch) return { r: parseInt(rgbMatch[1]), g: parseInt(rgbMatch[2]), b: parseInt(rgbMatch[3]) };
+    if (color.startsWith('#')) {
+        const hex = color.slice(1);
+        const r = parseInt(hex.length === 3 ? hex[0]+hex[0] : hex.slice(0,2), 16);
+        const g = parseInt(hex.length === 3 ? hex[1]+hex[1] : hex.slice(2,4), 16);
+        const b = parseInt(hex.length === 3 ? hex[2]+hex[2] : hex.slice(4,6), 16);
+        return { r, g, b };
+    }
+    return null;
+};
+
+const rgbToHsl = (r: number, g: number, b: number) => {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return { h, s, l };
+};
+
+const hslToHex = (h: number, s: number, l: number) => {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+        const hue2rgb = (p: number, q: number, t: number) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1/3);
+    }
+    const toHex = (x: number) => { const hex = Math.round(x * 255).toString(16); return hex.length === 1 ? '0' + hex : hex; };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const boostContrast = (colorVal: string, type: 'main' | 'muted' | 'code') => {
+    const rgb = parseColor(colorVal);
+    if (!rgb) return colorVal;
+    const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    let newL = l;
+    const isDarkText = l < 0.5;
+    
+    if (isDarkText) {
+        // Make darker (Light Mode)
+        if (type === 'main') newL = 0.05; 
+        else if (type === 'muted') newL = 0.25; 
+        else newL = Math.max(0, l - 0.4);
+    } else {
+        // Make lighter (Dark Mode)
+        if (type === 'main') newL = 0.98; 
+        else if (type === 'muted') newL = 0.85; 
+        else newL = Math.min(1, l + 0.4);
+    }
+    return hslToHex(h, s, newL);
+};
 
 const App: React.FC = () => {
   const {
@@ -95,6 +165,7 @@ const App: React.FC = () => {
   const [timezone, setTimezone] = useState<string>(() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; } });
   const [browserSessions, setBrowserSessions] = useState<BrowserSessionInfo[]>([]);
   const [theme, setTheme] = useState(() => localStorage.getItem('atom_theme') || 'default');
+  const [highContrastText, setHighContrastText] = useState(() => localStorage.getItem('atom_high_contrast_text') === 'true');
   
   const [globalDisabledTools, setGlobalDisabledTools] = useState<string[]>(() => {
     const saved = localStorage.getItem('atom_disabled_tools');
@@ -270,8 +341,96 @@ const App: React.FC = () => {
       return () => clearInterval(interval);
   }, [isLoading]);
 
-  // Theme
-  useEffect(() => { localStorage.setItem('atom_theme', theme); document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+  const handleUpdateAgent = (updatedAgent: Agent) => {
+      setAvailableAgents(prev => {
+          const newAgents = prev.map(a => a.id === updatedAgent.id ? updatedAgent : a);
+          const customAgents = newAgents.filter(a => a.isCustom);
+          localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents));
+          return newAgents;
+      });
+      if (selectedAgent.id === updatedAgent.id) {
+          setSelectedAgent(updatedAgent);
+      }
+  };
+
+  const handleDeleteAgent = (agentId: string) => {
+      setAvailableAgents(prev => {
+          const newAgents = prev.filter(a => a.id !== agentId);
+          const customAgents = newAgents.filter(a => a.isCustom);
+          localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents));
+          return newAgents;
+      });
+      if (selectedAgent.id === agentId) {
+          setSelectedAgent(DEFAULT_AGENTS[0]);
+      }
+  };
+
+  // Memory Helpers
+  const getAgentMemory = (agentId: string) => {
+      try {
+          return JSON.parse(localStorage.getItem(`atom_agent_memory_${agentId}`) || '[]');
+      } catch { return []; }
+  };
+
+  const saveAgentMemory = (agentId: string, memories: any[]) => {
+      localStorage.setItem(`atom_agent_memory_${agentId}`, JSON.stringify(memories));
+  };
+
+  // Theme & Contrast
+  useEffect(() => { 
+      localStorage.setItem('atom_theme', theme); 
+      document.documentElement.setAttribute('data-theme', theme); 
+      
+      localStorage.setItem('atom_high_contrast_text', String(highContrastText));
+      
+      // Reset to allow reading CSS variables
+      document.documentElement.style.removeProperty('--text-main');
+      document.documentElement.style.removeProperty('--text-muted');
+      document.documentElement.style.removeProperty('--code-text');
+      document.documentElement.style.removeProperty('--text-on-accent');
+
+      const styleId = 'high-contrast-overrides';
+      let styleTag = document.getElementById(styleId);
+      if (styleTag) styleTag.remove();
+
+      if (highContrastText) {
+          // Force a read of the computed styles after the attribute change
+          const style = getComputedStyle(document.documentElement);
+          
+          let newMain = '';
+          let newMuted = '';
+
+          const process = (varName: string, type: 'main' | 'muted' | 'code') => {
+              const val = style.getPropertyValue(varName).trim();
+              if (val) {
+                  const boosted = boostContrast(val, type);
+                  if (boosted) {
+                      document.documentElement.style.setProperty(varName, boosted);
+                      if (type === 'main') newMain = boosted;
+                      if (type === 'muted') newMuted = boosted;
+                  }
+              }
+          };
+
+          process('--text-main', 'main');
+          process('--text-muted', 'muted');
+          process('--code-text', 'code');
+          process('--text-on-accent', 'main');
+
+          // Inject global styles for Tailwind classes
+          if (newMain && newMuted) {
+              styleTag = document.createElement('style');
+              styleTag.id = styleId;
+              styleTag.innerHTML = `
+                  .text-gray-50, .text-gray-100, .text-gray-200, .text-gray-300, .text-white { color: ${newMain} !important; }
+                  .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700 { color: ${newMuted} !important; }
+                  .text-dark-text { color: ${newMain} !important; }
+                  .text-dark-muted { color: ${newMuted} !important; }
+              `;
+              document.head.appendChild(styleTag);
+          }
+      }
+  }, [theme, highContrastText]);
 
   // Smart Edit
   const handleSmartEdit = async (file: FileData, selection: string, instruction: string, model: AppModel): Promise<string> => {
@@ -331,7 +490,14 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
     const myBrowserSessions = browserSessions.filter(s => s.agentId === selectedAgent.id);
     let browserContext = myBrowserSessions.length > 0 ? `\nActive Browser Sessions:\n${myBrowserSessions.map(s => `- ID: ${s.sessionId} | URL: ${s.url}`).join('\n')}\n` : '';
 
-    const systemMessage = { role: "system", content: `${selectedAgent.systemPrompt}\n\n${systemHeaderContent}\n\n[CURRENT PROJECT FILES]\n${fileStructure}\n${browserContext}\n\nDate: ${new Date().toLocaleString()}` };
+    // Memory Context
+    const memories = getAgentMemory(selectedAgent.id);
+    let memoryContext = "";
+    if (memories.length > 0) {
+        memoryContext = `\n\n[LONG TERM MEMORY]\n${memories.map((m: any) => `- [ID: ${m.id}] ${m.content}`).join('\n')}`;
+    }
+
+    const systemMessage = { role: "system", content: `${selectedAgent.systemPrompt}\n\n${systemHeaderContent}\n\n[CURRENT PROJECT FILES]\n${fileStructure}\n${browserContext}${memoryContext}\n\nDate: ${new Date().toLocaleString()}` };
     
     let apiLoopMessages: any[] = isContinuing ? previousContext : [systemMessage];
     if (!isContinuing) {
@@ -453,6 +619,26 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                          if (args.schedule_action === 'create') { setSchedules(prev => { const n = [...prev, { id: generateId(), prompt: args.prompt, type: args.schedule_type, schedule: args.schedule_time, active: true, agentId: selectedAgent.id, createdAt: Date.now() }]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; }); result = "Schedule created."; }
                          else if (args.schedule_action === 'list') result = JSON.stringify(schedulesRef.current);
                          else if (args.schedule_action === 'delete') { setSchedules(prev => { const n = prev.filter(s => s.id !== args.schedule_id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; }); result = "Schedule deleted."; }
+                    } else if (fnName === 'manage_memory') {
+                        const memories = getAgentMemory(selectedAgent.id);
+                        if (args.action === 'remember' && args.content) {
+                            memories.push({
+                                id: generateId(),
+                                content: args.content,
+                                timestamp: Date.now()
+                            });
+                            saveAgentMemory(selectedAgent.id, memories);
+                            result = `Memory saved: "${args.content}"`;
+                        } else if (args.action === 'forget' && args.memory_id) {
+                            const newMemories = memories.filter((m: any) => m.id !== args.memory_id);
+                            if (newMemories.length === memories.length) result = `Memory ID ${args.memory_id} not found.`;
+                            else {
+                                saveAgentMemory(selectedAgent.id, newMemories);
+                                result = `Memory ${args.memory_id} removed.`;
+                            }
+                        } else {
+                            result = "Invalid memory action.";
+                        }
                     } else if (fnName === 'create_office_file') {
                         let content = null;
                         if (args.filename.endsWith('.docx')) content = await createWordDoc(args.content, filesRef.current);
@@ -584,7 +770,14 @@ json.dumps({"output": output_str, "result": str(func_result)})
           useWebContainer={useWebContainer} onToggleWebContainer={() => setUseWebContainer(p => { localStorage.setItem('atom_use_webcontainer', String(!p)); return !p; })}
           disableDefaultRAG={disableDefaultRAG} onToggleDefaultRAG={() => setDisableDefaultRAG(p => { localStorage.setItem('atom_disable_default_rag', String(!p)); return !p; })}
       />
-      <ThemeBrowser isOpen={isThemeBrowserOpen} onClose={() => setIsThemeBrowserOpen(false)} currentTheme={theme} onSetTheme={setTheme} />
+      <ThemeBrowser 
+          isOpen={isThemeBrowserOpen} 
+          onClose={() => setIsThemeBrowserOpen(false)} 
+          currentTheme={theme} 
+          onSetTheme={setTheme} 
+          highContrastText={highContrastText}
+          onToggleHighContrastText={() => setHighContrastText(prev => !prev)}
+      />
       <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} currentWorkspace={workspaces.find(w => w.id === activeWorkspaceId)} onImportWorkspace={(ws) => { handleImportWorkspace(ws); addToast(`Imported ${ws.name}`); }} />
       <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50 pointer-events-none">{toasts.map((msg, i) => (<Toast key={i} message={msg} onClose={() => setToasts(prev => prev.filter(m => m !== msg))} />))}</div>
       {chatContextMenu && (
@@ -600,7 +793,7 @@ json.dumps({"output": output_str, "result": str(func_result)})
         handleCreateFile={handleCreateFile} handleDeleteFile={handleDeleteFile} handleImportFiles={handleImportFiles} handleMoveFile={handleMoveFile} handleUpdateFileByName={handleUpdateFileByName} handleOpenFolderWrapper={handleOpenFolder} handleSwitchFolder={() => { agentControlRef.current.stop = true; setIsLoading(false); if (!isRenderHosted) fetch('http://localhost:3001/cleanup', {method:'POST'}).catch(console.error); setMessages([]); setSessions([]); setBrowserSessions([]); resetFileSystem(); handleOpenFolder(); }} resetFileSystem={resetFileSystem}
         workspaces={workspaces} activeWorkspaceId={activeWorkspaceId} handleCreateWorkspace={handleCreateWorkspace} handleSwitchWorkspace={handleSwitchWorkspace} handleRenameWorkspace={handleRenameWorkspace} handleDeleteWorkspace={handleDeleteWorkspace} handleDuplicateWorkspace={handleDuplicateWorkspace}
         chatHistory={chatHistory} currentChatId={currentChatId} handleLoadChat={handleLoadChat} handleChatContextMenu={(e, id) => { e.preventDefault(); e.stopPropagation(); setChatContextMenu({ x: e.clientX, y: e.clientY, sessionId: id }); }}
-        messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => [...p, a]); setSelectedAgent(a); } }} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatInput={chatInput} setChatInput={setChatInput} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} streamMetrics={streamMetrics} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}
+        messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => { const n = [...p, a]; const customAgents = n.filter(x => x.isCustom); localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents)); return n; }); setSelectedAgent(a); } }} handleUpdateAgent={handleUpdateAgent} handleDeleteAgent={handleDeleteAgent} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatInput={chatInput} setChatInput={setChatInput} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} streamMetrics={streamMetrics} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}
         handleUpdateFileContent={handleUpdateFileContent} handleSmartEdit={handleSmartEdit} handleSaveFileWrapper={handleSaveFileWrapper} handleExecutePlanStep={handleExecutePlanStep} handleExecuteFullPlan={handleExecuteFullPlan}
         schedules={schedules} toggleScheduleActive={(id) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, active: !s.active } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} deleteSchedule={(id) => setSchedules(p => { const n = p.filter(s => s.id !== id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} updateScheduleAgent={(id, aid) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, agentId: aid } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} timezone={timezone}
         skills={skills} enabledSkillIds={enabledSkillIds} handleToggleSkill={(id) => setEnabledSkillIds(p => { const n = p.includes(id) ? p.filter(x => x !== id) : [...p, id]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ enabledSkillIds: n }); else localStorage.setItem('atom_enabled_skills', JSON.stringify(n)); return n; })} handleImportSkill={(f) => { f.forEach(async x => { if (x.name.endsWith('.json')) { try { const d = JSON.parse(x.content); (Array.isArray(d) ? d : [d]).forEach(saveSkillToStorage); } catch {} } else if (x.name.endsWith('.zip')) { const s = await parseSkillZip(x); if (s) saveSkillToStorage(s); } else { const s = parseSkill(x); if (s) saveSkillToStorage(s); } }); setSkillRefresh(p => p + 1); addToast("Skills imported"); }} handleExportSkills={() => { const s = getLocalStorageSkills(); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s, null, 2)); a.download = "skills.json"; a.click(); }} handleDeleteSkill={(id) => { deleteSkillFromStorage(id); setSkillRefresh(p => p + 1); addToast("Skill deleted"); }}

@@ -256,14 +256,14 @@ const Settings: React.FC<SettingsProps> = ({
               <div className="flex items-center gap-1">
                   <button 
                     onClick={handleExportConfig}
-                    className="p-1 text-gray-400 hover:text-dark-text hover:bg-white/10 rounded transition-colors"
+                    className="p-1 text-dark-muted hover:text-dark-text hover:bg-white/10 rounded transition-colors"
                     title="Export Configuration (.cfg)"
                   >
                       <Download className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-1 text-gray-400 hover:text-dark-text hover:bg-white/10 rounded transition-colors"
+                    className="p-1 text-dark-muted hover:text-dark-text hover:bg-white/10 rounded transition-colors"
                     title="Import Configuration (.cfg)"
                   >
                       <Upload className="w-4 h-4" />
@@ -271,7 +271,7 @@ const Settings: React.FC<SettingsProps> = ({
                   <input type="file" ref={fileInputRef} className="hidden" accept=".cfg,.json" onChange={handleImportConfig} />
               </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-dark-text transition-colors">
+          <button onClick={onClose} className="text-dark-muted hover:text-dark-text transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -282,9 +282,9 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-3.5 h-3.5 text-cerebras-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Custom Instructions</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Custom Instructions</label>
             </div>
-            <p className="text-xs text-gray-500 mb-2">These instructions are added to the system prompt of every agent.</p>
+            <p className="text-xs text-dark-muted mb-2">These instructions are added to the system prompt of every agent.</p>
             <textarea
                 value={customInstructions}
                 onChange={(e) => onSetCustomInstructions(e.target.value)}
@@ -299,7 +299,7 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Bug className="w-3.5 h-3.5 text-orange-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">System</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">System</label>
             </div>
             
             <div className="flex flex-col gap-2">
@@ -311,14 +311,14 @@ const Settings: React.FC<SettingsProps> = ({
                             : 'bg-dark-bg border-dark-border opacity-60'
                     }`}
                 >
-                    <div className={`mt-0.5 ${showStreamDebug ? 'text-orange-500' : 'text-gray-600'}`}>
+                    <div className={`mt-0.5 ${showStreamDebug ? 'text-orange-500' : 'text-dark-muted'}`}>
                         {showStreamDebug ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </div>
                     <div>
-                        <div className={`text-xs font-medium ${showStreamDebug ? 'text-dark-text' : 'text-gray-500'}`}>
+                        <div className={`text-xs font-medium ${showStreamDebug ? 'text-dark-text' : 'text-dark-muted'}`}>
                             Show Stream Debug
                         </div>
-                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
                             Visualize the raw text stream tokens as they arrive.
                         </div>
                     </div>
@@ -332,15 +332,15 @@ const Settings: React.FC<SettingsProps> = ({
                             : 'bg-dark-bg border-dark-border opacity-60'
                     }`}
                 >
-                    <div className={`mt-0.5 ${proxyMode ? 'text-green-500' : 'text-gray-600'}`}>
+                    <div className={`mt-0.5 ${proxyMode ? 'text-green-500' : 'text-dark-muted'}`}>
                         {proxyMode ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </div>
                     <div className="flex-1">
-                        <div className={`text-xs font-medium flex items-center gap-2 ${proxyMode ? 'text-dark-text' : 'text-gray-500'}`}>
+                        <div className={`text-xs font-medium flex items-center gap-2 ${proxyMode ? 'text-dark-text' : 'text-dark-muted'}`}>
                             <span>Proxy Mode</span>
-                            <Globe className="w-3 h-3 text-gray-500" />
+                            <Globe className="w-3 h-3 text-dark-muted" />
                         </div>
-                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
                             Route requests through corsproxy.io to bypass CORS issues on external URLs.
                         </div>
                     </div>
@@ -354,15 +354,15 @@ const Settings: React.FC<SettingsProps> = ({
                             : 'bg-dark-bg border-dark-border opacity-60'
                     }`}
                 >
-                    <div className={`mt-0.5 ${useWebContainer ? 'text-blue-500' : 'text-gray-600'}`}>
+                    <div className={`mt-0.5 ${useWebContainer ? 'text-blue-500' : 'text-dark-muted'}`}>
                         {useWebContainer ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </div>
                     <div className="flex-1">
-                        <div className={`text-xs font-medium flex items-center gap-2 ${useWebContainer ? 'text-dark-text' : 'text-gray-500'}`}>
+                        <div className={`text-xs font-medium flex items-center gap-2 ${useWebContainer ? 'text-dark-text' : 'text-dark-muted'}`}>
                             <span>WebContainer Mode</span>
-                            <Terminal className="w-3 h-3 text-gray-500" />
+                            <Terminal className="w-3 h-3 text-dark-muted" />
                         </div>
-                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
                             Use StackBlitz WebContainers for full Node.js environment in preview.
                         </div>
                     </div>
@@ -376,15 +376,15 @@ const Settings: React.FC<SettingsProps> = ({
                             : 'bg-dark-bg border-dark-border opacity-60'
                     }`}
                 >
-                    <div className={`mt-0.5 ${disableDefaultRAG ? 'text-red-500' : 'text-gray-600'}`}>
+                    <div className={`mt-0.5 ${disableDefaultRAG ? 'text-red-500' : 'text-dark-muted'}`}>
                         {disableDefaultRAG ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </div>
                     <div className="flex-1">
-                        <div className={`text-xs font-medium flex items-center gap-2 ${disableDefaultRAG ? 'text-dark-text' : 'text-gray-500'}`}>
+                        <div className={`text-xs font-medium flex items-center gap-2 ${disableDefaultRAG ? 'text-dark-text' : 'text-dark-muted'}`}>
                             <span>Disable Default RAG</span>
-                            <ShieldCheck className="w-3 h-3 text-gray-500" />
+                            <ShieldCheck className="w-3 h-3 text-dark-muted" />
                         </div>
-                        <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
                             Stop automatically searching RAG for every message. Use 'RAG_Search' tool instead.
                         </div>
                     </div>
@@ -398,9 +398,9 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
               <div className="flex items-center gap-2 mb-2">
                   <Eye className="w-3.5 h-3.5 text-blue-400" />
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Default Vision Model</label>
+                  <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Default Vision Model</label>
               </div>
-              <p className="text-xs text-gray-500 mb-2">Used when you attach images/videos, if current model doesn't support vision.</p>
+              <p className="text-xs text-dark-muted mb-2">Used when you attach images/videos, if current model doesn't support vision.</p>
               <select 
                 value={defaultVlModel} 
                 onChange={(e) => onSetDefaultVlModel(e.target.value)}
@@ -417,7 +417,7 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
               <div className="flex items-center gap-2 mb-2">
                   <Volume2 className="w-3.5 h-3.5 text-purple-400" />
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Text-to-Speech Voice</label>
+                  <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Text-to-Speech Voice</label>
               </div>
               <select 
                 value={ttsVoice} 
@@ -437,7 +437,7 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <Palette className="w-3.5 h-3.5 text-cerebras-500" />
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Appearance</label>
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Appearance</label>
                 </div>
             </div>
             
@@ -449,10 +449,10 @@ const Settings: React.FC<SettingsProps> = ({
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cerebras-500 to-purple-600 shadow-lg"></div>
                     <div className="text-left">
                         <div className="text-sm font-medium text-dark-text group-hover:text-dark-text">Customize Theme</div>
-                        <div className="text-xs text-gray-500">Current: <span className="text-cerebras-400 capitalize">{currentTheme}</span></div>
+                        <div className="text-xs text-dark-muted">Current: <span className="text-cerebras-400 capitalize">{currentTheme}</span></div>
                     </div>
                 </div>
-                <Grid className="w-5 h-5 text-gray-500 group-hover:text-dark-text" />
+                <Grid className="w-5 h-5 text-dark-muted group-hover:text-dark-text" />
             </button>
           </div>
 
@@ -462,9 +462,9 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
               <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-3.5 h-3.5 text-cerebras-500" />
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">System Timezone</label>
+                  <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">System Timezone</label>
               </div>
-              <p className="text-xs text-gray-500 mb-2">Affects scheduled events and time-based tasks.</p>
+              <p className="text-xs text-dark-muted mb-2">Affects scheduled events and time-based tasks.</p>
               <select 
                 value={timezone} 
                 onChange={(e) => onSetTimezone(e.target.value)}
@@ -482,9 +482,9 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Wrench className="w-3.5 h-3.5 text-cerebras-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Global Tool Permissions</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Global Tool Permissions</label>
             </div>
-            <p className="text-xs text-gray-500 mb-3">Disabling a tool here removes it from all agents and updates their system instructions.</p>
+            <p className="text-xs text-dark-muted mb-3">Disabling a tool here removes it from all agents and updates their system instructions.</p>
             <div className="grid grid-cols-2 gap-2">
                 {GLOBAL_TOOLS_LIST.map(tool => {
                     const isRestricted = isRenderHosted && (tool as any).restricted;
@@ -501,17 +501,17 @@ const Settings: React.FC<SettingsProps> = ({
                                     : 'bg-dark-bg border-dark-border opacity-60'
                             } ${isRestricted ? 'cursor-not-allowed opacity-40' : ''}`}
                         >
-                            <div className={`mt-0.5 ${isEnabled ? 'text-cerebras-500' : 'text-gray-600'}`}>
+                            <div className={`mt-0.5 ${isEnabled ? 'text-cerebras-500' : 'text-dark-muted'}`}>
                                 {isRestricted 
                                     ? <Lock className="w-5 h-5" /> 
                                     : (isEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />)
                                 }
                             </div>
                             <div>
-                                <div className={`text-xs font-medium ${isEnabled ? 'text-dark-text' : 'text-gray-500'}`}>
+                                <div className={`text-xs font-medium ${isEnabled ? 'text-dark-text' : 'text-dark-muted'}`}>
                                     {tool.label} {isRestricted && '(Disabled)'}
                                 </div>
-                                <div className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                                <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
                                     {tool.desc}
                                 </div>
                             </div>
@@ -527,9 +527,9 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Bot className="w-3.5 h-3.5 text-cerebras-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Sub-Agent Availability</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Sub-Agent Availability</label>
             </div>
-            <p className="text-xs text-gray-500 mb-3">Choose which agents can be called as sub-agents.</p>
+            <p className="text-xs text-dark-muted mb-3">Choose which agents can be called as sub-agents.</p>
             <div className="grid grid-cols-2 gap-2">
                 {agents.map(agent => {
                     const isEnabled = !disabledSubAgents.includes(agent.id);
@@ -543,10 +543,10 @@ const Settings: React.FC<SettingsProps> = ({
                                     : 'bg-dark-bg border-dark-border opacity-60'
                             }`}
                         >
-                            <div className={`flex-shrink-0 ${isEnabled ? 'text-cerebras-500' : 'text-gray-600'}`}>
+                            <div className={`flex-shrink-0 ${isEnabled ? 'text-cerebras-500' : 'text-dark-muted'}`}>
                                 {isEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                             </div>
-                            <div className="truncate text-xs font-medium text-gray-300">
+                            <div className="truncate text-xs font-medium text-dark-muted">
                                 {agent.name}
                             </div>
                         </button>
@@ -566,21 +566,21 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full bg-cerebras-500"></div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Cerebras API Keys</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Cerebras API Keys</label>
             </div>
             
             <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
                 {cerebrasKeys.length === 0 && (
-                    <div className="text-sm text-gray-500 italic text-center py-2 bg-white/5 rounded">No keys added.</div>
+                    <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">No keys added.</div>
                 )}
                 {cerebrasKeys.map((k, i) => (
-                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-gray-300">
+                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
                         <span className="font-mono truncate w-64">
                             {k.substring(0, 8)}...{k.substring(k.length - 4)}
                         </span>
                         <button 
                             onClick={() => handleRemoveCerebras(k)}
-                            className="text-gray-500 hover:text-red-400 transition-colors"
+                            className="text-dark-muted hover:text-red-400 transition-colors"
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
@@ -612,21 +612,21 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Cpu className="w-3.5 h-3.5 text-green-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Nvidia NIM API Keys</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Nvidia NIM API Keys</label>
             </div>
             
             <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
                 {nvidiaKeys.length === 0 && (
-                    <div className="text-sm text-gray-500 italic text-center py-2 bg-white/5 rounded">Using default demo key.</div>
+                    <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">Using default demo key.</div>
                 )}
                 {nvidiaKeys.map((k, i) => (
-                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-gray-300">
+                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
                         <span className="font-mono truncate w-64">
                             {k.substring(0, 8)}...{k.substring(k.length - 4)}
                         </span>
                         <button 
                             onClick={() => handleRemoveNvidia(k)}
-                            className="text-gray-500 hover:text-red-400 transition-colors"
+                            className="text-dark-muted hover:text-red-400 transition-colors"
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
@@ -658,21 +658,21 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Cloud className="w-3.5 h-3.5 text-blue-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Ollama Cloud API Keys</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Ollama Cloud API Keys</label>
             </div>
             
             <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
                 {ollamaKeys.length === 0 && (
-                    <div className="text-sm text-gray-500 italic text-center py-2 bg-white/5 rounded">No keys added.</div>
+                    <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">No keys added.</div>
                 )}
                 {ollamaKeys.map((k, i) => (
-                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-gray-300">
+                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
                         <span className="font-mono truncate w-64">
                             {k.substring(0, 8)}...{k.substring(k.length - 4)}
                         </span>
                         <button 
                             onClick={() => handleRemoveOllama(k)}
-                            className="text-gray-500 hover:text-red-400 transition-colors"
+                            className="text-dark-muted hover:text-red-400 transition-colors"
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
@@ -704,13 +704,13 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Terminal className="w-3.5 h-3.5 text-blue-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">CodeSandbox Integration</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">CodeSandbox Integration</label>
             </div>
-            <p className="text-xs text-gray-500 mb-3">Required to use the "run_codesandbox" tool for backend execution.</p>
+            <p className="text-xs text-dark-muted mb-3">Required to use the "run_codesandbox" tool for backend execution.</p>
             
             <div className="space-y-3">
                 <div>
-                    <label className="text-[10px] text-gray-400 mb-1 block">CodeSandbox API Key</label>
+                    <label className="text-[10px] text-dark-muted mb-1 block">CodeSandbox API Key</label>
                     <input 
                         type="password"
                         value={csbApiKey}
@@ -734,13 +734,13 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <Cloud className="w-3.5 h-3.5 text-yellow-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Google Drive Integration</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Google Drive Integration</label>
             </div>
-            <p className="text-xs text-gray-500 mb-3">Required to use the "Open Google Drive" feature.</p>
+            <p className="text-xs text-dark-muted mb-3">Required to use the "Open Google Drive" feature.</p>
             
             <div className="space-y-3">
                 <div>
-                    <label className="text-[10px] text-gray-400 mb-1 block">Google Client ID</label>
+                    <label className="text-[10px] text-dark-muted mb-1 block">Google Client ID</label>
                     <input 
                         type="text"
                         value={googleClientId}
@@ -750,7 +750,7 @@ const Settings: React.FC<SettingsProps> = ({
                     />
                 </div>
                 <div>
-                    <label className="text-[10px] text-gray-400 mb-1 block">Google API Key</label>
+                    <label className="text-[10px] text-dark-muted mb-1 block">Google API Key</label>
                     <input 
                         type="password"
                         value={googleApiKey}
@@ -776,20 +776,20 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-2">
                 <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Discord Integration</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Discord Integration</label>
             </div>
             
             {isRenderHosted ? (
-                 <div className="text-xs text-gray-500 italic p-2 bg-red-900/10 border border-red-500/20 rounded">
+                 <div className="text-xs text-dark-muted italic p-2 bg-red-900/10 border border-red-500/20 rounded">
                      Discord integration is disabled in this hosted environment.
                  </div>
             ) : (
                 <>
-                <p className="text-xs text-gray-500 mb-3">Connect a bot to chat with the agent via DM.</p>
+                <p className="text-xs text-dark-muted mb-3">Connect a bot to chat with the agent via DM.</p>
 
                 <div className="space-y-3">
                     <div>
-                        <label className="text-[10px] text-gray-400 mb-1 block">Bot Token</label>
+                        <label className="text-[10px] text-dark-muted mb-1 block">Bot Token</label>
                         <input 
                             type="password"
                             value={discordToken}
@@ -798,7 +798,7 @@ const Settings: React.FC<SettingsProps> = ({
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] text-gray-400 mb-1 block">Target User ID</label>
+                        <label className="text-[10px] text-dark-muted mb-1 block">Target User ID</label>
                         <input 
                             type="text"
                             value={discordUserId}
@@ -807,7 +807,7 @@ const Settings: React.FC<SettingsProps> = ({
                         />
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className={`text-xs ${discordStatus.includes('Connected') ? 'text-green-400' : 'text-gray-400'}`}>
+                        <span className={`text-xs ${discordStatus.includes('Connected') ? 'text-green-400' : 'text-dark-muted'}`}>
                             {discordStatus}
                         </span>
                         <button 
@@ -827,7 +827,7 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="p-4 border-t border-dark-border bg-dark-bg/50 flex justify-end">
             <button 
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-sm transition-colors"
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-dark-text rounded text-sm transition-colors"
             >
                 Done
             </button>

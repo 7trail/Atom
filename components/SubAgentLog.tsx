@@ -14,7 +14,7 @@ const SubAgentLog: React.FC<SubAgentLogProps> = ({ agentName, task, logs, status
 
   const getIconForType = (type: string) => {
     switch(type) {
-      case 'thought': return <Terminal className="w-3 h-3 text-gray-500" />;
+      case 'thought': return <Terminal className="w-3 h-3 text-dark-muted" />;
       case 'tool_call': return <Code className="w-3 h-3 text-blue-400" />;
       case 'tool_result': return <Globe className="w-3 h-3 text-green-400" />;
       case 'system': return <Sparkles className="w-3 h-3 text-red-400" />;
@@ -30,12 +30,12 @@ const SubAgentLog: React.FC<SubAgentLogProps> = ({ agentName, task, logs, status
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2 overflow-hidden">
-          <button className="text-gray-400">
+          <button className="text-dark-muted">
             {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </button>
           <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-          <span className="text-xs font-bold text-gray-300">{agentName}</span>
-          <span className="text-xs text-gray-500 truncate border-l border-gray-700 pl-2 ml-2">
+          <span className="text-xs font-bold text-dark-muted">{agentName}</span>
+          <span className="text-xs text-dark-muted truncate border-l border-gray-700 pl-2 ml-2">
             {task}
           </span>
         </div>
@@ -53,13 +53,13 @@ const SubAgentLog: React.FC<SubAgentLogProps> = ({ agentName, task, logs, status
       {/* Logs Body */}
       {expanded && (
         <div className="p-3 space-y-3 bg-black/20 text-xs font-mono max-h-[300px] overflow-y-auto">
-          {logs.length === 0 && <span className="text-gray-600 italic">Initializing...</span>}
+          {logs.length === 0 && <span className="text-dark-muted italic">Initializing...</span>}
           {logs.map((log) => (
             <div key={log.id} className="flex gap-2">
               <div className="mt-0.5 flex-shrink-0">{getIconForType(log.type)}</div>
               <div className="flex-1 min-w-0 break-words">
                 {log.type === 'thought' && (
-                  <div className="text-gray-500 italic">"{log.content}"</div>
+                  <div className="text-dark-muted italic">"{log.content}"</div>
                 )}
                 {log.type === 'tool_call' && (
                   <div className="text-blue-300">

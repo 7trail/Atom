@@ -46,7 +46,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
           case 'server': return <Server className="w-3 h-3 text-blue-400" />;
           case 'file': return <HardDrive className="w-3 h-3 text-yellow-400" />;
           case 'storage': return <Database className="w-3 h-3 text-green-400" />;
-          default: return <HardDrive className="w-3 h-3 text-gray-500" />;
+          default: return <HardDrive className="w-3 h-3 text-dark-muted" />;
       }
   };
 
@@ -59,7 +59,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
             </div>
             <div>
                 <h2 className="text-xl font-bold text-dark-text">Skill Browser</h2>
-                <p className="text-sm text-gray-400">Enhance agent capabilities with modular skills</p>
+                <p className="text-sm text-dark-muted">Enhance agent capabilities with modular skills</p>
             </div>
         </div>
         
@@ -68,7 +68,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
                 <>
                     <button 
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg border border-dark-border rounded text-xs hover:bg-white/5 transition-colors text-gray-300"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg border border-dark-border rounded text-xs hover:bg-white/5 transition-colors text-dark-muted"
                     >
                         <Upload className="w-3.5 h-3.5" /> Import
                     </button>
@@ -78,7 +78,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
             {onExportSkills && (
                  <button 
                     onClick={onExportSkills}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg border border-dark-border rounded text-xs hover:bg-white/5 transition-colors text-gray-300"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg border border-dark-border rounded text-xs hover:bg-white/5 transition-colors text-dark-muted"
                 >
                     <Download className="w-3.5 h-3.5" /> Export Library
                 </button>
@@ -88,7 +88,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
 
       <div className="flex-1 overflow-y-auto p-6">
         {skills.length === 0 ? (
-          <div className="text-center text-gray-500 mt-20">
+          <div className="text-center text-dark-muted mt-20">
              <BrainCircuit className="w-12 h-12 mx-auto mb-4 opacity-50" />
              <p>No skills found.</p>
              <p className="text-sm mt-2">Create a <code>skills.md</code> file in your workspace, or import one.</p>
@@ -114,11 +114,11 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
                                     {isEnabled && <span className="text-[10px] bg-green-900/30 text-green-400 px-1.5 py-0.5 rounded border border-green-800/50 uppercase">Active</span>}
                                     <div className="ml-2 bg-black/30 rounded px-1.5 py-0.5 flex items-center gap-1 border border-white/5" title={`Source: ${skill.source}`}>
                                         {getSourceIcon(skill.source)}
-                                        <span className="text-[9px] text-gray-500 uppercase">{skill.source || 'file'}</span>
+                                        <span className="text-[9px] text-dark-muted uppercase">{skill.source || 'file'}</span>
                                     </div>
                                 </div>
-                                <div className="text-sm text-gray-400 mt-1">{skill.description}</div>
-                                <div className="text-xs text-gray-600 font-mono mt-1 flex items-center gap-1">
+                                <div className="text-sm text-dark-muted mt-1">{skill.description}</div>
+                                <div className="text-xs text-dark-muted font-mono mt-1 flex items-center gap-1">
                                     <FileText className="w-3 h-3" />
                                     {skill.filePath}
                                 </div>
@@ -128,7 +128,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
                         <div className="flex items-center gap-2">
                            <button 
                              onClick={() => onToggleSkill(skill.id)}
-                             className={`p-2 rounded hover:bg-white/5 transition-colors ${isEnabled ? 'text-green-400' : 'text-gray-500'}`}
+                             className={`p-2 rounded hover:bg-white/5 transition-colors ${isEnabled ? 'text-green-400' : 'text-dark-muted'}`}
                              title={isEnabled ? "Disable Skill" : "Enable Skill"}
                            >
                               <Power className="w-5 h-5" />
@@ -137,7 +137,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
                            {skill.source === 'storage' && onDeleteSkill && (
                                <button 
                                  onClick={() => onDeleteSkill(skill.id)}
-                                 className="p-2 rounded hover:bg-red-900/20 text-gray-500 hover:text-red-400 transition-colors"
+                                 className="p-2 rounded hover:bg-red-900/20 text-dark-muted hover:text-red-400 transition-colors"
                                  title="Delete from Storage"
                                >
                                   <Trash2 className="w-5 h-5" />
@@ -146,7 +146,7 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
 
                            <button 
                              onClick={() => setExpandedId(isExpanded ? null : skill.id)}
-                             className="p-2 rounded hover:bg-white/5 text-gray-500 hover:text-dark-text transition-colors"
+                             className="p-2 rounded hover:bg-white/5 text-dark-muted hover:text-dark-text transition-colors"
                            >
                              {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                            </button>
@@ -155,10 +155,10 @@ const SkillBrowser: React.FC<SkillBrowserProps> = ({ skills, enabledSkillIds, on
                     
                     {isExpanded && (
                         <div className="border-t border-dark-border bg-black/20 p-4 animate-in fade-in slide-in-from-top-1">
-                             <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                             <div className="flex items-center gap-2 text-xs font-bold text-dark-muted uppercase tracking-wider mb-2">
                                 <Info className="w-3 h-3" /> Skill Instructions
                              </div>
-                             <div className="text-sm text-gray-300 font-mono whitespace-pre-wrap bg-dark-bg p-3 rounded border border-white/5 max-h-96 overflow-y-auto">
+                             <div className="text-sm text-dark-muted font-mono whitespace-pre-wrap bg-dark-bg p-3 rounded border border-white/5 max-h-96 overflow-y-auto">
                                  {skill.content}
                              </div>
                              {skill.metadata?.homepage && (

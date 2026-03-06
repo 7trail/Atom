@@ -146,16 +146,16 @@ export const PythonPreview: React.FC<PythonPreviewProps> = ({ file, allFiles, on
     };
 
     return (
-        <div className="flex flex-col h-full bg-dark-bg text-gray-200">
+        <div className="flex flex-col h-full bg-dark-bg text-dark-text">
             <div className="flex items-center justify-between px-4 py-2 bg-dark-panel border-b border-dark-border shrink-0">
                 <div className="flex items-center gap-2">
                     <TerminalIcon className="w-4 h-4 text-cerebras-400" />
-                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Python Execution</span>
+                    <span className="text-xs font-medium text-dark-muted uppercase tracking-wider">Python Execution</span>
                 </div>
                 <button 
                     onClick={runScript}
                     disabled={!isLoaded || isRunning}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-cerebras-600 hover:bg-cerebras-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded text-xs font-medium transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-cerebras-600 hover:bg-cerebras-500 disabled:bg-gray-700 disabled:text-dark-muted text-white rounded text-xs font-medium transition-colors"
                 >
                     {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                     {isRunning ? 'Running...' : 'Run Script'}

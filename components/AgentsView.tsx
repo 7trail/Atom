@@ -10,13 +10,13 @@ interface AgentsViewProps {
 
 const AgentsView: React.FC<AgentsViewProps> = ({ sessions, setActiveView, closeSession }) => {
     return (
-        <div className="flex flex-col h-full bg-dark-bg text-gray-200 p-6 overflow-y-auto">
+        <div className="flex flex-col h-full bg-dark-bg text-dark-text p-6 overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Bot className="w-6 h-6 text-cerebras-500" /> Active Subagents
             </h2>
             
             {sessions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                <div className="flex flex-col items-center justify-center h-64 text-dark-muted">
                     <Bot className="w-12 h-12 mb-4 opacity-50" />
                     <p>No active subagents.</p>
                 </div>
@@ -30,7 +30,7 @@ const AgentsView: React.FC<AgentsViewProps> = ({ sessions, setActiveView, closeS
                         >
                             <button 
                                 onClick={(e) => closeSession(e, s.id)} 
-                                className="absolute top-3 right-3 p-1 rounded-md text-gray-500 hover:text-red-400 hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
+                                className="absolute top-3 right-3 p-1 rounded-md text-dark-muted hover:text-red-400 hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -46,14 +46,14 @@ const AgentsView: React.FC<AgentsViewProps> = ({ sessions, setActiveView, closeS
                                     )}
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-sm text-gray-200">{s.agentName}</h3>
+                                    <h3 className="font-semibold text-sm text-dark-text">{s.agentName}</h3>
                                     <span className={`text-xs ${s.status === 'running' ? 'text-blue-400' : s.status === 'completed' ? 'text-green-400' : 'text-red-400'}`}>
                                         {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
                                     </span>
                                 </div>
                             </div>
                             
-                            <div className="text-xs text-gray-400 line-clamp-2 mt-2">
+                            <div className="text-xs text-dark-muted line-clamp-2 mt-2">
                                 {s.task}
                             </div>
                         </div>

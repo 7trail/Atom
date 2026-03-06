@@ -12,7 +12,7 @@ interface ThemeDefinition {
     text: string;
 }
 
-const THEMES_DATA: ThemeDefinition[] = [
+export const THEMES_DATA: ThemeDefinition[] = [
     { id: 'default', name: 'Atom Dark', description: 'The classic blue and dark gray theme.', bg: '#0f1117', panel: '#1e2028', accent: '#0ea5e9', text: '#e2e8f0' },
     { id: 'light', name: 'Atom Light', description: 'Bright and clean with blue accents.', bg: '#f8fafc', panel: '#ffffff', accent: '#0284c7', text: '#0f172a' },
     { id: 'pink', name: 'Femme', description: 'Deep dark background with hot pink.', bg: '#130e11', panel: '#1f1219', accent: '#ec4899', text: '#e2e8f0' },
@@ -100,9 +100,11 @@ interface ThemeBrowserProps {
     onClose: () => void;
     currentTheme: string;
     onSetTheme: (theme: string) => void;
+    highContrastText: boolean;
+    onToggleHighContrastText: () => void;
 }
 
-const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentTheme, onSetTheme }) => {
+const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentTheme, onSetTheme, highContrastText, onToggleHighContrastText }) => {
     if (!isOpen) return null;
 
     return (
@@ -115,9 +117,22 @@ const ThemeBrowser: React.FC<ThemeBrowserProps> = ({ isOpen, onClose, currentThe
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">Select a visual style for your workspace.</p>
                     </div>
-                    <button onClick={onClose} className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-dark-text hover:bg-white/10 transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={onToggleHighContrastText}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-medium ${
+                                highContrastText 
+                                    ? 'bg-cerebras-500/10 border-cerebras-500 text-cerebras-500' 
+                                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-dark-text'
+                            }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full ${highContrastText ? 'bg-cerebras-500' : 'bg-gray-500'}`}></div>
+                            High Contrast Text
+                        </button>
+                        <button onClick={onClose} className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-dark-text hover:bg-white/10 transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 bg-dark-bg/50">

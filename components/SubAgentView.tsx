@@ -18,13 +18,13 @@ const SubAgentView: React.FC<SubAgentViewProps> = ({ session, setActiveView }) =
   }, [session.logs.length, session.status]);
 
   return (
-    <div className="flex flex-col h-full bg-[#0f1117] text-gray-200">
+    <div className="flex flex-col h-full bg-[#0f1117] text-dark-text">
       {/* Header */}
       <div className="p-6 border-b border-dark-border bg-dark-panel">
         <div className="flex items-center gap-3 mb-2">
           <button 
             onClick={() => setActiveView('agents')}
-            className="p-2 -ml-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+            className="p-2 -ml-2 rounded-lg hover:bg-white/5 text-dark-muted hover:text-dark-text transition-colors"
             title="Back to Agents"
           >
             <ArrowRight className="w-5 h-5 rotate-180" />
@@ -34,7 +34,7 @@ const SubAgentView: React.FC<SubAgentViewProps> = ({ session, setActiveView }) =
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">{session.agentName}</h2>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-dark-muted">
                <span className="bg-white/5 px-2 py-0.5 rounded text-xs uppercase tracking-wider">Ephemeral Agent</span>
                <span>•</span>
                <span>{session.id}</span>
@@ -63,8 +63,8 @@ const SubAgentView: React.FC<SubAgentViewProps> = ({ session, setActiveView }) =
         </div>
         
         <div className="mt-4 bg-black/20 p-4 rounded-lg border border-white/5">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Current Assignment</h3>
-            <p className="text-gray-200 leading-relaxed font-medium">{session.task}</p>
+            <h3 className="text-xs font-bold text-dark-muted uppercase tracking-widest mb-1">Current Assignment</h3>
+            <p className="text-dark-text leading-relaxed font-medium">{session.task}</p>
         </div>
       </div>
 
@@ -77,13 +77,13 @@ const SubAgentView: React.FC<SubAgentViewProps> = ({ session, setActiveView }) =
                     <div className="flex gap-4">
                         <div className="flex-shrink-0 mt-1">
                             <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center">
-                                <Terminal className="w-3 h-3 text-gray-400" />
+                                <Terminal className="w-3 h-3 text-dark-muted" />
                             </div>
                         </div>
                         <div className="space-y-1 w-full min-w-0">
-                            <span className="text-xs font-bold text-gray-500 uppercase">Thought Process</span>
+                            <span className="text-xs font-bold text-dark-muted uppercase">Thought Process</span>
                             <div 
-                                className="text-gray-300 italic text-sm leading-relaxed markdown-body !bg-transparent !text-inherit !p-0"
+                                className="text-dark-muted italic text-sm leading-relaxed markdown-body !bg-transparent !text-inherit !p-0"
                                 dangerouslySetInnerHTML={{ __html: parse(log.content) as string }}
                             />
                         </div>
@@ -117,7 +117,7 @@ const SubAgentView: React.FC<SubAgentViewProps> = ({ session, setActiveView }) =
                         </div>
                          <div className="w-full max-w-3xl">
                             <span className="text-xs font-bold text-green-400 uppercase">Observation</span>
-                            <div className="mt-1 text-sm text-gray-400 bg-black/20 p-2 rounded border border-white/5 font-mono max-h-60 overflow-y-auto whitespace-pre-wrap">
+                            <div className="mt-1 text-sm text-dark-muted bg-black/20 p-2 rounded border border-white/5 font-mono max-h-60 overflow-y-auto whitespace-pre-wrap">
                                 {log.content}
                             </div>
                         </div>
@@ -144,7 +144,7 @@ const SubAgentView: React.FC<SubAgentViewProps> = ({ session, setActiveView }) =
         )}
 
         {session.status === 'running' && (
-            <div className="flex items-center gap-2 text-gray-500 text-sm italic pl-10 animate-pulse">
+            <div className="flex items-center gap-2 text-dark-muted text-sm italic pl-10 animate-pulse">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Processing next step...
             </div>

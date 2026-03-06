@@ -91,7 +91,7 @@ const ImagePreview: React.FC<{ file: FileData }> = ({ file }) => {
              <div className="absolute top-4 right-4 z-10 flex gap-2">
                  <button 
                     onClick={() => setImageFit(!imageFit)}
-                    className="p-2 bg-white/90 shadow-md rounded-lg text-gray-600 hover:text-cerebras-600 transition-colors border border-gray-200"
+                    className="p-2 bg-white/90 shadow-md rounded-lg text-dark-muted hover:text-cerebras-600 transition-colors border border-gray-200"
                     title={imageFit ? "Show Original Size" : "Fit to Screen"}
                  >
                      {imageFit ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
@@ -492,7 +492,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
 
   if (!file) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-400">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 text-dark-muted">
         <p>No file selected for preview.</p>
       </div>
     );
@@ -502,7 +502,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   if (useWebContainer) {
       if (!isSandpackInitialized) {
           return (
-              <div className="flex-1 flex items-center justify-center bg-gray-900 text-gray-400">
+              <div className="flex-1 flex items-center justify-center bg-gray-900 text-dark-muted">
                   <Loader2 className="w-6 h-6 animate-spin mr-2" />
                   Initializing Sandbox...
               </div>
@@ -512,9 +512,9 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
       return (
           <div className="flex flex-col h-full bg-dark-bg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-dark-panel border-b border-dark-border shrink-0">
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Preview Environment</span>
+                  <span className="text-xs font-medium text-dark-muted uppercase tracking-wider">Preview Environment</span>
                   <div className="flex items-center gap-2">
-                      <label className="text-xs text-gray-400">Template:</label>
+                      <label className="text-xs text-dark-muted">Template:</label>
                       <select 
                           value={sandpackTemplate} 
                           onChange={(e) => {
@@ -524,7 +524,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                                   localStorage.setItem(`atom_preview_template_${activeWorkspaceId}`, newTemplate);
                               }
                           }}
-                          className="bg-dark-bg text-gray-300 text-xs border border-dark-border rounded px-2 py-1 focus:outline-none focus:border-cerebras-500"
+                          className="bg-dark-bg text-dark-muted text-xs border border-dark-border rounded px-2 py-1 focus:outline-none focus:border-cerebras-500"
                       >
                           {SANDPACK_TEMPLATES.map(t => (
                               <option key={t} value={t}>{t}</option>
@@ -584,7 +584,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                         sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"
                     />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    <div className="flex items-center justify-center h-full text-dark-muted text-sm">
                         Preparing preview...
                     </div>
                 )}
@@ -638,7 +638,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                     </div>
 
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-4 text-gray-500 font-medium border-b border-gray-100 pb-2">
+                        <div className="flex items-center gap-2 mb-4 text-dark-muted font-medium border-b border-gray-100 pb-2">
                             <Target className="w-4 h-4" />
                             <span>Execution Steps</span>
                         </div>
@@ -650,11 +650,11 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
                                     : 'bg-white border-gray-200 hover:border-cerebras-200 hover:shadow-md'
                             }`}>
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                    step.completed ? 'text-green-600 bg-green-100' : 'bg-gray-100 text-gray-500 group-hover:bg-cerebras-50 group-hover:text-cerebras-600'
+                                    step.completed ? 'text-green-600 bg-green-100' : 'bg-gray-100 text-dark-muted group-hover:bg-cerebras-50 group-hover:text-cerebras-600'
                                 }`}>
                                     {step.completed ? <CheckCircle2 className="w-5 h-5" /> : <span className="font-bold text-sm">{idx + 1}</span>}
                                 </div>
-                                <div className={`flex-1 font-medium leading-relaxed ${step.completed ? 'text-gray-500 line-through decoration-green-500/50' : 'text-gray-700'}`}>
+                                <div className={`flex-1 font-medium leading-relaxed ${step.completed ? 'text-dark-muted line-through decoration-green-500/50' : 'text-dark-muted'}`}>
                                     {step.text}
                                 </div>
                                 {!step.completed && (
@@ -677,7 +677,7 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   // --- Folder Preview ---
   if (contentToRender?.type === 'folder') {
       return (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-500">
+        <div className="flex-1 flex items-center justify-center bg-gray-50 text-dark-muted">
           <p>Folder: {contentToRender.name}</p>
         </div>
       );

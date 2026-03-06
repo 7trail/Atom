@@ -550,6 +550,32 @@ export const TOOL_DEFINITIONS = [
     {
         type: "function",
         function: {
+            name: "manage_memory",
+            description: "Manage long-term memory for the agent. Use this to remember important facts, user preferences, or project details across sessions. You can also remove memories that are no longer relevant.",
+            parameters: {
+                type: "object",
+                properties: {
+                    action: {
+                        type: "string",
+                        enum: ["remember", "forget"],
+                        description: "The action to perform: 'remember' to save a new memory, 'forget' to remove an existing one."
+                    },
+                    content: {
+                        type: "string",
+                        description: "The content to remember. Required for 'remember' action."
+                    },
+                    memory_id: {
+                        type: "string",
+                        description: "The ID of the memory to forget. Required for 'forget' action. You can see memory IDs in the system prompt context."
+                    }
+                },
+                required: ["action"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
             name: "execute_function",
             description: "Execute a specific function from a Python script in the workspace.",
             parameters: {

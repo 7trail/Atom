@@ -128,7 +128,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
 
   if (!file) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-dark-bg text-gray-500">
+      <div className="flex-1 flex items-center justify-center bg-dark-bg text-dark-muted">
         <p>Select a file to edit or ask the AI to create one.</p>
       </div>
     );
@@ -145,7 +145,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
                   <div className="flex items-center gap-2">
                       <button 
                           onClick={handleRejectDiff}
-                          className="px-3 py-1.5 rounded text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 flex items-center gap-2 transition-colors"
+                          className="px-3 py-1.5 rounded text-xs font-medium bg-gray-700 hover:bg-gray-600 text-dark-text flex items-center gap-2 transition-colors"
                       >
                           <X className="w-3.5 h-3.5" /> Reject
                       </button>
@@ -179,7 +179,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
       <div className="bg-dark-panel border-b border-dark-border px-4 py-2 flex items-center justify-between shrink-0 h-12">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-300 font-mono font-medium">{file.name}</span>
+              <span className="text-sm text-dark-muted font-mono font-medium">{file.name}</span>
               {file.unsaved && (
                   <div className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_4px_rgba(250,204,21,0.5)]" title="Unsaved changes"></div>
               )}
@@ -188,13 +188,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
           <div className="flex bg-dark-bg rounded p-0.5 border border-dark-border">
             <button
               onClick={() => setView('code')}
-              className={`px-2 py-0.5 text-xs rounded flex items-center gap-1 ${view === 'code' ? 'bg-cerebras-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+              className={`px-2 py-0.5 text-xs rounded flex items-center gap-1 ${view === 'code' ? 'bg-cerebras-600 text-white' : 'text-dark-muted hover:text-dark-text'}`}
             >
               <Code className="w-3 h-3" /> Editor
             </button>
             <button
               onClick={() => setView('history')}
-              className={`px-2 py-0.5 text-xs rounded flex items-center gap-1 ${view === 'history' ? 'bg-cerebras-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+              className={`px-2 py-0.5 text-xs rounded flex items-center gap-1 ${view === 'history' ? 'bg-cerebras-600 text-white' : 'text-dark-muted hover:text-dark-text'}`}
             >
               <History className="w-3 h-3" /> History
             </button>
@@ -214,7 +214,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
                   Run
                 </button>
               )}
-              <button onClick={onSave} className="p-1 hover:bg-white/10 rounded text-gray-400" title="Save (Ctrl+S)">
+              <button onClick={onSave} className="p-1 hover:bg-white/10 rounded text-dark-muted" title="Save (Ctrl+S)">
                 <Save className="w-4 h-4" />
               </button>
               <button
@@ -252,7 +252,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
                   <div className="flex items-center gap-2 text-cerebras-400 font-medium text-xs uppercase tracking-wider">
                     <Wand2 className="w-3 h-3" /> Smart Edit
                   </div>
-                  <button onClick={() => setIsSmartEditOpen(false)} className="text-gray-400 hover:text-white">
+                  <button onClick={() => setIsSmartEditOpen(false)} className="text-dark-muted hover:text-dark-text">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -261,16 +261,16 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
                     value={smartInstruction}
                     onChange={(e) => setSmartInstruction(e.target.value)}
                     placeholder="Describe how to change the selected code..."
-                    className="w-full bg-dark-bg text-gray-200 text-sm p-2 rounded border border-dark-border focus:border-cerebras-500 focus:outline-none min-h-[80px]"
+                    className="w-full bg-dark-bg text-dark-text text-sm p-2 rounded border border-dark-border focus:border-cerebras-500 focus:outline-none min-h-[80px]"
                     autoFocus
                   />
                   
                   <div>
-                      <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-1">Model</label>
+                      <label className="text-[10px] text-dark-muted uppercase font-semibold block mb-1">Model</label>
                       <select 
                         value={smartEditModel}
                         onChange={(e) => setSmartEditModel(e.target.value as AppModel)}
-                        className="w-full bg-dark-bg border border-dark-border rounded p-1.5 text-xs text-gray-300 focus:border-cerebras-500 focus:outline-none"
+                        className="w-full bg-dark-bg border border-dark-border rounded p-1.5 text-xs text-dark-muted focus:border-cerebras-500 focus:outline-none"
                       >
                           {SUPPORTED_MODELS.map(m => (
                               <option key={m} value={m}>{m}</option>
@@ -295,16 +295,16 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
         ) : (
           <div className="flex h-full">
             <div className="w-48 border-r border-dark-border bg-dark-panel overflow-y-auto shrink-0">
-               <div className="p-2 text-xs font-semibold text-gray-500 uppercase">Version History</div>
+               <div className="p-2 text-xs font-semibold text-dark-muted uppercase">Version History</div>
                {!file.history || file.history.length === 0 ? (
-                 <div className="p-4 text-xs text-gray-500 text-center">No history available</div>
+                 <div className="p-4 text-xs text-dark-muted text-center">No history available</div>
                ) : (
                  <div className="space-y-1 p-1">
                     {file.history.map((h, i) => (
                       <button
                         key={i}
                         onClick={() => setSelectedHistoryIndex(i)}
-                        className={`w-full text-left p-2 rounded text-xs flex items-center gap-2 ${selectedHistoryIndex === i ? 'bg-cerebras-600/20 text-cerebras-400 border border-cerebras-600/50' : 'text-gray-400 hover:bg-white/5'}`}
+                        className={`w-full text-left p-2 rounded text-xs flex items-center gap-2 ${selectedHistoryIndex === i ? 'bg-cerebras-600/20 text-cerebras-400 border border-cerebras-600/50' : 'text-dark-muted hover:bg-white/5'}`}
                       >
                         <GitCommit className="w-3 h-3" />
                         <div>
@@ -338,7 +338,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ file, onUpdate, onSmartEdit, on
                      </div>
                  </>
               ) : (
-                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                 <div className="flex flex-col items-center justify-center h-full text-dark-muted">
                     <p className="text-sm">Select a version to compare with current.</p>
                  </div>
               )}

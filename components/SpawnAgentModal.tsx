@@ -56,7 +56,7 @@ const SpawnAgentModal: React.FC<SpawnAgentModalProps> = ({ isOpen, onClose, onCo
           <h3 className="text-dark-text font-semibold flex items-center gap-2">
             <Bot className="w-4 h-4 text-purple-500" /> Spawn Sub-Agent
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-dark-text transition-colors">
+          <button onClick={onClose} className="text-dark-muted hover:text-dark-text transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -64,7 +64,7 @@ const SpawnAgentModal: React.FC<SpawnAgentModalProps> = ({ isOpen, onClose, onCo
         <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Agent Profile</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-1">Agent Profile</label>
                 <div className="relative">
                     <select 
                         value={selectedAgentId} 
@@ -75,13 +75,13 @@ const SpawnAgentModal: React.FC<SpawnAgentModalProps> = ({ isOpen, onClose, onCo
                             <option key={a.id} value={a.id}>{a.name}</option>
                         ))}
                     </select>
-                    <div className="absolute right-2 top-2.5 pointer-events-none text-gray-500">
+                    <div className="absolute right-2 top-2.5 pointer-events-none text-dark-muted">
                         <Bot className="w-3 h-3" />
                     </div>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Model</label>
+                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-1">Model</label>
                 <div className="relative">
                     <select 
                         value={selectedModel} 
@@ -92,7 +92,7 @@ const SpawnAgentModal: React.FC<SpawnAgentModalProps> = ({ isOpen, onClose, onCo
                             <option key={m} value={m}>{m}</option>
                         ))}
                     </select>
-                    <div className="absolute right-2 top-2.5 pointer-events-none text-gray-500">
+                    <div className="absolute right-2 top-2.5 pointer-events-none text-dark-muted">
                         <Sparkles className="w-3 h-3" />
                     </div>
                 </div>
@@ -100,7 +100,7 @@ const SpawnAgentModal: React.FC<SpawnAgentModalProps> = ({ isOpen, onClose, onCo
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Task <span className="text-red-400">*</span></label>
+            <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-1">Task <span className="text-red-400">*</span></label>
             <textarea 
               value={task}
               onChange={(e) => setTask(e.target.value)}
@@ -111,7 +111,7 @@ const SpawnAgentModal: React.FC<SpawnAgentModalProps> = ({ isOpen, onClose, onCo
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Detailed Instructions (Optional)</label>
+            <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider mb-1">Detailed Instructions (Optional)</label>
             <textarea 
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
@@ -125,7 +125,7 @@ const SpawnAgentModal: React.FC<SpawnAgentModalProps> = ({ isOpen, onClose, onCo
             <button 
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded text-sm text-gray-400 hover:text-dark-text transition-colors"
+                className="px-4 py-2 rounded text-sm text-dark-muted hover:text-dark-text transition-colors"
             >
                 Cancel
             </button>

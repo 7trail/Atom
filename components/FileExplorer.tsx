@@ -114,7 +114,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
     if (name.match(/\.(xlsx|xls)$/i)) return <FileText className="w-4 h-4 text-green-500" />;
     if (name.match(/\.(pptx|ppt)$/i)) return <FileText className="w-4 h-4 text-orange-500" />;
     if (name.endsWith('.plan')) return <ClipboardList className="w-4 h-4 text-cyan-400" />;
-    return <FileType className="w-4 h-4 text-gray-400" />;
+    return <FileType className="w-4 h-4 text-dark-muted" />;
   };
 
   // --- DnD Handlers ---
@@ -226,7 +226,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
           onDrop={handleDrop}
           onContextMenu={(e) => onContextMenu(e, node)}
           className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer transition-colors ${
-              isDragOver ? 'bg-cerebras-900/40 border border-cerebras-500/50 rounded' : 'hover:bg-white/5 text-gray-400 hover:text-dark-text border border-transparent'
+              isDragOver ? 'bg-cerebras-900/40 border border-cerebras-500/50 rounded' : 'hover:bg-white/5 text-dark-muted hover:text-dark-text border border-transparent'
           } group`}
           style={{ paddingLeft: `${level * 12 + 8}px` }}
           onClick={() => setIsOpen(!isOpen)}
@@ -278,7 +278,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
       className={`group flex items-center justify-between py-1.5 pr-2 rounded cursor-pointer text-sm transition-colors ${
         isSelected
           ? 'bg-cerebras-600/20 text-cerebras-500 border-l-2 border-cerebras-500' 
-          : 'text-gray-400 hover:bg-white/5 hover:text-dark-text border-l-2 border-transparent'
+          : 'text-dark-muted hover:bg-white/5 hover:text-dark-text border-l-2 border-transparent'
       }`}
       style={{ paddingLeft: `${level * 12 + 8}px` }}
       onClick={() => node.fileData && onSelectFile(node.fileData)}
@@ -343,10 +343,10 @@ const ConfirmationModal: React.FC<{
                     <h3 className="font-semibold text-dark-text">{title}</h3>
                 </div>
                 <div className="p-4">
-                    <p className="text-gray-400 text-sm" dangerouslySetInnerHTML={{ __html: message || '' }}></p>
+                    <p className="text-dark-muted text-sm" dangerouslySetInnerHTML={{ __html: message || '' }}></p>
                 </div>
                 <div className="p-4 border-t border-dark-border bg-dark-bg/50 flex justify-end gap-2">
-                    <button onClick={onCancel} className="px-3 py-1.5 rounded text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Cancel</button>
+                    <button onClick={onCancel} className="px-3 py-1.5 rounded text-sm text-dark-muted hover:text-dark-text hover:bg-white/5 transition-colors">Cancel</button>
                     <button onClick={onConfirm} className="px-3 py-1.5 rounded text-sm bg-red-600 text-white hover:bg-red-500 transition-colors flex items-center gap-1">
                         <Trash2 className="w-3 h-3" /> {confirmText}
                     </button>
@@ -448,20 +448,20 @@ const WorkspaceMenu: React.FC<{
             {/* Trigger Button */}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 bg-dark-panel border border-dark-border rounded hover:bg-white/5 transition-colors text-sm text-gray-300 w-full justify-between"
+                className="flex items-center gap-2 px-3 py-2 bg-dark-panel border border-dark-border rounded hover:bg-white/5 transition-colors text-sm text-dark-muted w-full justify-between"
             >
                 <div className="flex items-center gap-2 truncate">
                     <Box className="w-4 h-4 text-cerebras-500" />
                     <span className="truncate flex-1 text-left">{activeWorkspace?.name || 'Workspace'}</span>
                 </div>
-                <ChevronDown className="w-3 h-3 text-gray-500" />
+                <ChevronDown className="w-3 h-3 text-dark-muted" />
             </button>
 
             {/* Main Dropdown */}
             {isOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-dark-panel border border-dark-border rounded-lg shadow-xl z-40 w-full flex flex-col max-h-[60vh]">
                     <div className="p-2 border-b border-dark-border bg-dark-bg/50 rounded-t-lg shrink-0">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pl-2 block mb-2">My Workspaces</span>
+                        <span className="text-[10px] font-bold text-dark-muted uppercase tracking-wider pl-2 block mb-2">My Workspaces</span>
                         
                         {/* New Workspace Input/Button (Moved to Top) */}
                         {isCreating ? (
@@ -503,7 +503,7 @@ const WorkspaceMenu: React.FC<{
                                 ) : (
                                     <button 
                                         onClick={() => { onSwitch(w.id); setIsOpen(false); }}
-                                        className={`flex-1 text-left truncate text-xs ${w.id === activeId ? 'text-blue-400 font-medium' : 'text-gray-300'}`}
+                                        className={`flex-1 text-left truncate text-xs ${w.id === activeId ? 'text-blue-400 font-medium' : 'text-dark-muted'}`}
                                     >
                                         {w.name}
                                     </button>
@@ -511,7 +511,7 @@ const WorkspaceMenu: React.FC<{
                                 
                                 <button 
                                     onClick={(e) => handleContextMenuClick(e, w.id)}
-                                    className="p-1 text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="p-1 text-dark-muted hover:text-dark-text opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <MoreVertical className="w-3 h-3" />
                                 </button>
@@ -534,13 +534,13 @@ const WorkspaceMenu: React.FC<{
                             onDuplicate(contextMenu.id);
                             setContextMenu(null);
                         }}
-                        className="w-full text-left px-2 py-1.5 text-[10px] text-gray-300 hover:bg-white/10 rounded flex items-center gap-2"
+                        className="w-full text-left px-2 py-1.5 text-[10px] text-dark-muted hover:bg-white/10 rounded flex items-center gap-2"
                     >
                         <Copy className="w-3 h-3" /> Duplicate
                     </button>
                     <button 
                         onClick={handleContextMenuRename}
-                        className="w-full text-left px-2 py-1.5 text-[10px] text-gray-300 hover:bg-white/10 rounded flex items-center gap-2"
+                        className="w-full text-left px-2 py-1.5 text-[10px] text-dark-muted hover:bg-white/10 rounded flex items-center gap-2"
                     >
                         <Pencil className="w-3 h-3" /> Rename
                     </button>
@@ -846,7 +846,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 setRenamingPath(contextMenu.node.path);
                 setContextMenu(null);
             }}
-            className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/10 flex items-center gap-2 transition-colors"
+            className="w-full text-left px-4 py-2 text-xs text-dark-muted hover:bg-white/10 flex items-center gap-2 transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" /> Rename
           </button>
@@ -857,7 +857,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     handleDownloadItem(contextMenu.node);
                     setContextMenu(null);
                 }}
-                className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/10 flex items-center gap-2 transition-colors"
+                className="w-full text-left px-4 py-2 text-xs text-dark-muted hover:bg-white/10 flex items-center gap-2 transition-colors"
              >
                 <Download className="w-3.5 h-3.5" /> Download
              </button>
@@ -893,7 +893,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                  <div className="flex gap-2 w-full">
                     <button 
                         onClick={onOpenFolder}
-                        className="flex-1 bg-dark-panel hover:bg-white/5 border border-dark-border text-gray-400 text-xs py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+                        className="flex-1 bg-dark-panel hover:bg-white/5 border border-dark-border text-dark-muted text-xs py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
                         title="Open Local Folder"
                     >
                         <HardDrive className="w-3.5 h-3.5" /> Local
@@ -912,7 +912,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                             className={`border border-dark-border text-xs py-2 px-3 rounded flex items-center justify-center gap-2 transition-all ${
                                 isResetConfirming 
                                     ? 'bg-red-900/50 text-red-400 border-red-500/50 hover:bg-red-900/70' 
-                                    : 'bg-dark-panel text-gray-400 hover:bg-red-900/20 hover:text-red-400'
+                                    : 'bg-dark-panel text-dark-muted hover:bg-red-900/20 hover:text-red-400'
                             }`}
                             title={isResetConfirming ? "Click to Confirm Reset" : "Reset VFS"}
                         >
@@ -930,7 +930,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 {onSwitchFolder && (
                      <button 
                         onClick={onSwitchFolder}
-                        className="p-1.5 bg-dark-panel border border-dark-border hover:bg-white/5 text-gray-400 rounded transition-colors"
+                        className="p-1.5 bg-dark-panel border border-dark-border hover:bg-white/5 text-dark-muted rounded transition-colors"
                         title="Switch Folder (Resets State)"
                      >
                          <RefreshCw className="w-3.5 h-3.5" />
@@ -946,7 +946,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 {onSwitchFolder && (
                      <button 
                         onClick={onSwitchFolder}
-                        className="p-1.5 bg-dark-panel border border-dark-border hover:bg-white/5 text-gray-400 rounded transition-colors"
+                        className="p-1.5 bg-dark-panel border border-dark-border hover:bg-white/5 text-dark-muted rounded transition-colors"
                         title="Switch Drive Folder (Resets State)"
                      >
                          <RefreshCw className="w-3.5 h-3.5" />
@@ -966,7 +966,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                         className="p-1 hover:bg-white/10 rounded transition-colors"
                         title="Import Zip, Files or Docs"
                     >
-                        <Upload className="w-4 h-4 text-gray-300" />
+                        <Upload className="w-4 h-4 text-dark-muted" />
                         <input 
                             type="file" 
                             ref={fileInputRef} 
@@ -982,21 +982,21 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     className="p-1 hover:bg-white/10 rounded transition-colors"
                     title="Download Zip"
                 >
-                    <Download className="w-4 h-4 text-gray-300" />
+                    <Download className="w-4 h-4 text-dark-muted" />
                 </button>
                 <button 
                 onClick={() => setIsCreating('folder')}
                 className="p-1 hover:bg-white/10 rounded transition-colors"
                 title="New Folder"
                 >
-                <FolderPlus className="w-4 h-4 text-gray-300" />
+                <FolderPlus className="w-4 h-4 text-dark-muted" />
                 </button>
                 <button 
                 onClick={() => setIsCreating('file')}
                 className="p-1 hover:bg-white/10 rounded transition-colors"
                 title="New File"
                 >
-                <Plus className="w-4 h-4 text-gray-300" />
+                <Plus className="w-4 h-4 text-dark-muted" />
                 </button>
             </div>
         </div>
@@ -1010,7 +1010,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       >
         {isCreating && (
           <form onSubmit={handleCreateSubmit} className="flex items-center gap-1 px-3 py-2 bg-white/5 rounded border border-cerebras-500/50 mb-2">
-            {isCreating === 'folder' ? <Folder className="w-4 h-4 text-cerebras-500" /> : <FileType className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+            {isCreating === 'folder' ? <Folder className="w-4 h-4 text-cerebras-500" /> : <FileType className="w-4 h-4 text-dark-muted flex-shrink-0" />}
             <input
               ref={inputRef}
               type="text"
@@ -1027,7 +1027,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         )}
 
         {files.length === 0 && !isCreating && (
-          <div className="text-xs text-gray-500 text-center mt-10 italic px-4">
+          <div className="text-xs text-dark-muted text-center mt-10 italic px-4">
             {fileSystemType === 'local' 
                 ? "No files in this folder. Create one!" 
                 : fileSystemType === 'gdrive'

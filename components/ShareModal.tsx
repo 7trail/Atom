@@ -81,7 +81,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, currentWorkspa
                     <h3 className="text-dark-text font-semibold flex items-center gap-2">
                         <Share2 className="w-4 h-4 text-cerebras-500" /> Share Workspace
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="text-dark-muted hover:text-dark-text transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -89,14 +89,14 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, currentWorkspa
                 <div className="p-1 bg-dark-bg border-b border-dark-border flex">
                     <button 
                         onClick={() => { setMode('host'); setCode(''); setStatus(''); mqttService.disconnect(); }}
-                        className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${mode === 'host' ? 'text-cerebras-400 bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${mode === 'host' ? 'text-cerebras-400 bg-white/5' : 'text-dark-muted hover:text-dark-muted'}`}
                     >
                         Host
                     </button>
                     <div className="w-[1px] bg-dark-border h-full"></div>
                     <button 
                         onClick={() => { setMode('join'); setCode(''); setStatus(''); mqttService.disconnect(); }}
-                        className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${mode === 'join' ? 'text-cerebras-400 bg-white/5' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${mode === 'join' ? 'text-cerebras-400 bg-white/5' : 'text-dark-muted hover:text-dark-muted'}`}
                     >
                         Join
                     </button>
@@ -115,13 +115,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, currentWorkspa
                             ) : (
                                 <>
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Room Code</label>
+                                        <label className="text-xs text-dark-muted uppercase tracking-wider mb-2 block">Room Code</label>
                                         <div className="text-4xl font-mono font-bold text-white tracking-widest bg-black/30 p-4 rounded-lg border border-cerebras-500/30">
                                             {code}
                                         </div>
                                     </div>
                                     
-                                    <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                                    <div className="flex items-center justify-center gap-2 text-sm text-dark-muted">
                                         <Users className="w-4 h-4" />
                                         <span>{peers} Peer(s) Connected</span>
                                     </div>
@@ -139,7 +139,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, currentWorkspa
                     ) : (
                         <div className="flex flex-col gap-4">
                             <div>
-                                <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Enter Room Code</label>
+                                <label className="text-xs text-dark-muted uppercase tracking-wider mb-2 block">Enter Room Code</label>
                                 <input 
                                     value={inputCode}
                                     onChange={(e) => setInputCode(e.target.value)}
@@ -159,12 +159,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, currentWorkspa
                     )}
 
                     {status && (
-                        <div className="mt-4 p-3 bg-white/5 rounded text-xs text-gray-300 text-center border border-white/10 flex items-center justify-center gap-2">
+                        <div className="mt-4 p-3 bg-white/5 rounded text-xs text-dark-muted text-center border border-white/10 flex items-center justify-center gap-2">
                             <RefreshCw className="w-3 h-3 animate-spin" /> {status}
                         </div>
                     )}
                     
-                    <p className="text-[10px] text-gray-600 text-center mt-4">
+                    <p className="text-[10px] text-dark-muted text-center mt-4">
                         Powered by public MQTT. Do not share sensitive data.
                     </p>
                 </div>

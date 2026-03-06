@@ -69,6 +69,8 @@ interface MainLayoutProps {
     onSendMessage: (c: string, a?: Attachment[]) => void;
     handleNewChat: () => void;
     handleAddAgent: (agent: Agent) => void;
+    handleUpdateAgent: (agent: Agent) => void;
+    handleDeleteAgent: (agentId: string) => void;
     toggleSubAgents: () => void;
     setIsSettingsOpen: (val: boolean) => void;
     handleStopAgent: () => void;
@@ -338,6 +340,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             onSendMessage={props.onSendMessage} 
                             onClearChat={props.handleNewChat} 
                             onAddAgent={props.handleAddAgent} 
+                            onUpdateAgent={props.handleUpdateAgent}
+                            onDeleteAgent={props.handleDeleteAgent}
                             onToggleSubAgents={props.toggleSubAgents} 
                             onOpenSettings={() => props.setIsSettingsOpen(true)} 
                             onStop={props.handleStopAgent} 
