@@ -101,6 +101,7 @@ const App: React.FC = () => {
   const {
       files, setFiles, filesRef, selectedFile, setSelectedFile, fileSystemType, fileSystemTypeRef,
       rootHandle, localPath, localPathRef, workspaces, activeWorkspaceId,
+      schedules, setSchedules, schedulesRef,
       handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles,
       handleUpdateFileContent, handleUpdateFileByName, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
       handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace,
@@ -155,13 +156,7 @@ const App: React.FC = () => {
   const [enabledSkillIds, setEnabledSkillIds] = useState<string[]>([]);
   const [skillRefresh, setSkillRefresh] = useState(0);
   const [workspaceInstructions, setWorkspaceInstructions] = useState<string>('');
-  const [schedules, setSchedules] = useState<ScheduledEvent[]>(() => {
-      const saved = localStorage.getItem('atom_schedules');
-      return saved ? JSON.parse(saved) : [];
-  });
-  const schedulesRef = useRef(schedules);
-  useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
-
+  
   const [timezone, setTimezone] = useState<string>(() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; } });
   const [browserSessions, setBrowserSessions] = useState<BrowserSessionInfo[]>([]);
   const [theme, setTheme] = useState(() => localStorage.getItem('atom_theme') || 'default');
@@ -295,15 +290,31 @@ const App: React.FC = () => {
                 if (config.agents && Array.isArray(config.agents)) setAgents([...DEFAULT_AGENTS, ...config.agents]);
             } catch (e) { console.error(e); }
         }
-    } else {
-        if (agents.length !== DEFAULT_AGENTS.length) setAgents(DEFAULT_AGENTS);
-        const storedInstructions = localStorage.getItem('atom_custom_instructions');
-        if (storedInstructions) setWorkspaceInstructions(storedInstructions);
-        const storedSkills = localStorage.getItem('atom_enabled_skills');
-        if (storedSkills) setEnabledSkillIds(JSON.parse(storedSkills));
     }
     ragService.updateIndex(files);
   }, [files, fileSystemType]); 
+
+  // Load configuration from localStorage when not in local mode
+  useEffect(() => {
+      if (fileSystemType !== 'local') {
+          const storedCustomAgents = localStorage.getItem('atom_custom_agents');
+          let initialAgents = [...DEFAULT_AGENTS];
+          if (storedCustomAgents) {
+              try {
+                  const customAgents = JSON.parse(storedCustomAgents);
+                  const agentMap = new Map(initialAgents.map(a => [a.id, a]));
+                  customAgents.forEach((a: Agent) => agentMap.set(a.id, a));
+                  initialAgents = Array.from(agentMap.values());
+              } catch (e) { console.error("Failed to load custom agents", e); }
+          }
+          setAgents(initialAgents);
+
+          const storedInstructions = localStorage.getItem('atom_custom_instructions');
+          if (storedInstructions) setWorkspaceInstructions(storedInstructions);
+          const storedSkills = localStorage.getItem('atom_enabled_skills');
+          if (storedSkills) setEnabledSkillIds(JSON.parse(storedSkills));
+      }
+  }, [fileSystemType]); 
 
   // Init
   useEffect(() => {
@@ -342,19 +353,23 @@ const App: React.FC = () => {
   }, [isLoading]);
 
   const handleUpdateAgent = (updatedAgent: Agent) => {
-      setAvailableAgents(prev => {
-          const newAgents = prev.map(a => a.id === updatedAgent.id ? updatedAgent : a);
+      setAgents(prev => {
+          // Mark as custom so it persists
+          const agentToSave = { ...updatedAgent, isCustom: true };
+          const newAgents = prev.map(a => a.id === agentToSave.id ? agentToSave : a);
+          
+          // Save all custom agents (including edited defaults)
           const customAgents = newAgents.filter(a => a.isCustom);
           localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents));
           return newAgents;
       });
       if (selectedAgent.id === updatedAgent.id) {
-          setSelectedAgent(updatedAgent);
+          setSelectedAgent({ ...updatedAgent, isCustom: true });
       }
   };
 
   const handleDeleteAgent = (agentId: string) => {
-      setAvailableAgents(prev => {
+      setAgents(prev => {
           const newAgents = prev.filter(a => a.id !== agentId);
           const customAgents = newAgents.filter(a => a.isCustom);
           localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents));
@@ -603,8 +618,12 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                                  setMessages(prev => [...prev, { id: generateId(), role: 'system', content: `**Browser Step:**\n${data.text}`, timestamp: Date.now(), attachments: data.screenshot ? [{ name: `step_screen.jpg`, type: 'image', mimeType: 'image/jpeg', content: data.screenshot }] : [] }]);
                              }
                          });
-                    } else if (fnName === 'list_files') result = "Files:\n" + filesRef.current.map(f => f.name).join('\n');
-                    else if (fnName === 'generate_image') {
+                    } else if (fnName === 'list_files') {
+                        result = "Files:\n" + filesRef.current
+                            .map(f => f.name)
+                            .sort((a, b) => a.localeCompare(b))
+                            .join('\n');
+                    } else if (fnName === 'generate_image') {
                          const imgUrl = await generateImage(args.prompt, "image", false, args.image_width, args.image_height); 
                          if (imgUrl) { const fileRes = applyFileAction({ action: 'create_file', filename: args.output_filename || `images/${Date.now()}.png`, content: imgUrl }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = imgUrl; setLastUpdated(Date.now()); } else result = "Failed to generate.";
                     } else if (fnName === 'download_image') {

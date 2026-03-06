@@ -17,6 +17,7 @@ export interface Workspace {
   name: string;
   files: FileData[];
   lastModified: number;
+  schedules?: ScheduledEvent[];
 }
 
 export interface Skill {

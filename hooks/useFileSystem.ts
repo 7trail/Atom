@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { FileData, ToolAction, Workspace } from '../types';
+import { FileData, ToolAction, Workspace, ScheduledEvent } from '../types';
 import { readLocalDirectory, writeLocalFile, deleteLocalFile, createLocalFolder, renameLocalFile, verifyPermission } from '../services/fileSystem';
 import { initGoogleDrive, authenticate, showFolderPicker, listDriveFiles, saveFileToDrive, deleteFileFromDrive } from '../services/googleDrive';
 import { INITIAL_FILE, DEMO_PLAN } from '../constants';
@@ -25,6 +25,30 @@ export const useFileSystem = () => {
     const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(loadActiveWorkspaceId);
     const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(true);
 
+    const [files, setFiles] = useState<FileData[]>([]);
+    const [schedules, setSchedules] = useState<ScheduledEvent[]>([]);
+    const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
+    const [fileSystemType, setFileSystemType] = useState<'vfs' | 'local' | 'gdrive'>('vfs');
+    const [rootHandle, setRootHandle] = useState<any>(null);
+    const [localPath, setLocalPath] = useState<string | null>(null);
+    const [driveFolderId, setDriveFolderId] = useState<string | null>(null);
+
+    // Refs
+    const filesRef = useRef(files);
+    useEffect(() => { filesRef.current = files; }, [files]);
+    
+    const schedulesRef = useRef(schedules);
+    useEffect(() => { schedulesRef.current = schedules; }, [schedules]);
+
+    const localPathRef = useRef(localPath);
+    useEffect(() => { localPathRef.current = localPath; }, [localPath]);
+    
+    const fileSystemTypeRef = useRef(fileSystemType);
+    useEffect(() => { fileSystemTypeRef.current = fileSystemType; }, [fileSystemType]);
+    
+    const driveFolderIdRef = useRef(driveFolderId);
+    useEffect(() => { driveFolderIdRef.current = driveFolderId; }, [driveFolderId]);
+
     // --- IDB LOADING ---
     useEffect(() => {
         const load = async () => {
@@ -37,25 +61,29 @@ export const useFileSystem = () => {
                     if (!stored.find(w => w.id === activeWorkspaceId)) {
                         setActiveWorkspaceId(stored[0].id);
                         setFiles(stored[0].files);
+                        setSchedules(stored[0].schedules || []);
                         setSelectedFile(stored[0].files[0] || null);
                     } else {
                         // Load files for active workspace
                         const active = stored.find(w => w.id === activeWorkspaceId);
                         if (active) {
                             setFiles(active.files);
+                            setSchedules(active.schedules || []);
                             setSelectedFile(active.files[0] || null);
                         }
                     }
                 } else {
                     // Initialize default workspace if DB is empty
-                    const defaultWorkspace = { 
+                    const defaultWorkspace: Workspace = { 
                         id: 'default', 
                         name: 'Default Workspace', 
                         files: [INITIAL_FILE, DEMO_PLAN], 
-                        lastModified: Date.now() 
+                        lastModified: Date.now(),
+                        schedules: []
                     };
                     setWorkspaces([defaultWorkspace]);
                     setFiles(defaultWorkspace.files);
+                    setSchedules([]);
                     setSelectedFile(defaultWorkspace.files[0]);
                     saveWorkspacesToDB([defaultWorkspace]);
                 }
@@ -68,34 +96,14 @@ export const useFileSystem = () => {
         load();
     }, []);
 
-    const [files, setFiles] = useState<FileData[]>([]);
-    const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
-    const [fileSystemType, setFileSystemType] = useState<'vfs' | 'local' | 'gdrive'>('vfs');
-    const [rootHandle, setRootHandle] = useState<any>(null);
-    const [localPath, setLocalPath] = useState<string | null>(null);
-    const [driveFolderId, setDriveFolderId] = useState<string | null>(null);
-
-    // Refs
-    const filesRef = useRef(files);
-    useEffect(() => { filesRef.current = files; }, [files]);
-    
-    const localPathRef = useRef(localPath);
-    useEffect(() => { localPathRef.current = localPath; }, [localPath]);
-    
-    const fileSystemTypeRef = useRef(fileSystemType);
-    useEffect(() => { fileSystemTypeRef.current = fileSystemType; }, [fileSystemType]);
-    
-    const driveFolderIdRef = useRef(driveFolderId);
-    useEffect(() => { driveFolderIdRef.current = driveFolderId; }, [driveFolderId]);
-
     // --- WORKSPACE PERSISTENCE ---
-    // Whenever files change in VFS mode, sync to current workspace in DB
+    // Whenever files or schedules change in VFS mode, sync to current workspace in DB
     useEffect(() => {
         if (!isLoadingWorkspaces && fileSystemType === 'vfs' && workspaces.length > 0) {
             setWorkspaces(prev => {
                 const updated = prev.map(w => 
                     w.id === activeWorkspaceId 
-                        ? { ...w, files: files, lastModified: Date.now() } 
+                        ? { ...w, files: files, schedules: schedules, lastModified: Date.now() } 
                         : w
                 );
                 
@@ -105,6 +113,7 @@ export const useFileSystem = () => {
                         id: activeWorkspaceId,
                         name: 'Restored Workspace',
                         files: files,
+                        schedules: schedules,
                         lastModified: Date.now()
                     });
                 }
@@ -114,7 +123,7 @@ export const useFileSystem = () => {
                 return updated;
             });
         }
-    }, [files, activeWorkspaceId, fileSystemType, isLoadingWorkspaces]);
+    }, [files, schedules, activeWorkspaceId, fileSystemType, isLoadingWorkspaces]);
 
     useEffect(() => {
         localStorage.setItem('atom_active_workspace_id', activeWorkspaceId);
@@ -128,7 +137,8 @@ export const useFileSystem = () => {
             id: newId,
             name: name,
             files: [{ ...INITIAL_FILE, name: 'README.md', content: `# ${name}\n\nNew workspace created.` }],
-            lastModified: Date.now()
+            lastModified: Date.now(),
+            schedules: []
         };
         
         const nextWorkspaces = [...workspaces, newWorkspace];
@@ -138,6 +148,7 @@ export const useFileSystem = () => {
         // Switch to it
         setActiveWorkspaceId(newId);
         setFiles(newWorkspace.files);
+        setSchedules([]);
         setSelectedFile(newWorkspace.files[0]);
         setFileSystemType('vfs');
         setRootHandle(null);
@@ -152,7 +163,8 @@ export const useFileSystem = () => {
             id: newId,
             name: newName,
             files: importedWorkspace.files || [],
-            lastModified: Date.now()
+            lastModified: Date.now(),
+            schedules: importedWorkspace.schedules || []
         };
 
         const nextWorkspaces = [...workspaces, newWorkspace];
@@ -165,6 +177,7 @@ export const useFileSystem = () => {
         setLocalPath(null);
         setActiveWorkspaceId(newId);
         setFiles(newWorkspace.files);
+        setSchedules(newWorkspace.schedules || []);
         if (newWorkspace.files.length > 0) {
             setSelectedFile(newWorkspace.files[0]);
         }
@@ -180,6 +193,7 @@ export const useFileSystem = () => {
             
             setActiveWorkspaceId(id);
             setFiles(target.files);
+            setSchedules(target.schedules || []);
             setSelectedFile(target.files[0] || null);
         }
     };
@@ -199,7 +213,8 @@ export const useFileSystem = () => {
             id: newId,
             name: `${target.name} (Copy)`,
             files: JSON.parse(JSON.stringify(target.files)), // Deep copy files
-            lastModified: Date.now()
+            lastModified: Date.now(),
+            schedules: target.schedules ? JSON.parse(JSON.stringify(target.schedules)) : []
         };
 
         const nextWorkspaces = [...workspaces, newWorkspace];
@@ -221,12 +236,14 @@ export const useFileSystem = () => {
                 const fallback = nextWorkspaces[0];
                 setActiveWorkspaceId(fallback.id);
                 setFiles(fallback.files);
+                setSchedules(fallback.schedules || []);
                 setSelectedFile(fallback.files[0]);
             } else {
                 // Re-init default if all deleted
-                const def = { id: 'default', name: 'Default Workspace', files: [INITIAL_FILE], lastModified: Date.now() };
+                const def: Workspace = { id: 'default', name: 'Default Workspace', files: [INITIAL_FILE], lastModified: Date.now(), schedules: [] };
                 setActiveWorkspaceId('default');
                 setFiles(def.files);
+                setSchedules([]);
                 setSelectedFile(def.files[0]);
                 setWorkspaces([def]);
                 saveWorkspacesToDB([def]);
@@ -699,6 +716,7 @@ export const useFileSystem = () => {
 
     return {
         files, setFiles, filesRef,
+        schedules, setSchedules, schedulesRef,
         selectedFile, setSelectedFile,
         fileSystemType, fileSystemTypeRef,
         rootHandle,
