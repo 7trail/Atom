@@ -195,6 +195,7 @@ export type AppModel =
   | 'minimaxai/minimax-m2.5'
   | 'z-ai/glm5'
   | 'qwen/qwen3.5-397b-a17b'
+  | 'qwen/qwen3.5-122b-a10b'
   | 'kimi-k2.5:cloud'
   | 'glm-5:cloud'
   | 'minimax-m2.5:cloud'
@@ -235,6 +236,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'minimaxai/minimax-m2.5',
   'z-ai/glm5',
   'qwen/qwen3.5-397b-a17b',
+  'qwen/qwen3.5-122b-a10b',
   'kimi-k2.5:cloud',
   'glm-5:cloud',
   'minimax-m2.5:cloud',

@@ -19,8 +19,6 @@ export const usePyodide = () => {
   const [pyodide, setPyodide] = useState<PyodideInterface | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [output, setOutput] = useState<string[]>([]);
-  const [isWaitingForInput, setIsWaitingForInput] = useState(false);
-  const inputResolver = useRef<((value: string) => void) | null>(null);
 
   useEffect(() => {
     const initPyodide = async () => {
@@ -48,30 +46,7 @@ export const usePyodide = () => {
 
         await pyodideInstance.loadPackage("micropip");
         
-        // Expose input function to Python via globals
-        pyodideInstance.globals.set("atom_input_impl", (promptText: string) => {
-            if (promptText) {
-                setOutput((prev) => [...prev, promptText]);
-            }
-            setIsWaitingForInput(true);
-            return new Promise((resolve) => {
-                inputResolver.current = resolve;
-            });
-        });
-
-        // Patch input() to use the JS implementation
-        await pyodideInstance.runPythonAsync(`
-import builtins
-from js import atom_input_impl
-import asyncio
-
-async def async_input(prompt=""):
-    return await atom_input_impl(prompt)
-
-builtins.input = async_input
-        `);
-
-        setOutput((prev) => [...prev, "Pyodide initialized.", "Note: Use 'await input()' for interactive input."]);
+        setOutput((prev) => [...prev, "Pyodide initialized."]);
         setPyodide(pyodideInstance);
       } catch (err) {
         console.error("Failed to load Pyodide", err);
@@ -86,14 +61,5 @@ builtins.input = async_input
 
   const clearOutput = () => setOutput([]);
 
-  const sendInput = (text: string) => {
-      if (inputResolver.current) {
-          setOutput((prev) => [...prev, `${text}\n`]); // Echo input
-          inputResolver.current(text);
-          inputResolver.current = null;
-          setIsWaitingForInput(false);
-      }
-  };
-
-  return { pyodide, isLoading, output, clearOutput, setOutput, isWaitingForInput, sendInput };
+  return { pyodide, isLoading, output, clearOutput, setOutput };
 };
