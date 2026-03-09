@@ -1,4 +1,4 @@
-import { CodeSandbox } from "@codesandbox/sdk/browser";
+import { CodeSandbox } from "@codesandbox/sdk";
 import { FileData } from "../types";
 
 export const getCsbApiKey = (): string | null => {
@@ -19,8 +19,8 @@ export async function runCodeSandbox(files: FileData[], commandToRun?: string): 
     }
 
     try {
-        const sdk = new CodeSandbox(apiKey);
-        const sandbox = await sdk.sandbox.create();
+        const sdk: any = new CodeSandbox(apiKey);
+        const sandbox: any = await sdk.sandboxes.create();
 
         // Batch write all project files to the sandbox
         await sandbox.fs.batchWrite(

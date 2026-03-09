@@ -487,7 +487,7 @@ const WorkspaceMenu: React.FC<{
                     </div>
                     
                     <div className="overflow-y-auto p-1 space-y-0.5 flex-1 min-h-0">
-                        {workspaces.map(w => (
+                        {[...workspaces].sort((a, b) => a.name.localeCompare(b.name)).map(w => (
                             <div key={w.id} className={`group flex items-center justify-between p-2 rounded hover:bg-white/5 relative ${w.id === activeId ? 'bg-blue-900/20' : ''}`}>
                                 {renamingId === w.id ? (
                                     <form onSubmit={(e) => handleRenameSubmit(e, w.id)} className="flex-1 mr-2">

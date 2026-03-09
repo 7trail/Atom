@@ -343,8 +343,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           const newAttachments: Attachment[] = Array.from(e.target.files).map(file => ({
               name: file.name,
               type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
-              content: URL.createObjectURL(file), // This will be replaced by base64 in App.tsx usually, but for UI preview we use object URL or we need to convert here.
-              // Actually App.tsx expects base64 or text content usually. Let's convert to base64 here to be safe.
+              mimeType: file.type || 'application/octet-stream',
+              content: URL.createObjectURL(file), 
           }));
           
           // We need to convert to base64 for the app to handle it properly usually

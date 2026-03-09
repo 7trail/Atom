@@ -44,6 +44,7 @@ interface MainLayoutProps {
     handleSwitchFolder: () => void;
     resetFileSystem: () => void;
     handleUpdateFileByName: (name: string, content: string) => void;
+    handleUpdateFiles: (updatedFiles: { name: string, content: string }[]) => void;
     // Workspace Handlers
     workspaces: Workspace[];
     activeWorkspaceId: string;
@@ -86,7 +87,7 @@ interface MainLayoutProps {
     ttsVoice?: string;
     // Editors/Views
     handleUpdateFileContent: (c: string) => void;
-    handleSmartEdit: (f: FileData, s: string, i: string) => Promise<string>;
+    handleSmartEdit: (f: FileData, s: string, i: string, m: AppModel) => Promise<string>;
     handleSaveFileWrapper: (f: FileData) => void;
     handleExecutePlanStep: (step: string, name: string) => void;
     handleExecuteFullPlan: (f: FileData) => void;
@@ -392,6 +393,13 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                                 lastUpdated={props.lastUpdated}
                                 useWebContainer={props.useWebContainer}
                                 activeWorkspaceId={props.activeWorkspaceId}
+                                onUpdateFiles={props.handleUpdateFiles}
+                                onSmartEdit={props.handleSmartEdit}
+                                pyodide={props.pyodide}
+                                pyodideLoading={props.pyodideLoading}
+                                pyodideOutput={props.pyodideOutput}
+                                clearPyodideOutput={props.clearPyodideOutput}
+                                setPyodideOutput={props.setPyodideOutput}
                             />
                         )
                     ) : props.activeView === 'schedules' ? (
@@ -431,6 +439,13 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         lastUpdated={props.lastUpdated}
                         useWebContainer={props.useWebContainer}
                         activeWorkspaceId={props.activeWorkspaceId}
+                        onUpdateFiles={props.handleUpdateFiles}
+                        onSmartEdit={props.handleSmartEdit}
+                        pyodide={props.pyodide}
+                        pyodideLoading={props.pyodideLoading}
+                        pyodideOutput={props.pyodideOutput}
+                        clearPyodideOutput={props.clearPyodideOutput}
+                        setPyodideOutput={props.setPyodideOutput}
                     />
                 </div>,
                 externalWindow.document.getElementById('popout-root') || externalWindow.document.body

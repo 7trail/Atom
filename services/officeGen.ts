@@ -205,8 +205,7 @@ export const createWordDoc = async (contentMarkdown: string, files: FileData[]):
                          height, 
                          rotation, 
                          flip: { horizontal: flipH, vertical: flipV } 
-                     },
-                     type: type
+                     }
                  });
 
                  if (hyperlink) {

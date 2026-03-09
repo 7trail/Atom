@@ -459,6 +459,26 @@ export const useFileSystem = () => {
             setSelectedFile(prev => prev ? { ...prev, content, unsaved: true } : null);
         }
     };
+
+    const handleUpdateFiles = (updatedFiles: { name: string, content: string }[]) => {
+        setFiles(prev => {
+            let next = [...prev];
+            updatedFiles.forEach(u => {
+                const idx = next.findIndex(f => f.name === u.name);
+                if (idx !== -1) {
+                    next[idx] = { ...next[idx], content: u.content, unsaved: true };
+                } else {
+                    next.push({ name: u.name, content: u.content, language: u.name.split('.').pop() || 'text', history: [], unsaved: true });
+                }
+            });
+            return next;
+        });
+        
+        const currentUpdate = updatedFiles.find(u => selectedFile && u.name === selectedFile.name);
+        if (currentUpdate) {
+            setSelectedFile(prev => prev ? { ...prev, content: currentUpdate.content, unsaved: true } : null);
+        }
+    };
       
     const handleCreateFile = (name: string) => {
         if (name) {
@@ -722,7 +742,7 @@ export const useFileSystem = () => {
         rootHandle,
         localPath, localPathRef,
         workspaces, activeWorkspaceId,
-        handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleCopyFile, handleImportFiles, handleUpdateFileContent, handleUpdateFileByName,
+        handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleCopyFile, handleImportFiles, handleUpdateFileContent, handleUpdateFileByName, handleUpdateFiles,
         handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
         handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace, handleDuplicateWorkspace,
         handleImportWorkspace

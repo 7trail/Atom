@@ -1,6 +1,6 @@
 
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { FileData } from '../types';
+import { FileData, AppModel } from '../types';
 import { parse } from 'marked';
 import { Play, ClipboardList, Info, Target, CheckCircle2, Rocket, Maximize2, Minimize2, Loader2, RefreshCw } from 'lucide-react';
 import { Sandpack, SandpackLayout, SandpackPreview, SandpackProvider, SandpackCodeEditor } from '@codesandbox/sandpack-react';
@@ -17,6 +17,12 @@ interface PreviewProps {
   useWebContainer?: boolean;
   activeWorkspaceId?: string;
   onUpdateFiles?: (updatedFiles: {name: string, content: string}[]) => void;
+  onSmartEdit?: (file: FileData, selection: string, instruction: string, model: AppModel) => Promise<string>;
+  pyodide?: any;
+  pyodideLoading?: boolean;
+  pyodideOutput?: string[];
+  clearPyodideOutput?: () => void;
+  setPyodideOutput?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const getMimeType = (filename: string) => {
@@ -109,7 +115,11 @@ const ImagePreview: React.FC<{ file: FileData }> = ({ file }) => {
     );
 };
 
-const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan, hostWindow = window, lastUpdated, useWebContainer = false, activeWorkspaceId }) => {
+const Preview: React.FC<PreviewProps> = ({ 
+    file, allFiles, onSelectFile, onExecutePlanStep, onExecuteFullPlan, hostWindow = window, 
+    lastUpdated, useWebContainer = false, activeWorkspaceId, onUpdateFiles,
+    onSmartEdit, pyodide, pyodideLoading = false, pyodideOutput = [], clearPyodideOutput = () => {}, setPyodideOutput = () => {}
+}) => {
   const [iframeSrc, setIframeSrc] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const blobUrlsRef = useRef<string[]>([]);
@@ -597,9 +607,17 @@ const Preview: React.FC<PreviewProps> = ({ file, allFiles, onSelectFile, onExecu
   if (contentToRender?.type === 'python') {
       return (
           <PyodideRunner 
-              file={file} 
-              allFiles={allFiles} 
-              onUpdateFiles={onUpdateFiles || (() => {})} 
+              files={allFiles} 
+              selectedFile={file} 
+              onUpdateFile={(content) => file && onUpdateFiles?.([{ name: file.name, content }])}
+              onUpdateFileByName={(name, content) => onUpdateFiles?.([{ name, content }])}
+              onSmartEdit={onSmartEdit || (async () => "")} 
+              onSave={() => {}}
+              pyodide={pyodide}
+              isLoading={pyodideLoading}
+              output={pyodideOutput}
+              clearOutput={clearPyodideOutput}
+              setOutput={setPyodideOutput}
           />
       );
   }

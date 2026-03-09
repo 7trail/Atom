@@ -251,6 +251,7 @@ export const MULTIMODAL_MODELS: AppModel[] = [
   'nvidia/nemotron-nano-12b-v2-vl',
   'moonshotai/kimi-k2.5',
   'qwen/qwen3.5-397b-a17b',
+  'qwen/qwen3.5-122b-a10b',
   'kimi-k2.5:cloud',
   'qwen3-vl:235b-cloud'
 ];

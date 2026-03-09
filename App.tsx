@@ -545,8 +545,13 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
             let modelToUse = selectedModel;
             if (attachments.length > 0 && !MULTIMODAL_MODELS.includes(modelToUse)) modelToUse = defaultVlModel;
 
+            const currentActiveTools = activeTools.filter(t => {
+                if (t.function.name === 'analyze_media' && MULTIMODAL_MODELS.includes(modelToUse)) return false;
+                return true;
+            });
+
             abortControllerRef.current = new AbortController();
-            const completion = await chatCompletion(apiLoopMessages, modelToUse, activeTools, attachments, (msg) => addToast(msg), onStreamChunk, abortControllerRef.current.signal);
+            const completion = await chatCompletion(apiLoopMessages, modelToUse, currentActiveTools, attachments, (msg) => addToast(msg), onStreamChunk, abortControllerRef.current.signal);
             abortControllerRef.current = null;
             if (agentControlRef.current.stop) return;
             setStreamMetrics(null);
@@ -629,6 +634,26 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
                     } else if (fnName === 'download_image') {
                          const dlUrl = await downloadImage(args.url);
                          if (dlUrl) { const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content: dlUrl }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = dlUrl; setLastUpdated(Date.now()); } else result = "Failed to download image.";
+                    } else if (fnName === 'analyze_media') {
+                        let targetAtt = null;
+                        if (args.media_name) {
+                            targetAtt = chatAttachments.find(a => a.name === args.media_name) || messagesRef.current.flatMap(m => m.attachments || []).find(a => a.name === args.media_name);
+                            if (!targetAtt) {
+                                const localFile = filesRef.current.find(f => f.name === args.media_name);
+                                if (localFile && localFile.content.startsWith('data:')) {
+                                    targetAtt = { name: localFile.name, type: 'image' as const, mimeType: localFile.content.split(';')[0].split(':')[1], content: localFile.content };
+                                }
+                            }
+                        } else {
+                            targetAtt = chatAttachments[chatAttachments.length - 1] || messagesRef.current.flatMap(m => m.attachments || []).pop();
+                        }
+                        
+                        if (!targetAtt) {
+                            result = "Error: Media not found.";
+                        } else {
+                            const res = await chatCompletion([{role: 'user', content: args.question}], defaultVlModel, undefined, [targetAtt]);
+                            result = res?.choices?.[0]?.message?.content || "Failed to analyze media.";
+                        }
                     } else if (fnName === 'save_attachment') {
                          const att = chatAttachments.find(a => a.name === args.attachment_name) || messagesRef.current.flatMap(m => m.attachments || []).find(a => a.name === args.attachment_name);
                          if (att) { const fileRes = applyFileAction({ action: 'create_file', filename: args.filename, content: att.content }, filesRef.current); setFiles(fileRes.newFiles); filesRef.current = fileRes.newFiles; result = fileRes.result; setLastUpdated(Date.now()); } else result = "Attachment not found.";

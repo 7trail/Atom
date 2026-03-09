@@ -275,14 +275,14 @@ export async function chatCompletion(
             let processedMessages = JSON.parse(JSON.stringify(optimizedMessages));
 
             // --- Model Specific Handling for Multimodal Models ---
-            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5';
+            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5' || model.includes('qwen3.5');
             
             if (isMultimodal) {
                 const lastUserMsgIndex = processedMessages.findLastIndex((m: any) => m.role === 'user');
                 
                 if (lastUserMsgIndex !== -1 && attachments && attachments.length > 0) {
                     const textContent = processedMessages[lastUserMsgIndex].content;
-                    let newContent: any[] = [{ type: "text", text: textContent }];
+                    let newContent: any[] = [];
                     let hasVideo = false;
 
                     for (const att of attachments) {
@@ -299,6 +299,8 @@ export async function chatCompletion(
                             });
                         }
                     }
+                    
+                    newContent.push({ type: "text", text: textContent });
                     
                     processedMessages[lastUserMsgIndex].content = newContent;
 

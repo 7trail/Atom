@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
+    "@codesandbox/sdk": "^2.4.2",
     "@monaco-editor/react": "^4.6.0",
     "@webcontainer/api": "^1.6.1",
     "clsx": "^2.1.1",
@@ -35,6 +37,8 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.2",
