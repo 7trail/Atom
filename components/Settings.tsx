@@ -28,6 +28,7 @@ const GLOBAL_TOOLS_LIST = [
     { id: 'api_call', label: 'HTTP API Client', desc: 'Make GET/POST requests to external APIs.' },
     { id: 'grep', label: 'Grep Search', desc: 'Regex search across workspace files.' },
     { id: 'RAG_Search', label: 'RAG Search', desc: 'Semantic search across workspace files.' },
+    { id: 'execute_function', label: 'Execute Python Function', desc: 'Run Python functions via Pyodide.' },
 ];
 
 const Settings: React.FC<SettingsProps> = ({ 

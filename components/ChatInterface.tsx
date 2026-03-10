@@ -338,13 +338,47 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+      const items = e.clipboardData.items;
+      const newAttachments: Attachment[] = [];
+      let promises: Promise<void>[] = [];
+
+      for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+              const file = items[i].getAsFile();
+              if (file) {
+                  promises.push(new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                          newAttachments.push({
+                              name: `pasted_image_${Date.now()}_${i}.png`,
+                              type: 'image',
+                              mimeType: file.type,
+                              content: reader.result as string
+                          });
+                          resolve();
+                      };
+                      reader.readAsDataURL(file);
+                  }));
+              }
+          }
+      }
+
+      if (promises.length > 0) {
+          e.preventDefault();
+          Promise.all(promises).then(() => {
+              setAttachments([...pendingAttachments, ...newAttachments]);
+          });
+      }
+  };
+
   const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files) {
           const newAttachments: Attachment[] = Array.from(e.target.files).map(file => ({
               name: file.name,
               type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
-              mimeType: file.type || 'application/octet-stream',
-              content: URL.createObjectURL(file), 
+              content: URL.createObjectURL(file), // This will be replaced by base64 in App.tsx usually, but for UI preview we use object URL or we need to convert here.
+              // Actually App.tsx expects base64 or text content usually. Let's convert to base64 here to be safe.
           }));
           
           // We need to convert to base64 for the app to handle it properly usually
@@ -538,6 +572,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     value={input} 
                     onChange={(e) => setInput(e.target.value)} 
                     onKeyDown={handleKeyDown} 
+                    onPaste={handlePaste}
                     placeholder={isPaused ? "Agent is paused. Type to resume..." : `Message ${selectedAgent.name}...`} 
                     className="flex-1 bg-transparent text-dark-text text-base sm:text-sm focus:outline-none placeholder-gray-600 resize-none py-2.5 max-h-[150px]" 
                     disabled={isLoading && !isPaused} 

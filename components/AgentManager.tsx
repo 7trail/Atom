@@ -31,7 +31,8 @@ const AVAILABLE_TOOLS = [
     { id: 'save_attachment', label: 'Save Attachments' },
     { id: 'manage_schedule', label: 'Schedules & Recurring Tasks' },
     { id: 'api_call', label: 'HTTP API Client' },
-    { id: 'manage_memory', label: 'Long-term Memory' }
+    { id: 'manage_memory', label: 'Long-term Memory' },
+    { id: 'execute_function', label: 'Execute Python Function' }
 ];
 
 const AgentManager: React.FC<AgentManagerProps> = ({ isOpen, onClose, agents, onUpdateAgent, onDeleteAgent, onCreateAgent }) => {
