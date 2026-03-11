@@ -41,7 +41,7 @@ export interface SubAgentConfig {
 }
 
 export interface ToolAction {
-  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'patch' | 'move_file' | 'copy_file' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'run_codesandbox' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call' | 'grep' | 'manage_memory' | 'execute_function';
+  action: 'create_file' | 'update_file' | 'read_file' | 'edit_file' | 'patch' | 'move_file' | 'copy_file' | 'call_sub_agent' | 'spawn_agents' | 'search_wikipedia' | 'get_weather' | 'generate_image' | 'final_answer' | 'fetch_url' | 'list_files' | 'google_search' | 'download_image' | 'ask_question' | 'analyze_media' | 'save_attachment' | 'run_terminal_command' | 'run_codesandbox' | 'start_browser_session' | 'discord_message' | 'manage_schedule' | 'api_call' | 'grep' | 'manage_memory' | 'execute_function' | 'execute_python';
   filename?: string;
   content?: string;
   search_text?: string;
@@ -185,6 +185,7 @@ export interface BrowserSessionInfo {
 export type AppModel = 
   | 'gpt-oss-120b'
   | 'nvidia/nemotron-3-nano-30b-a3b'
+  | 'nvidia/nemotron-3-super-120b-a12b'
   | 'z-ai/glm4.7'
   | 'qwen/qwen3-next-80b-a3b-thinking'
   | 'qwen/qwen3-next-80b-a3b-instruct'
@@ -226,6 +227,7 @@ export interface SubAgentTask {
 export const SUPPORTED_MODELS: AppModel[] = [
   'gpt-oss-120b',
   'nvidia/nemotron-3-nano-30b-a3b',
+  'nvidia/nemotron-3-super-120b-a12b',
   'z-ai/glm4.7',
   'qwen/qwen3-next-80b-a3b-thinking',
   'qwen/qwen3-next-80b-a3b-instruct',

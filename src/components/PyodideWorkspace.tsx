@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePyodide } from '../hooks/usePyodide';
 import { FileExplorer } from './FileExplorer';
-import { CodeEditor } from './CodeEditor';
+import { Editor } from './Editor';
 import { Terminal, Loader2, Play } from 'lucide-react';
 
 export const PyodideWorkspace: React.FC = () => {
@@ -122,10 +122,10 @@ export const PyodideWorkspace: React.FC = () => {
         <div className="flex-1 flex flex-col min-h-0 border-b border-[var(--border-color)]">
           {selectedFile ? (
             <div className="flex-1 relative overflow-hidden">
-                <CodeEditor
-                  code={selectedFile.content}
-                  onChange={handleFileChange}
-                  language={selectedFile.name.endsWith('.py') ? 'python' : 'text'}
+                <Editor
+                  content={selectedFile.content}
+                  onChange={(val) => handleFileChange(val || '')}
+                  filename={selectedFile.name}
                 />
             </div>
           ) : (

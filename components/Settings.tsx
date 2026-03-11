@@ -29,6 +29,7 @@ const GLOBAL_TOOLS_LIST = [
     { id: 'grep', label: 'Grep Search', desc: 'Regex search across workspace files.' },
     { id: 'RAG_Search', label: 'RAG Search', desc: 'Semantic search across workspace files.' },
     { id: 'execute_function', label: 'Execute Python Function', desc: 'Run Python functions via Pyodide.' },
+    { id: 'execute_python', label: 'Execute Python Code', desc: 'Run raw Python code via Pyodide.' },
 ];
 
 const Settings: React.FC<SettingsProps> = ({ 

@@ -592,6 +592,20 @@ export const TOOL_DEFINITIONS = [
     {
         type: "function",
         function: {
+            name: "execute_python",
+            description: "Execute raw Python code in the Pyodide environment.",
+            parameters: {
+                type: "object",
+                properties: {
+                    code: { type: "string", description: "The raw Python code to execute." }
+                },
+                required: ["code"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
             name: "RAG_Search",
             description: "Search the RAG (Retrieval Augmented Generation) index for relevant code snippets or text from the workspace files.",
             parameters: {
@@ -612,7 +626,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     description: 'A helpful, organized, and friendly assistant for general tasks.',
     systemPrompt: "Role: You are a highly capable Personal Assistant. You are friendly, organized, and obedient. Your goal is to help the user with whatever they need, whether it's scheduling, research, drafting emails, or just chatting. You have a neutral but warm personality. GOLDEN RULE: Do not assume or be proactive with what the user is looking for. Simply because a plan file exists does not mean they want you to execute the plan yet.",
     preferredModel: 'z-ai/glm4.7',
-    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'fetch_skill_resource', 'RAG_Search', 'execute_function']
+    enabledTools: ['create_file', 'edit_file', 'patch', 'move_file', 'list_files', 'google_search', 'fetch_url', 'ask_question', 'analyze_media', 'save_attachment', 'generate_image', 'discord_message', 'manage_schedule', 'create_office_file', 'api_call', 'fetch_skill_resource', 'RAG_Search', 'execute_function', 'execute_python']
   },
   {
     id: 'fullstack',

@@ -289,6 +289,48 @@ json.dumps({"output": output_str, "result": str(func_result)})
                                     }
                                 }
                             }
+                        } else if (fnName === 'execute_python') {
+                            if (!pyodide) {
+                                result = "Error: Python environment not ready.";
+                            } else {
+                                const { code } = args;
+                                try {
+                                    pyodide.globals.set('__js_code_to_exec', code);
+                                    const pythonCode = `
+import sys
+import io
+import json
+
+# Capture stdout
+captured_output = io.StringIO()
+original_stdout = sys.stdout
+sys.stdout = captured_output
+
+try:
+    if '.' not in sys.path: sys.path.append('.')
+    
+    # Execute the code
+    exec_globals = globals()
+    exec_locals = {}
+    exec(__js_code_to_exec, exec_globals, exec_locals)
+    
+    # Try to get the last evaluated expression if possible
+    last_val = None
+    if exec_locals:
+        last_val = list(exec_locals.values())[-1]
+finally:
+    sys.stdout = original_stdout
+
+output_str = captured_output.getvalue()
+json.dumps({"output": output_str, "result": str(last_val)})
+`;
+                                    const output = await pyodide.runPythonAsync(pythonCode);
+                                    const parsed = JSON.parse(output);
+                                    result = `Output:\n${parsed.output}\n\nResult:\n${parsed.result}`;
+                                } catch (e: any) {
+                                    result = `Error executing python code: ${e.message}`;
+                                }
+                            }
                         } else result = `Unknown tool was called`;
                         
                         if (!result) result = "Done.";
