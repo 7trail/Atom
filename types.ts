@@ -12,12 +12,49 @@ export interface FileData {
   unsaved?: boolean;
 }
 
+export interface WorkflowNodeData {
+  label: string;
+  prompt?: string; // For input node
+  systemPrompt?: string; // For AI node
+  message?: string; // For AI node
+  enabledTools?: string[]; // For AI node
+  model?: AppModel; // For AI node
+  script?: string; // For script node
+  renderMarkdown?: boolean; // For output node
+  status?: 'idle' | 'running' | 'completed' | 'error' | 'waiting_input';
+  output?: string;
+  error?: string;
+}
+
+export interface WorkflowNode {
+  id: string;
+  type: 'inputNode' | 'aiNode' | 'scriptNode' | 'outputNode';
+  position: { x: number; y: number };
+  data: WorkflowNodeData;
+}
+
+export interface WorkflowEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Workspace {
   id: string;
   name: string;
   files: FileData[];
   lastModified: number;
   schedules?: ScheduledEvent[];
+  workflows?: Workflow[];
 }
 
 export interface Skill {

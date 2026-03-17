@@ -25,11 +25,8 @@ interface ChatInterfaceProps {
   onStop: () => void;
   onPause: () => void;
   isPaused: boolean;
-  input: string;
-  setInput: (val: string) => void;
   attachments: Attachment[];
   setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
-  streamMetrics: { totalWords: number; lastTokens: string; latestChunk: string } | null;
   showStreamDebug?: boolean;
   chatHistory?: ChatSession[];
   onLoadChat?: (session: ChatSession) => void;
@@ -83,6 +80,11 @@ const ToolResultDisplay: React.FC<{ name?: string, content: string }> = React.me
     const isImage = content.startsWith('data:image') || 
                     ((name === 'generate_image' || name === 'download_image') && content.match(/^https?:\/\/.+/i));
 
+    const parsedContent = React.useMemo(() => {
+        if (!useMarkdown || !content) return '';
+        return parse(content) as string;
+    }, [useMarkdown, content]);
+
     return (
         <div className="bg-green-900/10 rounded border border-green-500/20 overflow-hidden w-full text-xs mb-1">
             <button 
@@ -102,7 +104,7 @@ const ToolResultDisplay: React.FC<{ name?: string, content: string }> = React.me
                         </div>
                     ) : useMarkdown ? (
                         <div className="markdown-body !bg-transparent !text-inherit !p-0 overflow-x-auto max-w-full text-gray-300">
-                             <div dangerouslySetInnerHTML={{ __html: parse(content) as string }} />
+                             <div dangerouslySetInnerHTML={{ __html: parsedContent }} />
                         </div>
                     ) : (
                          <pre className="font-mono text-[10px] text-gray-300 whitespace-pre-wrap">
@@ -155,6 +157,11 @@ const MessageItem: React.FC<{ msg: Message, onSpeak: (text: string) => void }> =
 
     if (msg.role === 'assistant' && !displayContent && (!msg.toolCalls || msg.toolCalls.length === 0) && (!msg.attachments || msg.attachments.length === 0)) return null;
 
+    const parsedContent = React.useMemo(() => {
+        if (!displayContent) return '';
+        return parse(displayContent) as string;
+    }, [displayContent]);
+
     return (
         <div className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role !== 'user' && (
@@ -188,7 +195,7 @@ const MessageItem: React.FC<{ msg: Message, onSpeak: (text: string) => void }> =
                                 </div>
                             )}
                             {displayContent && (
-                                <div className="markdown-body !bg-transparent !text-inherit !p-0 overflow-x-auto max-w-full" dangerouslySetInnerHTML={{ __html: parse(displayContent) as string }} />
+                                <div className="markdown-body !bg-transparent !text-inherit !p-0 overflow-x-auto max-w-full" dangerouslySetInnerHTML={{ __html: parsedContent }} />
                             )}
                             {msg.role === 'assistant' && (
                                 <button 
@@ -219,11 +226,63 @@ const MessageItem: React.FC<{ msg: Message, onSpeak: (text: string) => void }> =
     return prevProps.msg === nextProps.msg;
 });
 
-const MessageList = React.memo(({ messages, isLoading, selectedAgent, streamMetrics, showStreamDebug, onSpeak }: any) => {
+const ThinkingIndicator: React.FC<{ showStreamDebug?: boolean }> = React.memo(({ showStreamDebug }) => {
+    const [streamMetrics, setStreamMetrics] = useState<{ totalWords: number; lastTokens: string; latestChunk: string } | null>(null);
+
+    useEffect(() => {
+        const handleChunk = (e: any) => {
+            const chunk = e.detail;
+            setStreamMetrics(prev => ({ 
+                totalWords: (prev?.totalWords || 0) + chunk.split(/\s+/).filter(Boolean).length, 
+                lastTokens: ((prev?.lastTokens || "") + chunk).slice(-500), 
+                latestChunk: chunk 
+            }));
+        };
+        const handleClear = () => setStreamMetrics(null);
+
+        window.addEventListener('stream-chunk', handleChunk);
+        window.addEventListener('stream-clear', handleClear);
+        return () => {
+            window.removeEventListener('stream-chunk', handleChunk);
+            window.removeEventListener('stream-clear', handleClear);
+        };
+    }, []);
+
+    return (
+        <div className="flex gap-4 justify-start">
+            <div className="w-8 h-8 rounded-full bg-cerebras-900/50 text-cerebras-400 flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4" /></div>
+            <div className="flex flex-col gap-2">
+                <div className="bg-dark-panel border border-dark-border rounded-lg px-4 py-2 w-fit max-w-md shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 text-cerebras-500 animate-spin flex-shrink-0" />
+                        <span className="text-xs text-gray-500 font-medium">Thinking...</span>
+                    </div>
+                    {showStreamDebug && streamMetrics && (
+                        <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in">
+                            <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                                <span className="font-mono uppercase tracking-wider font-bold text-cerebras-500">Stream Debug</span>
+                                <span>{streamMetrics.totalWords} w</span>
+                            </div>
+                            <div className="font-mono text-[10px] text-green-400 bg-black rounded p-2 border border-green-900/30 shadow-inner min-w-[200px] overflow-hidden relative">
+                                <div className="break-all whitespace-pre-wrap">
+                                    <span className="opacity-50 text-gray-500">{streamMetrics.lastTokens.slice(0, -streamMetrics.latestChunk.length)}</span>
+                                    <span className="text-white bg-green-900/50">{streamMetrics.latestChunk}</span>
+                                    <span className="animate-pulse inline-block w-1.5 h-3 bg-green-500 ml-0.5 align-middle"></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+});
+
+const MessageList = React.memo(({ messages, isLoading, selectedAgent, showStreamDebug, onSpeak }: any) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading, streamMetrics]);
+    }, [messages, isLoading]);
 
     return (
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6 container mx-auto max-w-5xl pb-24">
@@ -241,34 +300,7 @@ const MessageList = React.memo(({ messages, isLoading, selectedAgent, streamMetr
                 <MessageItem key={msg.id} msg={msg} onSpeak={onSpeak} />
             ))}
 
-            {isLoading && (
-                <div className="flex gap-4 justify-start">
-                    <div className="w-8 h-8 rounded-full bg-cerebras-900/50 text-cerebras-400 flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4" /></div>
-                    <div className="flex flex-col gap-2">
-                        <div className="bg-dark-panel border border-dark-border rounded-lg px-4 py-2 w-fit max-w-md shadow-sm">
-                            <div className="flex items-center gap-2">
-                                <Loader2 className="w-4 h-4 text-cerebras-500 animate-spin flex-shrink-0" />
-                                <span className="text-xs text-gray-500 font-medium">Thinking...</span>
-                            </div>
-                            {showStreamDebug && streamMetrics && (
-                                <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in">
-                                    <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
-                                        <span className="font-mono uppercase tracking-wider font-bold text-cerebras-500">Stream Debug</span>
-                                        <span>{streamMetrics.totalWords} w</span>
-                                    </div>
-                                    <div className="font-mono text-[10px] text-green-400 bg-black rounded p-2 border border-green-900/30 shadow-inner min-w-[200px] overflow-hidden relative">
-                                        <div className="break-all whitespace-pre-wrap">
-                                            <span className="opacity-50 text-gray-500">{streamMetrics.lastTokens.slice(0, -streamMetrics.latestChunk.length)}</span>
-                                            <span className="text-white bg-green-900/50">{streamMetrics.latestChunk}</span>
-                                            <span className="animate-pulse inline-block w-1.5 h-3 bg-green-500 ml-0.5 align-middle"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {isLoading && <ThinkingIndicator showStreamDebug={showStreamDebug} />}
             <div ref={messagesEndRef} />
         </div>
     );
@@ -277,9 +309,10 @@ const MessageList = React.memo(({ messages, isLoading, selectedAgent, streamMetr
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages, isLoading, selectedModel, selectedAgent, availableAgents, enableSubAgents,
   onModelChange, onAgentChange, onSendMessage, onClearChat, onAddAgent, onUpdateAgent, onDeleteAgent, onToggleSubAgents,
-  onOpenSettings, onStop, onPause, isPaused, input, setInput, attachments: pendingAttachments, setAttachments: setPendingAttachments,
-  streamMetrics, showStreamDebug, onSpawnAgent, ttsVoice
+  onOpenSettings, onStop, onPause, isPaused, attachments: pendingAttachments, setAttachments: setPendingAttachments,
+  showStreamDebug, onSpawnAgent, ttsVoice
 }) => {
+  const [input, setInput] = useState('');
   const [isManagerOpen, setIsManagerOpen] = useState(false);
   const [isSpawnModalOpen, setIsSpawnModalOpen] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
@@ -297,7 +330,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [input]);
 
-  const handleDownloadAgent = () => {
+  const handleDownloadAgent = useCallback(() => {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(selectedAgent, null, 2));
       const downloadAnchorNode = document.createElement('a');
       downloadAnchorNode.setAttribute("href", dataStr);
@@ -305,9 +338,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       document.body.appendChild(downloadAnchorNode);
       downloadAnchorNode.click();
       downloadAnchorNode.remove();
-  };
+  }, [selectedAgent]);
 
-  const handleImportAgent = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportAgent = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
@@ -323,22 +356,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       };
       reader.readAsText(file);
       if (importInputRef.current) importInputRef.current.value = '';
-  };
+  }, [onAddAgent]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = useCallback((e?: React.FormEvent) => {
       e?.preventDefault();
       if ((!input.trim() && pendingAttachments.length === 0) || (isLoading && !isPaused)) return;
       onSendMessage(input, pendingAttachments);
-  };
+      setInput(''); // Clear input after sending
+  }, [input, pendingAttachments, isLoading, isPaused, onSendMessage]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           handleSubmit();
       }
-  };
+  }, [handleSubmit]);
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
       const items = e.clipboardData.items;
       const newAttachments: Attachment[] = [];
       let promises: Promise<void>[] = [];
@@ -367,26 +401,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (promises.length > 0) {
           e.preventDefault();
           Promise.all(promises).then(() => {
-              setAttachments([...pendingAttachments, ...newAttachments]);
+              setPendingAttachments(prev => [...prev, ...newAttachments]);
           });
       }
-  };
+  }, [pendingAttachments, setPendingAttachments]);
 
-  const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAttachmentSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files) {
-          const newAttachments: Attachment[] = Array.from(e.target.files).map(file => ({
-              name: file.name,
-              type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
-              content: URL.createObjectURL(file), // This will be replaced by base64 in App.tsx usually, but for UI preview we use object URL or we need to convert here.
-              // Actually App.tsx expects base64 or text content usually. Let's convert to base64 here to be safe.
-          }));
-          
-          // We need to convert to base64 for the app to handle it properly usually
-          // But for now let's just pass them and let App.tsx handle or we can do async conversion
-          // For simplicity in this fix, let's assume App.tsx handles it or we do a quick conversion if needed.
-          // Re-reading App.tsx handleSendMessage, it calls parseDocument or uses content.
-          // Let's do a proper conversion to base64/text.
-          
           const processFiles = async () => {
               const processed: Attachment[] = [];
               for (const file of Array.from(e.target.files || [])) {
@@ -408,11 +429,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           processFiles();
       }
       if (attachmentInputRef.current) attachmentInputRef.current.value = '';
-  };
+  }, [setPendingAttachments]);
 
-  const removeAttachment = (index: number) => {
+  const removeAttachment = useCallback((index: number) => {
       setPendingAttachments(prev => prev.filter((_, i) => i !== index));
-  };
+  }, [setPendingAttachments]);
 
   const speak = useCallback((text: string) => {
       if (!ttsEnabled) return;
@@ -536,7 +557,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
          messages={messages} 
          isLoading={isLoading} 
          selectedAgent={selectedAgent}
-         streamMetrics={streamMetrics}
          showStreamDebug={showStreamDebug}
          onSpeak={speak} 
       />

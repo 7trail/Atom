@@ -7,7 +7,6 @@ const generateId = () => Date.now().toString(36) + Math.random().toString(36).sl
 
 interface UseChatHistoryProps {
     handleStopAgent: () => void;
-    setChatInput: (val: string) => void;
     setChatAttachments: (att: any[]) => void;
     setIsLoading: (val: boolean) => void;
     setActiveView: (view: string) => void;
@@ -15,7 +14,6 @@ interface UseChatHistoryProps {
 
 export const useChatHistory = ({ 
     handleStopAgent, 
-    setChatInput, 
     setChatAttachments, 
     setIsLoading,
     setActiveView
@@ -83,7 +81,6 @@ export const useChatHistory = ({
         handleStopAgent();
         setCurrentChatId(generateId());
         setMessages([]);
-        setChatInput('');
         setChatAttachments([]);
         setIsLoading(false);
     };
@@ -92,7 +89,6 @@ export const useChatHistory = ({
         handleStopAgent();
         setCurrentChatId(session.id);
         setMessages(session.messages);
-        setChatInput('');
         setChatAttachments([]);
         setActiveView('chat');
     };
@@ -110,7 +106,7 @@ export const useChatHistory = ({
 
     const generateChatTitle = async (firstMessage: string) => {
         const keys = getApiKeys();
-        const titleModel = keys.length > 0 ? 'gpt-oss-120b' : 'nvidia/nemotron-nano-12b-v2-vl';
+        const titleModel = keys.length > 0 ? 'qwen-3-235b-a22b-instruct-2507' : 'nvidia/nemotron-nano-12b-v2-vl';
         
         try {
             const result = await generateText(

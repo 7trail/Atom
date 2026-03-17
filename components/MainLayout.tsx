@@ -15,7 +15,8 @@ import SkillBrowser from './SkillBrowser';
 import Terminal from './Terminal';
 import { PyodideRunner } from './PyodideRunner';
 import { PyodideInterface } from '../hooks/usePyodide';
-import { Menu, PanelLeftClose, PanelLeftOpen, MessageSquare, TerminalSquare, Code2, Eye, Clock, BrainCircuit, Share2, Bot, Loader2, CheckCircle2, X, History, FolderTree, ExternalLink, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import WorkflowEditor from './WorkflowEditor';
+import { Menu, PanelLeftClose, PanelLeftOpen, MessageSquare, TerminalSquare, Code2, Eye, Clock, BrainCircuit, Share2, Bot, Loader2, CheckCircle2, X, History, FolderTree, ExternalLink, ChevronLeft, ChevronRight, Play, Workflow as WorkflowIcon } from 'lucide-react';
 
 interface MainLayoutProps {
     isMobile: boolean;
@@ -77,11 +78,8 @@ interface MainLayoutProps {
     handleStopAgent: () => void;
     handlePauseAgent: () => void;
     isPaused: boolean;
-    chatInput: string;
-    setChatInput: (val: string) => void;
     chatAttachments: any[];
     setChatAttachments: (val: any[]) => void;
-    streamMetrics: any;
     showStreamDebug: boolean;
     handleSpawnAgentManual: (id: string, model: AppModel, task: string, instr: string) => void;
     ttsVoice?: string;
@@ -109,6 +107,11 @@ interface MainLayoutProps {
     closeSession: (e: any, id: string) => void;
     // Terminal
     localPath: string | null;
+    // Workflows
+    workflows: any[];
+    handleSaveWorkflow: (w: any) => void;
+    handleDeleteWorkflow: (id: string) => void;
+    handleRunWorkflow: (w: any) => void;
     // Share
     setIsShareModalOpen: (val: boolean) => void;
     lastUpdated: number;
@@ -302,6 +305,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             <button onClick={() => props.setActiveView('edit')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'edit' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Code2 className="w-3 h-3" /> Code</button>
                             <button onClick={() => props.setActiveView('preview')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'preview' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Eye className="w-3 h-3" /> View</button>
                             <button onClick={() => props.setActiveView('schedules')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'schedules' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Clock className="w-3 h-3" /> Time</button>
+                            <button onClick={() => props.setActiveView('workflows')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'workflows' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><WorkflowIcon className="w-3 h-3" /> Workflows</button>
                             <button onClick={() => props.setActiveView('skills')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'skills' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><BrainCircuit className="w-3 h-3" /> Skills</button>
                             <button onClick={() => props.setActiveView('pyodide')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'pyodide' ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Play className="w-3 h-3" /> Run</button>
                             <button onClick={() => props.setActiveView('agents')} className={`flex items-center gap-2 px-3 py-1 rounded text-xs transition-all ${props.activeView === 'agents' || props.activeView.startsWith('session:') ? 'bg-cerebras-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}><Bot className="w-3 h-3" /> Agents</button>
@@ -330,6 +334,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 <div className="flex-1 overflow-hidden relative flex flex-col">
                     {props.activeView === 'chat' ? (
                         <ChatInterface 
+                            key={props.currentChatId}
                             messages={props.messages} 
                             isLoading={props.isLoading} 
                             selectedModel={props.selectedModel} 
@@ -348,11 +353,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             onStop={props.handleStopAgent} 
                             onPause={props.handlePauseAgent} 
                             isPaused={props.isPaused} 
-                            input={props.chatInput} 
-                            setInput={props.setChatInput} 
                             attachments={props.chatAttachments} 
                             setAttachments={props.setChatAttachments} 
-                            streamMetrics={props.streamMetrics} 
                             showStreamDebug={props.showStreamDebug} 
                             onSpawnAgent={props.handleSpawnAgentManual}
                             ttsVoice={props.ttsVoice}
@@ -402,6 +404,13 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                                 setPyodideOutput={props.setPyodideOutput}
                             />
                         )
+                    ) : props.activeView === 'workflows' ? (
+                        <WorkflowEditor 
+                            workflows={props.workflows}
+                            onSaveWorkflow={props.handleSaveWorkflow}
+                            onDeleteWorkflow={props.handleDeleteWorkflow}
+                            pyodide={props.pyodide}
+                        />
                     ) : props.activeView === 'schedules' ? (
                         <ScheduleManager schedules={props.schedules} onToggleActive={props.toggleScheduleActive} onDelete={props.deleteSchedule} timezone={props.timezone} agents={props.availableAgents} onUpdateAgent={props.updateScheduleAgent} />
                     ) : props.activeView === 'skills' ? (

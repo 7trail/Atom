@@ -102,6 +102,7 @@ const App: React.FC = () => {
       files, setFiles, filesRef, selectedFile, setSelectedFile, fileSystemType, fileSystemTypeRef,
       rootHandle, localPath, localPathRef, workspaces, activeWorkspaceId,
       schedules, setSchedules, schedulesRef,
+      workflows, handleSaveWorkflow, handleDeleteWorkflow,
       handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles,
       handleUpdateFileContent, handleUpdateFileByName, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
       handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace,
@@ -125,7 +126,6 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<string[]>([]);
   const addToast = (msg: string) => setToasts(prev => [...prev, msg]);
 
-  const [chatInput, setChatInput] = useState('');
   const [chatAttachments, setChatAttachments] = useState<Attachment[]>([]);
   const agentControlRef = useRef<{ stop: boolean, pause: boolean }>({ stop: false, pause: false });
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -137,13 +137,11 @@ const App: React.FC = () => {
       handleRenameChat, generateChatTitle 
   } = useChatHistory({ 
       handleStopAgent: () => { agentControlRef.current.stop = true; setIsLoading(false); },
-      setChatInput, 
       setChatAttachments,
       setIsLoading,
       setActiveView
   });
 
-  const [streamMetrics, setStreamMetrics] = useState<{ totalWords: number, lastTokens: string, latestChunk: string } | null>(null);
   const [showStreamDebug, setShowStreamDebug] = useState<boolean>(() => localStorage.getItem('atom_show_stream_debug') === 'true');
   const [defaultVlModel, setDefaultVlModel] = useState<AppModel>(() => (localStorage.getItem('atom_default_vl_model') as AppModel) || 'nvidia/nemotron-nano-12b-v2-vl');
   const [proxyMode, setProxyMode] = useState<boolean>(() => localStorage.getItem('atom_proxy_mode') === 'true');
@@ -380,6 +378,101 @@ const App: React.FC = () => {
       }
   };
 
+  const handleRunWorkflow = async (workflow: any) => {
+      setActiveView('chat');
+      
+      // Build adjacency list and in-degree map
+      const adj = new Map<string, string[]>();
+      const inDegree = new Map<string, number>();
+      const nodeMap = new Map<string, any>();
+      
+      workflow.nodes.forEach((n: any) => {
+          adj.set(n.id, []);
+          inDegree.set(n.id, 0);
+          nodeMap.set(n.id, n);
+      });
+      
+      const edgeMap = new Map<string, string[]>(); // target -> sources
+      
+      workflow.edges.forEach((e: any) => {
+          if (adj.has(e.source)) {
+              adj.get(e.source)!.push(e.target);
+          }
+          if (inDegree.has(e.target)) {
+              inDegree.set(e.target, inDegree.get(e.target)! + 1);
+          }
+          if (!edgeMap.has(e.target)) edgeMap.set(e.target, []);
+          edgeMap.get(e.target)!.push(e.source);
+      });
+      
+      const queue: string[] = [];
+      inDegree.forEach((deg, id) => {
+          if (deg === 0) queue.push(id);
+      });
+      
+      if (queue.length === 0) {
+          addToast("Workflow has cycles or no starting node.");
+          return;
+      }
+      
+      const sortedNodes: any[] = [];
+      while (queue.length > 0) {
+          const curr = queue.shift()!;
+          sortedNodes.push(nodeMap.get(curr));
+          
+          adj.get(curr)?.forEach(neighbor => {
+              inDegree.set(neighbor, inDegree.get(neighbor)! - 1);
+              if (inDegree.get(neighbor) === 0) {
+                  queue.push(neighbor);
+              }
+          });
+      }
+      
+      if (sortedNodes.length !== workflow.nodes.length) {
+          addToast("Workflow contains cycles.");
+          return;
+      }
+      
+      let prompt = `Please execute the following workflow named "${workflow.name}". You must follow these steps strictly in order. Do not skip any steps. When a step requires user input, you MUST stop and wait for the user to reply before proceeding to the next step.\n\n`;
+      
+      const stepMap = new Map<string, number>();
+      
+      sortedNodes.forEach((node, index) => {
+          const step = index + 1;
+          stepMap.set(node.id, step);
+          
+          const inputs = edgeMap.get(node.id) || [];
+          const inputSteps = inputs.map(id => stepMap.get(id));
+          
+          let inputStr = "";
+          if (inputSteps.length > 0) {
+              inputStr = `\nWait for the output of Step(s) ${inputSteps.join(', ')} before starting this step. Use their outputs as inputs.`;
+          }
+          
+          if (node.type === 'inputNode') {
+              prompt += `Step ${step} (Input Node - ${node.data.label}): Ask the user the following question and STOP to wait for their input: "${node.data.prompt || node.data.label}"${inputStr}\n`;
+          } else if (node.type === 'aiNode') {
+              prompt += `Step ${step} (AI Node - ${node.data.label}): Act as "${node.data.label}".${inputStr}\n`;
+              if (node.data.systemPrompt) {
+                  prompt += `Instructions for this step: ${node.data.systemPrompt}\n`;
+              }
+              if (node.data.enabledTools && node.data.enabledTools.length > 0) {
+                  prompt += `You should use the following tools for this step if needed: ${node.data.enabledTools.join(', ')}\n`;
+              }
+          } else if (node.type === 'scriptNode') {
+              prompt += `Step ${step} (Script Node - ${node.data.label}): Execute the following Python script using the 'execute_python' tool.${inputStr}\n`;
+              prompt += `The script defines a function 'process(i1, i2, i3, i4)'. You must append code to call this function with the outputs from the previous steps as arguments (up to 4). If there are fewer than 4 inputs, pass None for the rest. Print the result of the function call.\n`;
+              prompt += `Script:\n\`\`\`python\n${node.data.script}\n# You must append the function call here, e.g.:\n# print(process(input1, input2, None, None))\n\`\`\`\n`;
+          }
+          
+          prompt += '\n';
+      });
+      
+      prompt += `When all steps are complete, inform the user that the workflow has finished.`;
+      
+      handleSendMessage(prompt);
+  };
+
   // Memory Helpers
   const getAgentMemory = (agentId: string) => {
       try {
@@ -482,7 +575,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
     const isContinuing = previousContext.length > 0;
     if (!isContinuing && !customMessageState) {
         if (messages.length === 0) generateChatTitle(content);
-        setChatInput(''); setChatAttachments([]);
+        setChatAttachments([]);
         let finalContent = content;
         if (attachments.length > 0) {
             let ac = "\n\n--- User Attachments ---\n";
@@ -539,7 +632,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
             
             const onStreamChunk = (chunk: string) => {
                 if (agentControlRef.current.stop) return;
-                setStreamMetrics(prev => ({ totalWords: (prev?.totalWords || 0) + chunk.split(/\s+/).filter(Boolean).length, lastTokens: ((prev?.lastTokens || "") + chunk).slice(-500), latestChunk: chunk }));
+                window.dispatchEvent(new CustomEvent('stream-chunk', { detail: chunk }));
             };
 
             let modelToUse = selectedModel;
@@ -554,7 +647,7 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
             const completion = await chatCompletion(apiLoopMessages, modelToUse, currentActiveTools, attachments, (msg) => addToast(msg), onStreamChunk, abortControllerRef.current.signal);
             abortControllerRef.current = null;
             if (agentControlRef.current.stop) return;
-            setStreamMetrics(null);
+            window.dispatchEvent(new Event('stream-clear'));
 
             if (!completion?.choices?.[0]) break;
             const message = completion.choices[0].message;
@@ -879,11 +972,12 @@ json.dumps({"output": output_str, "result": str(last_val)})
         handleCreateFile={handleCreateFile} handleDeleteFile={handleDeleteFile} handleImportFiles={handleImportFiles} handleMoveFile={handleMoveFile} handleUpdateFileByName={handleUpdateFileByName} handleOpenFolderWrapper={handleOpenFolder} handleSwitchFolder={() => { agentControlRef.current.stop = true; setIsLoading(false); if (!isRenderHosted) fetch('http://localhost:3001/cleanup', {method:'POST'}).catch(console.error); setMessages([]); setSessions([]); setBrowserSessions([]); resetFileSystem(); handleOpenFolder(); }} resetFileSystem={resetFileSystem}
         workspaces={workspaces} activeWorkspaceId={activeWorkspaceId} handleCreateWorkspace={handleCreateWorkspace} handleSwitchWorkspace={handleSwitchWorkspace} handleRenameWorkspace={handleRenameWorkspace} handleDeleteWorkspace={handleDeleteWorkspace} handleDuplicateWorkspace={handleDuplicateWorkspace}
         chatHistory={chatHistory} currentChatId={currentChatId} handleLoadChat={handleLoadChat} handleChatContextMenu={(e, id) => { e.preventDefault(); e.stopPropagation(); setChatContextMenu({ x: e.clientX, y: e.clientY, sessionId: id }); }}
-        messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => { const n = [...p, a]; const customAgents = n.filter(x => x.isCustom); localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents)); return n; }); setSelectedAgent(a); } }} handleUpdateAgent={handleUpdateAgent} handleDeleteAgent={handleDeleteAgent} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatInput={chatInput} setChatInput={setChatInput} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} streamMetrics={streamMetrics} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}
+        messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => { const n = [...p, a]; const customAgents = n.filter(x => x.isCustom); localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents)); return n; }); setSelectedAgent(a); } }} handleUpdateAgent={handleUpdateAgent} handleDeleteAgent={handleDeleteAgent} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}
         handleUpdateFileContent={handleUpdateFileContent} handleSmartEdit={handleSmartEdit} handleSaveFileWrapper={handleSaveFileWrapper} handleExecutePlanStep={handleExecutePlanStep} handleExecuteFullPlan={handleExecuteFullPlan}
         schedules={schedules} toggleScheduleActive={(id) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, active: !s.active } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} deleteSchedule={(id) => setSchedules(p => { const n = p.filter(s => s.id !== id); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} updateScheduleAgent={(id, aid) => setSchedules(p => { const n = p.map(s => s.id === id ? { ...s, agentId: aid } : s); if (fileSystemTypeRef.current === 'local') updateAtomConfig({ schedules: n }); return n; })} timezone={timezone}
         skills={skills} enabledSkillIds={enabledSkillIds} handleToggleSkill={(id) => setEnabledSkillIds(p => { const n = p.includes(id) ? p.filter(x => x !== id) : [...p, id]; if (fileSystemTypeRef.current === 'local') updateAtomConfig({ enabledSkillIds: n }); else localStorage.setItem('atom_enabled_skills', JSON.stringify(n)); return n; })} handleImportSkill={(f) => { f.forEach(async x => { if (x.name.endsWith('.json')) { try { const d = JSON.parse(x.content); (Array.isArray(d) ? d : [d]).forEach(saveSkillToStorage); } catch {} } else if (x.name.endsWith('.zip')) { const s = await parseSkillZip(x); if (s) saveSkillToStorage(s); } else { const s = parseSkill(x); if (s) saveSkillToStorage(s); } }); setSkillRefresh(p => p + 1); addToast("Skills imported"); }} handleExportSkills={() => { const s = getLocalStorageSkills(); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s, null, 2)); a.download = "skills.json"; a.click(); }} handleDeleteSkill={(id) => { deleteSkillFromStorage(id); setSkillRefresh(p => p + 1); addToast("Skill deleted"); }}
         sessions={sessions} closeSession={closeSession} localPath={localPath} setIsShareModalOpen={setIsShareModalOpen} ttsVoice={ttsVoice}
+        workflows={workflows} handleSaveWorkflow={handleSaveWorkflow} handleDeleteWorkflow={handleDeleteWorkflow} handleRunWorkflow={handleRunWorkflow}
         lastUpdated={lastUpdated} useWebContainer={useWebContainer}
         pyodide={pyodide} pyodideLoading={pyodideLoading} pyodideOutput={pyodideOutput} clearPyodideOutput={clearPyodideOutput} setPyodideOutput={setPyodideOutput}
       />
