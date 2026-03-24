@@ -747,16 +747,38 @@ json.dumps({"output": output_str, "result": str(result)})
                             value={path} 
                             onChange={(e) => {
                               const newPaths = [...((selectedNode.data.conditionalPaths as string[]) || [])];
-                              newPaths[idx] = e.target.value;
+                              const oldPath = newPaths[idx];
+                              const newPath = e.target.value;
+                              newPaths[idx] = newPath;
                               updateNodeData(selectedNode.id, { conditionalPaths: newPaths });
+                              
+                              setEdges(eds => eds.map(edge => {
+                                if (edge.source === selectedNode.id && edge.sourceHandle === `out-${oldPath}`) {
+                                  return { ...edge, sourceHandle: `out-${newPath}` };
+                                }
+                                return edge;
+                              }));
                             }}
                             className="flex-1 bg-dark-bg border border-dark-border rounded p-1.5 text-sm text-white focus:outline-none focus:border-cerebras-500"
                             placeholder="e.g., Success"
                           />
                           <button 
                             onClick={() => {
-                              const newPaths = ((selectedNode.data.conditionalPaths as string[]) || []).filter((_, i) => i !== idx);
+                              const currentPaths = (selectedNode.data.conditionalPaths as string[]) || [];
+                              const oldPath = currentPaths[idx];
+                              const newPaths = currentPaths.filter((_, i) => i !== idx);
                               updateNodeData(selectedNode.id, { conditionalPaths: newPaths });
+                              
+                              if (newPaths.length === 0) {
+                                setEdges(eds => eds.map(edge => {
+                                  if (edge.source === selectedNode.id && edge.sourceHandle === `out-${oldPath}`) {
+                                    return { ...edge, sourceHandle: null };
+                                  }
+                                  return edge;
+                                }));
+                              } else {
+                                setEdges(eds => eds.filter(edge => !(edge.source === selectedNode.id && edge.sourceHandle === `out-${oldPath}`)));
+                              }
                             }}
                             className="text-red-400 hover:text-red-300 p-1"
                           >
@@ -766,8 +788,19 @@ json.dumps({"output": output_str, "result": str(result)})
                       ))}
                       <button 
                         onClick={() => {
-                          const newPaths = [...((selectedNode.data.conditionalPaths as string[]) || []), `Path ${((selectedNode.data.conditionalPaths as string[]) || []).length + 1}`];
+                          const currentPaths = (selectedNode.data.conditionalPaths as string[]) || [];
+                          const newPath = `Path ${currentPaths.length + 1}`;
+                          const newPaths = [...currentPaths, newPath];
                           updateNodeData(selectedNode.id, { conditionalPaths: newPaths });
+                          
+                          if (currentPaths.length === 0) {
+                            setEdges(eds => eds.map(edge => {
+                              if (edge.source === selectedNode.id && (!edge.sourceHandle || edge.sourceHandle === '')) {
+                                return { ...edge, sourceHandle: `out-${newPath}` };
+                              }
+                              return edge;
+                            }));
+                          }
                         }}
                         className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
                       >
