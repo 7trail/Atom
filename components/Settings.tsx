@@ -69,6 +69,8 @@ const Settings: React.FC<SettingsProps> = ({
   const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [activeTab, setActiveTab] = useState<'general' | 'keys' | 'tools' | 'integrations'>('general');
+
   useEffect(() => {
     if (isOpen) {
       setCerebrasKeys(getApiKeys());
@@ -278,526 +280,561 @@ const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
         
+        <div className="flex border-b border-dark-border bg-dark-bg/50 px-4 pt-2">
+            <button 
+                onClick={() => setActiveTab('general')}
+                className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'general' ? 'border-cerebras-500 text-cerebras-500' : 'border-transparent text-dark-muted hover:text-dark-text'}`}
+            >
+                General
+            </button>
+            <button 
+                onClick={() => setActiveTab('keys')}
+                className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'keys' ? 'border-cerebras-500 text-cerebras-500' : 'border-transparent text-dark-muted hover:text-dark-text'}`}
+            >
+                API Keys
+            </button>
+            <button 
+                onClick={() => setActiveTab('tools')}
+                className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'tools' ? 'border-cerebras-500 text-cerebras-500' : 'border-transparent text-dark-muted hover:text-dark-text'}`}
+            >
+                Tools & Agents
+            </button>
+            <button 
+                onClick={() => setActiveTab('integrations')}
+                className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'integrations' ? 'border-cerebras-500 text-cerebras-500' : 'border-transparent text-dark-muted hover:text-dark-text'}`}
+            >
+                Integrations
+            </button>
+        </div>
+
         <div className="p-4 space-y-6 max-h-[70vh] overflow-y-auto">
           
-          {/* Custom Instructions */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-3.5 h-3.5 text-cerebras-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Custom Instructions</label>
-            </div>
-            <p className="text-xs text-dark-muted mb-2">These instructions are added to the system prompt of every agent.</p>
-            <textarea
-                value={customInstructions}
-                onChange={(e) => onSetCustomInstructions(e.target.value)}
-                placeholder="e.g. Always respond in Spanish. Be concise. Never use emojis."
-                className="w-full h-24 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none resize-none font-mono"
-            />
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-          
-          {/* System Settings (Debug & Proxy) */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <Bug className="w-3.5 h-3.5 text-orange-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">System</label>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-                <button 
-                    onClick={onToggleStreamDebug}
-                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
-                        showStreamDebug 
-                            ? 'bg-orange-900/10 border-orange-500/30' 
-                            : 'bg-dark-bg border-dark-border opacity-60'
-                    }`}
-                >
-                    <div className={`mt-0.5 ${showStreamDebug ? 'text-orange-500' : 'text-dark-muted'}`}>
-                        {showStreamDebug ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                    </div>
-                    <div>
-                        <div className={`text-xs font-medium ${showStreamDebug ? 'text-dark-text' : 'text-dark-muted'}`}>
-                            Show Stream Debug
-                        </div>
-                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
-                            Visualize the raw text stream tokens as they arrive.
-                        </div>
-                    </div>
-                </button>
-
-                <button 
-                    onClick={onToggleProxyMode}
-                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
-                        proxyMode 
-                            ? 'bg-green-900/10 border-green-500/30' 
-                            : 'bg-dark-bg border-dark-border opacity-60'
-                    }`}
-                >
-                    <div className={`mt-0.5 ${proxyMode ? 'text-green-500' : 'text-dark-muted'}`}>
-                        {proxyMode ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1">
-                        <div className={`text-xs font-medium flex items-center gap-2 ${proxyMode ? 'text-dark-text' : 'text-dark-muted'}`}>
-                            <span>Proxy Mode</span>
-                            <Globe className="w-3 h-3 text-dark-muted" />
-                        </div>
-                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
-                            Route requests through corsproxy.io to bypass CORS issues on external URLs.
-                        </div>
-                    </div>
-                </button>
-
-                <button 
-                    onClick={onToggleWebContainer}
-                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
-                        useWebContainer 
-                            ? 'bg-blue-900/10 border-blue-500/30' 
-                            : 'bg-dark-bg border-dark-border opacity-60'
-                    }`}
-                >
-                    <div className={`mt-0.5 ${useWebContainer ? 'text-blue-500' : 'text-dark-muted'}`}>
-                        {useWebContainer ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1">
-                        <div className={`text-xs font-medium flex items-center gap-2 ${useWebContainer ? 'text-dark-text' : 'text-dark-muted'}`}>
-                            <span>WebContainer Mode</span>
-                            <Terminal className="w-3 h-3 text-dark-muted" />
-                        </div>
-                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
-                            Use StackBlitz WebContainers for full Node.js environment in preview.
-                        </div>
-                    </div>
-                </button>
-
-                <button 
-                    onClick={onToggleDefaultRAG}
-                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
-                        disableDefaultRAG 
-                            ? 'bg-red-900/10 border-red-500/30' 
-                            : 'bg-dark-bg border-dark-border opacity-60'
-                    }`}
-                >
-                    <div className={`mt-0.5 ${disableDefaultRAG ? 'text-red-500' : 'text-dark-muted'}`}>
-                        {disableDefaultRAG ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1">
-                        <div className={`text-xs font-medium flex items-center gap-2 ${disableDefaultRAG ? 'text-dark-text' : 'text-dark-muted'}`}>
-                            <span>Disable Default RAG</span>
-                            <ShieldCheck className="w-3 h-3 text-dark-muted" />
-                        </div>
-                        <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
-                            Stop automatically searching RAG for every message. Use 'RAG_Search' tool instead.
-                        </div>
-                    </div>
-                </button>
-            </div>
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-
-          {/* VL Model Settings */}
-          <div>
-              <div className="flex items-center gap-2 mb-2">
-                  <Eye className="w-3.5 h-3.5 text-blue-400" />
-                  <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Default Vision Model</label>
-              </div>
-              <p className="text-xs text-dark-muted mb-2">Used when you attach images/videos, if current model doesn't support vision.</p>
-              <select 
-                value={defaultVlModel} 
-                onChange={(e) => onSetDefaultVlModel(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
-              >
-                  <option value="nvidia/nemotron-nano-12b-v2-vl">Nemotron VL (12B)</option>
-                  <option value="moonshotai/kimi-k2.5">Kimi k2.5</option>
-                  <option value="qwen/qwen3.5-122b-a10b">Qwen 3.5 (122B)</option>
-                  <option value="qwen/qwen3.5-397b-a17b">Qwen 3.5 (397B)</option>
-              </select>
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-
-          {/* TTS Settings */}
-          <div>
-              <div className="flex items-center gap-2 mb-2">
-                  <Volume2 className="w-3.5 h-3.5 text-purple-400" />
-                  <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Text-to-Speech Voice</label>
-              </div>
-              <select 
-                value={ttsVoice} 
-                onChange={(e) => onSetTtsVoice(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none capitalize"
-              >
-                  {TTS_VOICES.map(v => (
-                      <option key={v} value={v}>{v}</option>
-                  ))}
-              </select>
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-
-          {/* Theme Selector */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                    <Palette className="w-3.5 h-3.5 text-cerebras-500" />
-                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Appearance</label>
+          {activeTab === 'general' && (
+            <div className="space-y-6">
+              {/* Custom Instructions */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-3.5 h-3.5 text-cerebras-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Custom Instructions</label>
                 </div>
-            </div>
-            
-            <button 
-                onClick={onOpenThemeBrowser}
-                className="w-full flex items-center justify-between p-3 rounded-lg border border-dark-border bg-dark-bg hover:bg-white/5 transition-colors group"
-            >
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cerebras-500 to-purple-600 shadow-lg"></div>
-                    <div className="text-left">
-                        <div className="text-sm font-medium text-dark-text group-hover:text-dark-text">Customize Theme</div>
-                        <div className="text-xs text-dark-muted">Current: <span className="text-cerebras-400 capitalize">{currentTheme}</span></div>
-                    </div>
-                </div>
-                <Grid className="w-5 h-5 text-dark-muted group-hover:text-dark-text" />
-            </button>
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-          
-          {/* Timezone */}
-          <div>
-              <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-3.5 h-3.5 text-cerebras-500" />
-                  <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">System Timezone</label>
-              </div>
-              <p className="text-xs text-dark-muted mb-2">Affects scheduled events and time-based tasks.</p>
-              <select 
-                value={timezone} 
-                onChange={(e) => onSetTimezone(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
-              >
-                  {availableTimezones.map(tz => (
-                      <option key={tz} value={tz}>{tz}</option>
-                  ))}
-              </select>
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-
-          {/* Global Tool Permissions */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <Wrench className="w-3.5 h-3.5 text-cerebras-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Global Tool Permissions</label>
-            </div>
-            <p className="text-xs text-dark-muted mb-3">Disabling a tool here removes it from all agents and updates their system instructions.</p>
-            <div className="grid grid-cols-2 gap-2">
-                {GLOBAL_TOOLS_LIST.map(tool => {
-                    const isRestricted = isRenderHosted && (tool as any).restricted;
-                    const isEnabled = !globalDisabledTools.includes(tool.id) && !isRestricted;
-                    
-                    return (
-                        <button
-                            key={tool.id}
-                            onClick={() => !isRestricted && onToggleGlobalTool(tool.id)}
-                            disabled={isRestricted}
-                            className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
-                                isEnabled 
-                                    ? 'bg-cerebras-900/10 border-cerebras-500/30' 
-                                    : 'bg-dark-bg border-dark-border opacity-60'
-                            } ${isRestricted ? 'cursor-not-allowed opacity-40' : ''}`}
-                        >
-                            <div className={`mt-0.5 ${isEnabled ? 'text-cerebras-500' : 'text-dark-muted'}`}>
-                                {isRestricted 
-                                    ? <Lock className="w-5 h-5" /> 
-                                    : (isEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />)
-                                }
-                            </div>
-                            <div>
-                                <div className={`text-xs font-medium ${isEnabled ? 'text-dark-text' : 'text-dark-muted'}`}>
-                                    {tool.label} {isRestricted && '(Disabled)'}
-                                </div>
-                                <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
-                                    {tool.desc}
-                                </div>
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-
-          {/* Sub-Agent Configuration */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <Bot className="w-3.5 h-3.5 text-cerebras-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Sub-Agent Availability</label>
-            </div>
-            <p className="text-xs text-dark-muted mb-3">Choose which agents can be called as sub-agents.</p>
-            <div className="grid grid-cols-2 gap-2">
-                {agents.map(agent => {
-                    const isEnabled = !disabledSubAgents.includes(agent.id);
-                    return (
-                        <button
-                            key={agent.id}
-                            onClick={() => onToggleSubAgent(agent.id)}
-                            className={`flex items-center gap-2 p-2 rounded-lg border text-left transition-all ${
-                                isEnabled 
-                                    ? 'bg-cerebras-900/10 border-cerebras-500/30' 
-                                    : 'bg-dark-bg border-dark-border opacity-60'
-                            }`}
-                        >
-                            <div className={`flex-shrink-0 ${isEnabled ? 'text-cerebras-500' : 'text-dark-muted'}`}>
-                                {isEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                            </div>
-                            <div className="truncate text-xs font-medium text-dark-muted">
-                                {agent.name}
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
-          </div>
-
-          <div className="border-t border-dark-border pt-2"></div>
-
-          <div className="flex items-start gap-2 bg-blue-900/20 border border-blue-900/50 p-3 rounded text-xs text-blue-200">
-             <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
-             <p>API keys are stored locally in your browser and never sent to our servers.</p>
-          </div>
-
-          {/* Cerebras Keys */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-full bg-cerebras-500"></div>
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Cerebras API Keys</label>
-            </div>
-            
-            <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
-                {cerebrasKeys.length === 0 && (
-                    <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">No keys added.</div>
-                )}
-                {cerebrasKeys.map((k, i) => (
-                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
-                        <span className="font-mono truncate w-64">
-                            {k.substring(0, 8)}...{k.substring(k.length - 4)}
-                        </span>
-                        <button 
-                            onClick={() => handleRemoveCerebras(k)}
-                            className="text-dark-muted hover:text-red-400 transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
-                ))}
-            </div>
-
-            <form onSubmit={handleAddCerebras} className="flex gap-2">
-                <input 
-                    type="password"
-                    value={newCerebrasKey}
-                    onChange={(e) => setNewCerebrasKey(e.target.value)}
-                    placeholder="csk-..."
-                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
+                <p className="text-xs text-dark-muted mb-2">These instructions are added to the system prompt of every agent.</p>
+                <textarea
+                    value={customInstructions}
+                    onChange={(e) => onSetCustomInstructions(e.target.value)}
+                    placeholder="e.g. Always respond in Spanish. Be concise. Never use emojis."
+                    className="w-full h-24 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none resize-none font-mono"
                 />
-                <button 
-                    type="submit"
-                    disabled={!newCerebrasKey.trim()}
-                    className="bg-cerebras-600 text-white px-3 py-2 rounded hover:bg-cerebras-500 disabled:opacity-50 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                </button>
-            </form>
-          </div>
+              </div>
 
-          <div className="border-t border-dark-border pt-4"></div>
-
-          {/* Nvidia Keys */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <Cpu className="w-3.5 h-3.5 text-green-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Nvidia NIM API Keys</label>
-            </div>
-            
-            <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
-                {nvidiaKeys.length === 0 && (
-                    <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">Using default demo key.</div>
-                )}
-                {nvidiaKeys.map((k, i) => (
-                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
-                        <span className="font-mono truncate w-64">
-                            {k.substring(0, 8)}...{k.substring(k.length - 4)}
-                        </span>
-                        <button 
-                            onClick={() => handleRemoveNvidia(k)}
-                            className="text-dark-muted hover:text-red-400 transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
-                ))}
-            </div>
-
-            <form onSubmit={handleAddNvidia} className="flex gap-2">
-                <input 
-                    type="password"
-                    value={newNvidiaKey}
-                    onChange={(e) => setNewNvidiaKey(e.target.value)}
-                    placeholder="nvapi-..."
-                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
-                />
-                <button 
-                    type="submit"
-                    disabled={!newNvidiaKey.trim()}
-                    className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-500 disabled:opacity-50 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                </button>
-            </form>
-          </div>
-
-          <div className="border-t border-dark-border pt-4"></div>
-
-          {/* Ollama Keys */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <Cloud className="w-3.5 h-3.5 text-blue-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Ollama Cloud API Keys</label>
-            </div>
-            
-            <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
-                {ollamaKeys.length === 0 && (
-                    <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">No keys added.</div>
-                )}
-                {ollamaKeys.map((k, i) => (
-                    <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
-                        <span className="font-mono truncate w-64">
-                            {k.substring(0, 8)}...{k.substring(k.length - 4)}
-                        </span>
-                        <button 
-                            onClick={() => handleRemoveOllama(k)}
-                            className="text-dark-muted hover:text-red-400 transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
-                ))}
-            </div>
-
-            <form onSubmit={handleAddOllama} className="flex gap-2">
-                <input 
-                    type="password"
-                    value={newOllamaKey}
-                    onChange={(e) => setNewOllamaKey(e.target.value)}
-                    placeholder="ollama-..."
-                    className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
-                />
-                <button 
-                    type="submit"
-                    disabled={!newOllamaKey.trim()}
-                    className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-500 disabled:opacity-50 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                </button>
-            </form>
-          </div>
-
-          <div className="border-t border-dark-border pt-4"></div>
-
-          {/* CodeSandbox Configuration */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <Terminal className="w-3.5 h-3.5 text-blue-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">CodeSandbox Integration</label>
-            </div>
-            <p className="text-xs text-dark-muted mb-3">Required to use the "run_codesandbox" tool for backend execution.</p>
-            
-            <div className="space-y-3">
-                <div>
-                    <label className="text-[10px] text-dark-muted mb-1 block">CodeSandbox API Key</label>
-                    <input 
-                        type="password"
-                        value={csbApiKey}
-                        onChange={(e) => setCsbApiKey(e.target.value)}
-                        placeholder="csb_..."
-                        className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-blue-500 focus:outline-none font-mono"
-                    />
+              <div className="border-t border-dark-border pt-2"></div>
+              
+              {/* System Settings (Debug & Proxy) */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <Bug className="w-3.5 h-3.5 text-orange-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">System</label>
                 </div>
-                <button 
-                    onClick={handleSaveCsbConfig}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded text-sm font-medium transition-colors"
-                >
-                    Save CodeSandbox Key
-                </button>
-            </div>
-          </div>
-
-          <div className="border-t border-dark-border pt-4"></div>
-
-          {/* Google Drive Configuration */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <Cloud className="w-3.5 h-3.5 text-yellow-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Google Drive Integration</label>
-            </div>
-            <p className="text-xs text-dark-muted mb-3">Required to use the "Open Google Drive" feature.</p>
-            
-            <div className="space-y-3">
-                <div>
-                    <label className="text-[10px] text-dark-muted mb-1 block">Google Client ID</label>
-                    <input 
-                        type="text"
-                        value={googleClientId}
-                        onChange={(e) => setGoogleClientId(e.target.value)}
-                        placeholder="1234...apps.googleusercontent.com"
-                        className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-yellow-500 focus:outline-none font-mono"
-                    />
-                </div>
-                <div>
-                    <label className="text-[10px] text-dark-muted mb-1 block">Google API Key</label>
-                    <input 
-                        type="password"
-                        value={googleApiKey}
-                        onChange={(e) => setGoogleApiKey(e.target.value)}
-                        placeholder="AIza..."
-                        className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-yellow-500 focus:outline-none font-mono"
-                    />
-                </div>
-                <div className="flex justify-end">
+                
+                <div className="flex flex-col gap-2">
                     <button 
-                        onClick={handleSaveGoogleConfig}
-                        className="bg-yellow-600 text-white px-3 py-1.5 rounded text-xs hover:bg-yellow-500 transition-colors"
+                        onClick={onToggleStreamDebug}
+                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                            showStreamDebug 
+                                ? 'bg-orange-900/10 border-orange-500/30' 
+                                : 'bg-dark-bg border-dark-border opacity-60'
+                        }`}
                     >
-                        Save Drive Config
+                        <div className={`mt-0.5 ${showStreamDebug ? 'text-orange-500' : 'text-dark-muted'}`}>
+                            {showStreamDebug ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                        </div>
+                        <div>
+                            <div className={`text-xs font-medium ${showStreamDebug ? 'text-dark-text' : 'text-dark-muted'}`}>
+                                Show Stream Debug
+                            </div>
+                            <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
+                                Visualize the raw text stream tokens as they arrive.
+                            </div>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={onToggleProxyMode}
+                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                            proxyMode 
+                                ? 'bg-green-900/10 border-green-500/30' 
+                                : 'bg-dark-bg border-dark-border opacity-60'
+                        }`}
+                    >
+                        <div className={`mt-0.5 ${proxyMode ? 'text-green-500' : 'text-dark-muted'}`}>
+                            {proxyMode ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                        </div>
+                        <div className="flex-1">
+                            <div className={`text-xs font-medium flex items-center gap-2 ${proxyMode ? 'text-dark-text' : 'text-dark-muted'}`}>
+                                <span>Proxy Mode</span>
+                                <Globe className="w-3 h-3 text-dark-muted" />
+                            </div>
+                            <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
+                                Route requests through corsproxy.io to bypass CORS issues on external URLs.
+                            </div>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={onToggleWebContainer}
+                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                            useWebContainer 
+                                ? 'bg-blue-900/10 border-blue-500/30' 
+                                : 'bg-dark-bg border-dark-border opacity-60'
+                        }`}
+                    >
+                        <div className={`mt-0.5 ${useWebContainer ? 'text-blue-500' : 'text-dark-muted'}`}>
+                            {useWebContainer ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                        </div>
+                        <div className="flex-1">
+                            <div className={`text-xs font-medium flex items-center gap-2 ${useWebContainer ? 'text-dark-text' : 'text-dark-muted'}`}>
+                                <span>WebContainer Mode</span>
+                                <Terminal className="w-3 h-3 text-dark-muted" />
+                            </div>
+                            <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
+                                Use StackBlitz WebContainers for full Node.js environment in preview.
+                            </div>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={onToggleDefaultRAG}
+                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all w-full ${
+                            disableDefaultRAG 
+                                ? 'bg-red-900/10 border-red-500/30' 
+                                : 'bg-dark-bg border-dark-border opacity-60'
+                        }`}
+                    >
+                        <div className={`mt-0.5 ${disableDefaultRAG ? 'text-red-500' : 'text-dark-muted'}`}>
+                            {disableDefaultRAG ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                        </div>
+                        <div className="flex-1">
+                            <div className={`text-xs font-medium flex items-center gap-2 ${disableDefaultRAG ? 'text-dark-text' : 'text-dark-muted'}`}>
+                                <span>Disable Default RAG</span>
+                                <ShieldCheck className="w-3 h-3 text-dark-muted" />
+                            </div>
+                            <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
+                                Stop automatically searching RAG for every message. Use 'RAG_Search' tool instead.
+                            </div>
+                        </div>
                     </button>
                 </div>
+              </div>
+
+              <div className="border-t border-dark-border pt-2"></div>
+
+              {/* VL Model Settings */}
+              <div>
+                  <div className="flex items-center gap-2 mb-2">
+                      <Eye className="w-3.5 h-3.5 text-blue-400" />
+                      <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Default Vision Model</label>
+                  </div>
+                  <p className="text-xs text-dark-muted mb-2">Used when you attach images/videos, if current model doesn't support vision.</p>
+                  <select 
+                    value={defaultVlModel} 
+                    onChange={(e) => onSetDefaultVlModel(e.target.value)}
+                    className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
+                  >
+                      <option value="nvidia/nemotron-nano-12b-v2-vl">Nemotron VL (12B)</option>
+                      <option value="moonshotai/kimi-k2.5">Kimi k2.5</option>
+                      <option value="qwen/qwen3.5-122b-a10b">Qwen 3.5 (122B)</option>
+                      <option value="qwen/qwen3.5-397b-a17b">Qwen 3.5 (397B)</option>
+                  </select>
+              </div>
+
+              <div className="border-t border-dark-border pt-2"></div>
+
+              {/* TTS Settings */}
+              <div>
+                  <div className="flex items-center gap-2 mb-2">
+                      <Volume2 className="w-3.5 h-3.5 text-purple-400" />
+                      <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Text-to-Speech Voice</label>
+                  </div>
+                  <select 
+                    value={ttsVoice} 
+                    onChange={(e) => onSetTtsVoice(e.target.value)}
+                    className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none capitalize"
+                  >
+                      {TTS_VOICES.map(v => (
+                          <option key={v} value={v}>{v}</option>
+                      ))}
+                  </select>
+              </div>
+
+              <div className="border-t border-dark-border pt-2"></div>
+
+              {/* Theme Selector */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                        <Palette className="w-3.5 h-3.5 text-cerebras-500" />
+                        <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Appearance</label>
+                    </div>
+                </div>
+                
+                <button 
+                    onClick={onOpenThemeBrowser}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-dark-border bg-dark-bg hover:bg-white/5 transition-colors group"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cerebras-500 to-purple-600 shadow-lg"></div>
+                        <div className="text-left">
+                            <div className="text-sm font-medium text-dark-text group-hover:text-dark-text">Customize Theme</div>
+                            <div className="text-xs text-dark-muted">Current: <span className="text-cerebras-400 capitalize">{currentTheme}</span></div>
+                        </div>
+                    </div>
+                    <Grid className="w-5 h-5 text-dark-muted group-hover:text-dark-text" />
+                </button>
+              </div>
+
+              <div className="border-t border-dark-border pt-2"></div>
+              
+              {/* Timezone */}
+              <div>
+                  <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-3.5 h-3.5 text-cerebras-500" />
+                      <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">System Timezone</label>
+                  </div>
+                  <p className="text-xs text-dark-muted mb-2">Affects scheduled events and time-based tasks.</p>
+                  <select 
+                    value={timezone} 
+                    onChange={(e) => onSetTimezone(e.target.value)}
+                    className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none"
+                  >
+                      {availableTimezones.map(tz => (
+                          <option key={tz} value={tz}>{tz}</option>
+                      ))}
+                  </select>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="border-t border-dark-border pt-4"></div>
+          {activeTab === 'tools' && (
+            <div className="space-y-6">
+              {/* Global Tool Permissions */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <Wrench className="w-3.5 h-3.5 text-cerebras-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Global Tool Permissions</label>
+                </div>
+                <p className="text-xs text-dark-muted mb-3">Disabling a tool here removes it from all agents and updates their system instructions.</p>
+                <div className="grid grid-cols-2 gap-2">
+                    {GLOBAL_TOOLS_LIST.map(tool => {
+                        const isRestricted = isRenderHosted && (tool as any).restricted;
+                        const isEnabled = !globalDisabledTools.includes(tool.id) && !isRestricted;
+                        
+                        return (
+                            <button
+                                key={tool.id}
+                                onClick={() => !isRestricted && onToggleGlobalTool(tool.id)}
+                                disabled={isRestricted}
+                                className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
+                                    isEnabled 
+                                        ? 'bg-cerebras-900/10 border-cerebras-500/30' 
+                                        : 'bg-dark-bg border-dark-border opacity-60'
+                                } ${isRestricted ? 'cursor-not-allowed opacity-40' : ''}`}
+                            >
+                                <div className={`mt-0.5 ${isEnabled ? 'text-cerebras-500' : 'text-dark-muted'}`}>
+                                    {isRestricted 
+                                        ? <Lock className="w-5 h-5" /> 
+                                        : (isEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />)
+                                    }
+                                </div>
+                                <div>
+                                    <div className={`text-xs font-medium ${isEnabled ? 'text-dark-text' : 'text-dark-muted'}`}>
+                                        {tool.label} {isRestricted && '(Disabled)'}
+                                    </div>
+                                    <div className="text-[10px] text-dark-muted leading-tight mt-0.5">
+                                        {tool.desc}
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+              </div>
 
-          {/* Discord Integration */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
-                <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Discord Integration</label>
+              <div className="border-t border-dark-border pt-2"></div>
+
+              {/* Sub-Agent Configuration */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <Bot className="w-3.5 h-3.5 text-cerebras-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Sub-Agent Availability</label>
+                </div>
+                <p className="text-xs text-dark-muted mb-3">Choose which agents can be called as sub-agents.</p>
+                <div className="grid grid-cols-2 gap-2">
+                    {agents.map(agent => {
+                        const isEnabled = !disabledSubAgents.includes(agent.id);
+                        return (
+                            <button
+                                key={agent.id}
+                                onClick={() => onToggleSubAgent(agent.id)}
+                                className={`flex items-center gap-2 p-2 rounded-lg border text-left transition-all ${
+                                    isEnabled 
+                                        ? 'bg-cerebras-900/10 border-cerebras-500/30' 
+                                        : 'bg-dark-bg border-dark-border opacity-60'
+                                }`}
+                            >
+                                <div className={`flex-shrink-0 ${isEnabled ? 'text-cerebras-500' : 'text-dark-muted'}`}>
+                                    {isEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                                </div>
+                                <div className="truncate text-xs font-medium text-dark-muted">
+                                    {agent.name}
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+              </div>
             </div>
-            
-            {isRenderHosted ? (
-                 <div className="text-xs text-dark-muted italic p-2 bg-red-900/10 border border-red-500/20 rounded">
-                     Discord integration is disabled in this hosted environment.
-                 </div>
-            ) : (
-                <>
-                <p className="text-xs text-dark-muted mb-3">Connect a bot to chat with the agent via DM.</p>
+          )}
 
+          {activeTab === 'keys' && (
+            <div className="space-y-6">
+              <div className="flex items-start gap-2 bg-blue-900/20 border border-blue-900/50 p-3 rounded text-xs text-blue-200">
+                 <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                 <p>API keys are stored locally in your browser and never sent to our servers.</p>
+              </div>
+
+              {/* Cerebras Keys */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-cerebras-500"></div>
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Cerebras API Keys</label>
+                </div>
+                
+                <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                    {cerebrasKeys.length === 0 && (
+                        <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">No keys added.</div>
+                    )}
+                    {cerebrasKeys.map((k, i) => (
+                        <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
+                            <span className="font-mono truncate w-64">
+                                {k.substring(0, 8)}...{k.substring(k.length - 4)}
+                            </span>
+                            <button 
+                                onClick={() => handleRemoveCerebras(k)}
+                                className="text-dark-muted hover:text-red-400 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+
+                <form onSubmit={handleAddCerebras} className="flex gap-2">
+                    <input 
+                        type="password"
+                        value={newCerebrasKey}
+                        onChange={(e) => setNewCerebrasKey(e.target.value)}
+                        placeholder="csk-..."
+                        className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
+                    />
+                    <button 
+                        type="submit"
+                        disabled={!newCerebrasKey.trim()}
+                        className="bg-cerebras-600 text-white px-3 py-2 rounded hover:bg-cerebras-500 disabled:opacity-50 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                </form>
+              </div>
+
+              <div className="border-t border-dark-border pt-4"></div>
+
+              {/* Nvidia Keys */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <Cpu className="w-3.5 h-3.5 text-green-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Nvidia NIM API Keys</label>
+                </div>
+                
+                <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                    {nvidiaKeys.length === 0 && (
+                        <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">Using default demo key.</div>
+                    )}
+                    {nvidiaKeys.map((k, i) => (
+                        <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
+                            <span className="font-mono truncate w-64">
+                                {k.substring(0, 8)}...{k.substring(k.length - 4)}
+                            </span>
+                            <button 
+                                onClick={() => handleRemoveNvidia(k)}
+                                className="text-dark-muted hover:text-red-400 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+
+                <form onSubmit={handleAddNvidia} className="flex gap-2">
+                    <input 
+                        type="password"
+                        value={newNvidiaKey}
+                        onChange={(e) => setNewNvidiaKey(e.target.value)}
+                        placeholder="nvapi-..."
+                        className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
+                    />
+                    <button 
+                        type="submit"
+                        disabled={!newNvidiaKey.trim()}
+                        className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-500 disabled:opacity-50 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                </form>
+              </div>
+
+              <div className="border-t border-dark-border pt-4"></div>
+
+              {/* Ollama Keys */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <Cloud className="w-3.5 h-3.5 text-blue-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Ollama Cloud API Keys</label>
+                </div>
+                
+                <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                    {ollamaKeys.length === 0 && (
+                        <div className="text-sm text-dark-muted italic text-center py-2 bg-white/5 rounded">No keys added.</div>
+                    )}
+                    {ollamaKeys.map((k, i) => (
+                        <div key={i} className="flex items-center justify-between bg-dark-bg border border-dark-border p-2 rounded text-sm text-dark-muted">
+                            <span className="font-mono truncate w-64">
+                                {k.substring(0, 8)}...{k.substring(k.length - 4)}
+                            </span>
+                            <button 
+                                onClick={() => handleRemoveOllama(k)}
+                                className="text-dark-muted hover:text-red-400 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+
+                <form onSubmit={handleAddOllama} className="flex gap-2">
+                    <input 
+                        type="password"
+                        value={newOllamaKey}
+                        onChange={(e) => setNewOllamaKey(e.target.value)}
+                        placeholder="ollama-..."
+                        className="flex-1 bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-cerebras-500 focus:outline-none font-mono"
+                    />
+                    <button 
+                        type="submit"
+                        disabled={!newOllamaKey.trim()}
+                        className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-500 disabled:opacity-50 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                </form>
+              </div>
+
+              <div className="border-t border-dark-border pt-4"></div>
+
+              {/* CodeSandbox Configuration */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <Terminal className="w-3.5 h-3.5 text-blue-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">CodeSandbox Integration</label>
+                </div>
+                <p className="text-xs text-dark-muted mb-3">Required to use the "run_codesandbox" tool for backend execution.</p>
+                
                 <div className="space-y-3">
                     <div>
-                        <label className="text-[10px] text-dark-muted mb-1 block">Bot Token</label>
+                        <label className="text-[10px] text-dark-muted mb-1 block">CodeSandbox API Key</label>
                         <input 
                             type="password"
-                            value={discordToken}
-                            onChange={(e) => setDiscordToken(e.target.value)}
+                            value={csbApiKey}
+                            onChange={(e) => setCsbApiKey(e.target.value)}
+                            placeholder="csb_..."
+                            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-blue-500 focus:outline-none font-mono"
+                        />
+                    </div>
+                    <button 
+                        onClick={handleSaveCsbConfig}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded text-sm font-medium transition-colors"
+                    >
+                        Save CodeSandbox Key
+                    </button>
+                </div>
+              </div>
+
+              <div className="border-t border-dark-border pt-4"></div>
+
+              {/* Google Drive Configuration */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <Cloud className="w-3.5 h-3.5 text-yellow-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Google Drive Integration</label>
+                </div>
+                <p className="text-xs text-dark-muted mb-3">Required to use the "Open Google Drive" feature.</p>
+                
+                <div className="space-y-3">
+                    <div>
+                        <label className="text-[10px] text-dark-muted mb-1 block">Google Client ID</label>
+                        <input 
+                            type="text"
+                            value={googleClientId}
+                            onChange={(e) => setGoogleClientId(e.target.value)}
+                            placeholder="1234...apps.googleusercontent.com"
+                            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-yellow-500 focus:outline-none font-mono"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] text-dark-muted mb-1 block">Google API Key</label>
+                        <input 
+                            type="password"
+                            value={googleApiKey}
+                            onChange={(e) => setGoogleApiKey(e.target.value)}
+                            placeholder="AIza..."
+                            className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-yellow-500 focus:outline-none font-mono"
+                        />
+                    </div>
+                    <div className="flex justify-end">
+                        <button 
+                            onClick={handleSaveGoogleConfig}
+                            className="bg-yellow-600 text-white px-3 py-1.5 rounded text-xs hover:bg-yellow-500 transition-colors"
+                        >
+                            Save Drive Config
+                        </button>
+                    </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'integrations' && (
+            <div className="space-y-6">
+              {/* Discord Integration */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <MessageCircle className="w-3.5 h-3.5 text-indigo-500" />
+                    <label className="block text-xs font-semibold text-dark-muted uppercase tracking-wider">Discord Integration</label>
+                </div>
+                
+                {isRenderHosted ? (
+                     <div className="text-xs text-dark-muted italic p-2 bg-red-900/10 border border-red-500/20 rounded">
+                         Discord integration is disabled in this hosted environment.
+                     </div>
+                ) : (
+                    <>
+                    <p className="text-xs text-dark-muted mb-3">Connect a bot to chat with the agent via DM.</p>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-[10px] text-dark-muted mb-1 block">Bot Token</label>
+                            <input 
+                                type="password"
+                                value={discordToken}
+                                onChange={(e) => setDiscordToken(e.target.value)}
                             className="w-full bg-dark-bg border border-dark-border rounded p-2 text-sm text-dark-text focus:border-indigo-500 focus:outline-none font-mono"
                         />
                     </div>
@@ -826,7 +863,8 @@ const Settings: React.FC<SettingsProps> = ({
                 </>
             )}
           </div>
-
+        </div>
+        )}
         </div>
         <div className="p-4 border-t border-dark-border bg-dark-bg/50 flex justify-end">
             <button 

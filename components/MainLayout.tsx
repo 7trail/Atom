@@ -16,7 +16,8 @@ import Terminal from './Terminal';
 import { PyodideRunner } from './PyodideRunner';
 import { PyodideInterface } from '../hooks/usePyodide';
 import WorkflowEditor from './WorkflowEditor';
-import { Menu, PanelLeftClose, PanelLeftOpen, MessageSquare, TerminalSquare, Code2, Eye, Clock, BrainCircuit, Share2, Bot, Loader2, CheckCircle2, X, History, FolderTree, ExternalLink, ChevronLeft, ChevronRight, Play, Workflow as WorkflowIcon } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeftOpen, MessageSquare, TerminalSquare, Code2, Eye, Clock, BrainCircuit, Share2, Bot, Loader2, CheckCircle2, X, History, FolderTree, ExternalLink, ChevronLeft, ChevronRight, Play, Workflow as WorkflowIcon, Camera } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 interface MainLayoutProps {
     isMobile: boolean;
@@ -79,7 +80,7 @@ interface MainLayoutProps {
     handlePauseAgent: () => void;
     isPaused: boolean;
     chatAttachments: any[];
-    setChatAttachments: (val: any[]) => void;
+    setChatAttachments: React.Dispatch<React.SetStateAction<any[]>>;
     showStreamDebug: boolean;
     handleSpawnAgentManual: (id: string, model: AppModel, task: string, instr: string) => void;
     ttsVoice?: string;
@@ -191,6 +192,57 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                     setExternalWindow(newWindow);
                 }, 50);
             }
+        }
+    };
+
+    const handleScreenshot = async () => {
+        try {
+            const iframe = document.querySelector('iframe');
+            if (!iframe) {
+                console.error("No iframe found");
+                return;
+            }
+            
+            let targetElement: HTMLElement | null = null;
+            try {
+                targetElement = iframe.contentDocument?.body || null;
+            } catch (e) {
+                console.warn("Cannot access iframe content due to CORS", e);
+            }
+
+            if (targetElement) {
+                const canvas = await html2canvas(targetElement, {
+                    useCORS: true,
+                    allowTaint: true,
+                });
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                props.setChatAttachments(prev => [...prev, {
+                    id: Date.now().toString(),
+                    name: 'Screenshot.png',
+                    type: 'image',
+                    content: dataUrl
+                }]);
+                
+                props.setActiveView('chat');
+            } else {
+                // Fallback: try taking screenshot of the iframe element itself
+                const canvas = await html2canvas(iframe, {
+                    useCORS: true,
+                    allowTaint: true,
+                });
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                props.setChatAttachments(prev => [...prev, {
+                    id: Date.now().toString(),
+                    name: 'Screenshot.png',
+                    type: 'image',
+                    content: dataUrl
+                }]);
+                props.setActiveView('chat');
+            }
+        } catch (error) {
+            console.error("Screenshot failed", error);
         }
     };
 
@@ -319,13 +371,22 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         </button>
                         
                         {props.activeView === 'preview' && (
-                            <button 
-                                onClick={togglePopout}
-                                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded text-xs bg-indigo-900/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-900/50 transition-colors flex-shrink-0"
-                                title={externalWindow ? "Close Popout" : "Popout Preview"}
-                            >
-                                <ExternalLink className="w-3 h-3" /> {externalWindow ? 'Close' : 'Popout'}
-                            </button>
+                            <>
+                                <button 
+                                    onClick={handleScreenshot}
+                                    className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded text-xs bg-green-900/30 text-green-300 border border-green-500/50 hover:bg-green-900/50 transition-colors flex-shrink-0"
+                                    title="Take Screenshot"
+                                >
+                                    <Camera className="w-3 h-3" /> Screenshot
+                                </button>
+                                <button 
+                                    onClick={togglePopout}
+                                    className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded text-xs bg-indigo-900/30 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-900/50 transition-colors flex-shrink-0"
+                                    title={externalWindow ? "Close Popout" : "Popout Preview"}
+                                >
+                                    <ExternalLink className="w-3 h-3" /> {externalWindow ? 'Close' : 'Popout'}
+                                </button>
+                            </>
                         )}
 
                         <div className="w-[1px] h-6 bg-dark-border flex-shrink-0 mx-1"></div>

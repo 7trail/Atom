@@ -241,7 +241,8 @@ export type AppModel =
   | 'kimi-k2.5:cloud'
   | 'glm-5:cloud'
   | 'minimax-m2.5:cloud'
-  | 'qwen3-vl:235b-cloud';
+  | 'qwen3-vl:235b-cloud'
+  | 'mistralai/mistral-small-4-119b-2603';
 
 export interface Agent {
   id: string;
@@ -283,7 +284,8 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'kimi-k2.5:cloud',
   'glm-5:cloud',
   'minimax-m2.5:cloud',
-  'qwen3-vl:235b-cloud'
+  'qwen3-vl:235b-cloud',
+  'mistralai/mistral-small-4-119b-2603'
 ];
 
 export const MULTIMODAL_MODELS: AppModel[] = [
@@ -292,7 +294,8 @@ export const MULTIMODAL_MODELS: AppModel[] = [
   'qwen/qwen3.5-397b-a17b',
   'qwen/qwen3.5-122b-a10b',
   'kimi-k2.5:cloud',
-  'qwen3-vl:235b-cloud'
+  'qwen3-vl:235b-cloud',
+  'mistralai/mistral-small-4-119b-2603'
 ];
 
 export interface SettingsProps {

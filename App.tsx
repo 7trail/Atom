@@ -104,7 +104,7 @@ const App: React.FC = () => {
       schedules, setSchedules, schedulesRef,
       workflows, handleSaveWorkflow, handleDeleteWorkflow,
       handleCreateFile, handleDeleteFile, handleSaveFile, handleSaveAll, handleMoveFile, handleImportFiles,
-      handleUpdateFileContent, handleUpdateFileByName, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
+      handleUpdateFileContent, handleUpdateFileByName, handleUpdateFiles, handleOpenFolder, handleOpenGoogleDrive, resetFileSystem, applyFileAction,
       handleCreateWorkspace, handleSwitchWorkspace, handleRenameWorkspace, handleDeleteWorkspace,
       handleDuplicateWorkspace, handleImportWorkspace
   } = useFileSystem();
@@ -655,6 +655,16 @@ Task: Rewrite the "Selected Code" based on the "Instruction".
             if (message.content && !agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: message.content, timestamp: Date.now() }]);
 
             if (message.tool_calls && message.tool_calls.length > 0) {
+                // Normalize duplicated tool names
+                message.tool_calls.forEach((tc: any) => {
+                    if (tc.function && tc.function.name) {
+                        const name = tc.function.name;
+                        if (name.length % 2 === 0 && name.substring(0, name.length / 2) === name.substring(name.length / 2)) {
+                            tc.function.name = name.substring(0, name.length / 2);
+                        }
+                    }
+                });
+
                 const uiTools: ToolAction[] = message.tool_calls.map((tc: any) => { try { return { action: tc.function.name, ...JSON.parse(tc.function.arguments) }; } catch { return { action: tc.function.name }; }});
                 if (!agentControlRef.current.stop) setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: '', timestamp: Date.now(), toolCalls: uiTools }]);
                 if (uiTools.some(t => t.action === 'ask_question')) break;
@@ -916,7 +926,7 @@ json.dumps({"output": output_str, "result": str(last_val)})
                             }
                         }
                     }
-                    else result = "Executed.";
+                    else result = `Error: Tool "${fnName}" is not defined or improperly named. Please check the tool name and try again.`;
                     
                     if (agentControlRef.current.stop) return;
                     setMessages(prev => [...prev, { id: generateId(), role: 'tool', name: fnName, content: result, timestamp: Date.now() }]);
@@ -969,7 +979,7 @@ json.dumps({"output": output_str, "result": str(last_val)})
       <MainLayout 
         isMobile={isMobile} leftSidebarOpen={leftSidebarOpen} setLeftSidebarOpen={setLeftSidebarOpen} sidebarMode={sidebarMode} setSidebarMode={setSidebarMode}
         files={files} selectedFile={selectedFile} fileSystemType={fileSystemType} setSelectedFile={setSelectedFile} setActiveView={setActiveView} activeView={activeView}
-        handleCreateFile={handleCreateFile} handleDeleteFile={handleDeleteFile} handleImportFiles={handleImportFiles} handleMoveFile={handleMoveFile} handleUpdateFileByName={handleUpdateFileByName} handleOpenFolderWrapper={handleOpenFolder} handleSwitchFolder={() => { agentControlRef.current.stop = true; setIsLoading(false); if (!isRenderHosted) fetch('http://localhost:3001/cleanup', {method:'POST'}).catch(console.error); setMessages([]); setSessions([]); setBrowserSessions([]); resetFileSystem(); handleOpenFolder(); }} resetFileSystem={resetFileSystem}
+        handleCreateFile={handleCreateFile} handleDeleteFile={handleDeleteFile} handleImportFiles={handleImportFiles} handleMoveFile={handleMoveFile} handleUpdateFileByName={handleUpdateFileByName} handleUpdateFiles={handleUpdateFiles} handleOpenFolderWrapper={handleOpenFolder} handleSwitchFolder={() => { agentControlRef.current.stop = true; setIsLoading(false); if (!isRenderHosted) fetch('http://localhost:3001/cleanup', {method:'POST'}).catch(console.error); setMessages([]); setSessions([]); setBrowserSessions([]); resetFileSystem(); handleOpenFolder(); }} resetFileSystem={resetFileSystem}
         workspaces={workspaces} activeWorkspaceId={activeWorkspaceId} handleCreateWorkspace={handleCreateWorkspace} handleSwitchWorkspace={handleSwitchWorkspace} handleRenameWorkspace={handleRenameWorkspace} handleDeleteWorkspace={handleDeleteWorkspace} handleDuplicateWorkspace={handleDuplicateWorkspace}
         chatHistory={chatHistory} currentChatId={currentChatId} handleLoadChat={handleLoadChat} handleChatContextMenu={(e, id) => { e.preventDefault(); e.stopPropagation(); setChatContextMenu({ x: e.clientX, y: e.clientY, sessionId: id }); }}
         messages={messages} isLoading={isLoading} selectedModel={selectedModel} selectedAgent={selectedAgent} availableAgents={agents} enableSubAgents={enableSubAgents} onModelChange={setSelectedModel} onAgentChange={(id) => { const a = agents.find(x => x.id === id); if (a) { setSelectedAgent(a); setSelectedModel(a.preferredModel); } }} onSendMessage={handleSendMessage} handleNewChat={handleNewChat} handleAddAgent={(a) => { if (fileSystemTypeRef.current === 'local') { const f = filesRef.current.find(x => x.name === '.atom'); let ca: Agent[] = []; if (f) try { ca = JSON.parse(f.content).agents || []; } catch {} updateAtomConfig({ agents: [...ca, { ...a, isCustom: true }] }); setSelectedAgent({ ...a, isCustom: true }); } else { setAgents(p => { const n = [...p, a]; const customAgents = n.filter(x => x.isCustom); localStorage.setItem('atom_custom_agents', JSON.stringify(customAgents)); return n; }); setSelectedAgent(a); } }} handleUpdateAgent={handleUpdateAgent} handleDeleteAgent={handleDeleteAgent} toggleSubAgents={() => setEnableSubAgents(p => !p)} setIsSettingsOpen={setIsSettingsOpen} handleStopAgent={() => { agentControlRef.current.stop = true; if (abortControllerRef.current) abortControllerRef.current.abort(); setIsLoading(false); setIsPaused(false); setMessages(p => [...p, { id: generateId(), role: 'system', content: "🛑 Stopped.", timestamp: Date.now() }]); }} handlePauseAgent={() => { agentControlRef.current.pause = true; setIsPaused(true); }} isPaused={isPaused} chatAttachments={chatAttachments} setChatAttachments={setChatAttachments} showStreamDebug={showStreamDebug} handleSpawnAgentManual={(id, m, t, i) => { const a = agents.find(x => x.id === id); const sid = startEphemeralAgentRef.current({ agentName: a?.name || 'Sub', task: t, detailedInstructions: i, model: m }); addToast(`Spawned agent: ${a?.name} (ID: ${sid})`); }}

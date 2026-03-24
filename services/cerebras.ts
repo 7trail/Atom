@@ -275,7 +275,7 @@ export async function chatCompletion(
             let processedMessages = JSON.parse(JSON.stringify(optimizedMessages));
 
             // --- Model Specific Handling for Multimodal Models ---
-            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5' || model.includes('qwen3.5');
+            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5' || model.includes('qwen3.5') || model === 'mistralai/mistral-small-4-119b-2603';
             
             if (isMultimodal) {
                 const lastUserMsgIndex = processedMessages.findLastIndex((m: any) => m.role === 'user');
@@ -341,7 +341,11 @@ export async function chatCompletion(
             if (model.includes('/') && !model.includes('vl')) {
                 // Basic nemotron thinking config (not for VL model)
                 params.reasoning_budget = 16384;
-                params.chat_template_kwargs = { enable_thinking: true,"clear_thinking":false };
+                if (!model.includes("mistral")) {
+                    params.chat_template_kwargs = { enable_thinking: true,"clear_thinking":false };
+                } else {
+                    params.reasoning_effort = "high";
+                }
             }
 
             const stream = await openai.chat.completions.create(params, { signal }) as any;
