@@ -13,7 +13,8 @@ import {
   Handle,
   Position,
   Panel,
-  NodeResizer
+  NodeResizer,
+  useUpdateNodeInternals
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Workflow, WorkflowNodeData, AppModel, SUPPORTED_MODELS } from '../types';
@@ -73,7 +74,13 @@ const InputNode = ({ data, isConnectable, selected }: any) => {
   );
 };
 
-const AINode = ({ data, isConnectable, selected }: any) => {
+const AINode = ({ id, data, isConnectable, selected }: any) => {
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [data.conditionalPaths, id, updateNodeInternals]);
+
   return (
     <div className="bg-indigo-900/30 border border-indigo-500/50 rounded-lg p-3 w-full h-full min-w-[250px] min-h-[150px] shadow-lg backdrop-blur-sm relative flex flex-col">
       <NodeResizer minWidth={250} minHeight={150} isVisible={selected} handleClassName="w-3 h-3 bg-white rounded-full border-2 border-indigo-500" />
@@ -105,7 +112,7 @@ const AINode = ({ data, isConnectable, selected }: any) => {
       <NodeStatus status={data.status} output={data.output} error={data.error} />
       {data.conditionalPaths && data.conditionalPaths.length > 0 ? (
         data.conditionalPaths.map((path: string, i: number) => (
-          <React.Fragment key={path}>
+          <React.Fragment key={i}>
             <Handle type="source" id={`out-${path}`} position={Position.Right} style={{ top: `${20 + i*20}%` }} isConnectable={isConnectable} className="w-3 h-3 bg-indigo-400 border-2 border-dark-bg" />
             <div className="absolute -right-12 text-[8px] text-indigo-300 font-bold text-right w-10" style={{ top: `${20 + i*20}%`, transform: 'translateY(-50%)' }}>{path}</div>
           </React.Fragment>

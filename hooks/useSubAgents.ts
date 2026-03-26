@@ -30,6 +30,7 @@ interface UseSubAgentsProps {
     schedulesRef: React.MutableRefObject<any[]>;
     setActiveView: (view: string) => void;
     pyodide: PyodideInterface | null;
+    disableDefaultRAG: boolean;
 }
 
 export const useSubAgents = ({
@@ -46,7 +47,8 @@ export const useSubAgents = ({
     setSchedules,
     schedulesRef,
     setActiveView,
-    pyodide
+    pyodide,
+    disableDefaultRAG
 }: UseSubAgentsProps) => {
     const [sessions, setSessions] = useState<SubAgentSession[]>([]);
     const [waitingForSubAgents, setWaitingForSubAgents] = useState(false);
@@ -86,8 +88,13 @@ CRITICAL RULES:
         let browserContext = "";
         if (myBrowserSessions.length > 0) browserContext = `\nActive Browser Sessions:\n${myBrowserSessions.map(s => `- ID: ${s.sessionId} | URL: ${s.url}`).join('\n')}\n`;
 
-        const retrievedContext = await ragService.retrieve(`${session.task} ${instructions}`);
-        let apiHistory: any[] = [{ role: "system", content: subAgentPrompt + browserContext }, { role: "user", content: `Context:\n${retrievedContext}\n\nBegin.` }];
+        let contextBlock = "";
+        if (!disableDefaultRAG) {
+            const retrievedContext = await ragService.retrieve(`${session.task} ${instructions}`);
+            contextBlock = `Context:\n${retrievedContext}\n\n`;
+        }
+        
+        let apiHistory: any[] = [{ role: "system", content: subAgentPrompt + browserContext }, { role: "user", content: `${contextBlock}Begin.` }];
         let turns = 0;
         const MAX_TURNS = 30;
         let lastToolSig = "", repetitionCount = 0;

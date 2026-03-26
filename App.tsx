@@ -198,7 +198,7 @@ const App: React.FC = () => {
   } = useSubAgents({
       agents, filesRef, applyFileAction, setFiles, browserSessions, workspaceInstructions,
       addToast, fileSystemTypeRef, localPathRef, updateAtomConfig, setSchedules, schedulesRef, setActiveView,
-      pyodide
+      pyodide, disableDefaultRAG
   });
 
   const startEphemeralAgentRef = useRef(startEphemeralAgent);
