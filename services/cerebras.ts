@@ -275,7 +275,7 @@ export async function chatCompletion(
             let processedMessages = JSON.parse(JSON.stringify(optimizedMessages));
 
             // --- Model Specific Handling for Multimodal Models ---
-            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5' || model.includes('qwen3.5') || model === 'mistralai/mistral-small-4-119b-2603';
+            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5' || model.includes('qwen3.5') || model === 'mistralai/mistral-small-4-119b-2603' || model === 'google/gemma-4-31b-it';
             
             if (isMultimodal) {
                 const lastUserMsgIndex = processedMessages.findLastIndex((m: any) => m.role === 'user');

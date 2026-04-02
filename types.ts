@@ -242,7 +242,8 @@ export type AppModel =
   | 'glm-5:cloud'
   | 'minimax-m2.5:cloud'
   | 'qwen3-vl:235b-cloud'
-  | 'mistralai/mistral-small-4-119b-2603';
+  | 'mistralai/mistral-small-4-119b-2603'
+  | 'google/gemma-4-31b-it';
 
 export interface Agent {
   id: string;
@@ -285,7 +286,8 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'glm-5:cloud',
   'minimax-m2.5:cloud',
   'qwen3-vl:235b-cloud',
-  'mistralai/mistral-small-4-119b-2603'
+  'mistralai/mistral-small-4-119b-2603',
+  'google/gemma-4-31b-it'
 ];
 
 export const MULTIMODAL_MODELS: AppModel[] = [
@@ -295,7 +297,8 @@ export const MULTIMODAL_MODELS: AppModel[] = [
   'qwen/qwen3.5-122b-a10b',
   'kimi-k2.5:cloud',
   'qwen3-vl:235b-cloud',
-  'mistralai/mistral-small-4-119b-2603'
+  'mistralai/mistral-small-4-119b-2603',
+  'google/gemma-4-31b-it'
 ];
 
 export interface SettingsProps {

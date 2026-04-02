@@ -443,6 +443,7 @@ const Settings: React.FC<SettingsProps> = ({
                       <option value="moonshotai/kimi-k2.5">Kimi k2.5</option>
                       <option value="qwen/qwen3.5-122b-a10b">Qwen 3.5 (122B)</option>
                       <option value="qwen/qwen3.5-397b-a17b">Qwen 3.5 (397B)</option>
+                      <option value="google/gemma-4-31b-it">Gemma 4 (31B)</option>
                   </select>
               </div>
 
