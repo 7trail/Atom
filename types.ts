@@ -231,7 +231,7 @@ export type AppModel =
   | 'moonshotai/kimi-k2-instruct-0905'
   | 'moonshotai/kimi-k2-thinking'
   | 'mistralai/mistral-medium-3-instruct'
-  | 'moonshotai/kimi-k2.5'
+  | 'moonshotai/kimi-k2.6'
   | 'stepfun-ai/step-3.5-flash'
   | 'minimaxai/minimax-m2.1'
   | 'minimaxai/minimax-m2.5'
@@ -276,7 +276,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'moonshotai/kimi-k2-instruct-0905',
   'moonshotai/kimi-k2-thinking',
   'mistralai/mistral-medium-3-instruct',
-  'moonshotai/kimi-k2.5',
+  'moonshotai/kimi-k2.6',
   'stepfun-ai/step-3.5-flash',
   'minimaxai/minimax-m2.1',
   'minimaxai/minimax-m2.5',
@@ -294,7 +294,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
 
 export const MULTIMODAL_MODELS: AppModel[] = [
   'nvidia/nemotron-nano-12b-v2-vl',
-  'moonshotai/kimi-k2.5',
+  'moonshotai/kimi-k2.6',
   'qwen/qwen3.5-397b-a17b',
   'qwen/qwen3.5-122b-a10b',
   'kimi-k2.5:cloud',
