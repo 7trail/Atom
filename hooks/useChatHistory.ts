@@ -106,7 +106,7 @@ export const useChatHistory = ({
 
     const generateChatTitle = async (firstMessage: string) => {
         const keys = getApiKeys();
-        const titleModel = keys.length > 0 ? 'qwen-3-235b-a22b-instruct-2507' : 'nvidia/nemotron-nano-12b-v2-vl';
+        const titleModel = keys.length > 0 ? 'nvidia/nemotron-3-nano-30b-a3b' : 'nvidia/nemotron-nano-12b-v2-vl';
         
         try {
             const result = await generateText(

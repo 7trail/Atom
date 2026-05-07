@@ -275,7 +275,7 @@ export async function chatCompletion(
             let processedMessages = JSON.parse(JSON.stringify(optimizedMessages));
 
             // --- Model Specific Handling for Multimodal Models ---
-            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model === 'moonshotai/kimi-k2.5' || model.includes('qwen3.5') || model === 'mistralai/mistral-small-4-119b-2603' || model === 'google/gemma-4-31b-it';
+            const isMultimodal = model === 'nvidia/nemotron-nano-12b-v2-vl' || model.includes('moonshotai/kimi-k2.5') || model.includes('moonshotai/kimi-k2.6') || model.includes('qwen3.5') || model === 'mistralai/mistral-small-4-119b-2603' || model === 'google/gemma-4-31b-it';
             
             if (isMultimodal) {
                 const lastUserMsgIndex = processedMessages.findLastIndex((m: any) => m.role === 'user');
@@ -326,8 +326,8 @@ export async function chatCompletion(
                 model: model,
                 messages: processedMessages,
                 temperature: 1,
-                top_p: 0.95,
-                max_tokens: 32768,
+                top_p: 1.00,
+                max_tokens: model.includes('kimi') ? 16384 : 32768,
                 stream: true, // Enable Streaming
                 stream_options: { include_usage: true }
             };
@@ -341,8 +341,11 @@ export async function chatCompletion(
             if (model.includes('/') && !model.includes('vl')) {
                 // Basic nemotron thinking config (not for VL model)
                 //params.reasoning_budget = 16384;
-                if (!model.includes("mistral")) {
-                    params.chat_template_kwargs = { enable_thinking: true,"clear_thinking":false, "thinking":true };
+                if (model.includes("2.6")) {
+                    params.chat_template_kwargs = { "thinking":true }
+                }
+                else if (!model.includes("mistral")) {
+                    params.chat_template_kwargs = { enable_thinking: true,"clear_thinking":false};
                 } else {
                     params.reasoning_effort = "high";
                 }

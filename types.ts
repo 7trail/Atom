@@ -244,7 +244,9 @@ export type AppModel =
   | 'minimax-m2.5:cloud'
   | 'qwen3-vl:235b-cloud'
   | 'mistralai/mistral-small-4-119b-2603'
-  | 'google/gemma-4-31b-it';
+  | 'google/gemma-4-31b-it'
+  | "deepseek-ai/deepseek-v4-flash"
+  | "deepseek-ai/deepseek-v4-pro";
 
 export interface Agent {
   id: string;
@@ -289,7 +291,9 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'minimax-m2.5:cloud',
   'qwen3-vl:235b-cloud',
   'mistralai/mistral-small-4-119b-2603',
-  'google/gemma-4-31b-it'
+  'google/gemma-4-31b-it',
+  "deepseek-ai/deepseek-v4-pro",
+  "deepseek-ai/deepseek-v4-flash"
 ];
 
 export const MULTIMODAL_MODELS: AppModel[] = [
