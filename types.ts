@@ -233,8 +233,7 @@ export type AppModel =
   | 'mistralai/mistral-medium-3-instruct'
   | 'moonshotai/kimi-k2.6'
   | 'stepfun-ai/step-3.5-flash'
-  | 'minimaxai/minimax-m2.1'
-  | 'minimaxai/minimax-m2.5'
+  | 'stepfun-ai/step-3.7-flash'
   | 'minimaxai/minimax-m2.7'
   | 'z-ai/glm5'
   | 'qwen/qwen3.5-397b-a17b'
@@ -280,8 +279,6 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'mistralai/mistral-medium-3-instruct',
   'moonshotai/kimi-k2.6',
   'stepfun-ai/step-3.5-flash',
-  'minimaxai/minimax-m2.1',
-  'minimaxai/minimax-m2.5',
   'minimaxai/minimax-m2.7',
   'z-ai/glm5',
   'qwen/qwen3.5-397b-a17b',
