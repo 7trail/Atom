@@ -279,6 +279,7 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'mistralai/mistral-medium-3-instruct',
   'moonshotai/kimi-k2.6',
   'stepfun-ai/step-3.5-flash',
+  'stepfun-ai/step-3.7-flash',
   'minimaxai/minimax-m2.7',
   'z-ai/glm5',
   'qwen/qwen3.5-397b-a17b',
