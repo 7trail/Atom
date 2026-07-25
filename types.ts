@@ -245,7 +245,8 @@ export type AppModel =
   | 'mistralai/mistral-small-4-119b-2603'
   | 'google/gemma-4-31b-it'
   | "deepseek-ai/deepseek-v4-flash"
-  | "deepseek-ai/deepseek-v4-pro";
+  | "deepseek-ai/deepseek-v4-pro"
+  | "thinkingmachines/inkling";
 
 export interface Agent {
   id: string;
@@ -291,7 +292,8 @@ export const SUPPORTED_MODELS: AppModel[] = [
   'mistralai/mistral-small-4-119b-2603',
   'google/gemma-4-31b-it',
   "deepseek-ai/deepseek-v4-pro",
-  "deepseek-ai/deepseek-v4-flash"
+  "deepseek-ai/deepseek-v4-flash",
+  "thinkingmachines/inkling"
 ];
 
 export const MULTIMODAL_MODELS: AppModel[] = [
